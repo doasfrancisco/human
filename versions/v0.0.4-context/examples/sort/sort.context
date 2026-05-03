@@ -1,0 +1,18 @@
+{
+  "kind": "algorithm",
+  "name": "insertion_sort",
+  "input": [
+    1,
+    2,
+    3
+  ],
+  "output": "sorted array",
+  "order": "ascending",
+  "stable": true,
+  "logic": [
+    "Start with the first element [1] as the initial sorted subarray.",
+    "Take the next element 2, compare with 1, 2 >= 1 so no shift needed; insert 2 after 1. Sorted subarray: [1, 2].",
+    "Take the next element 3, compare with 2, 3 >= 2 so no shift needed; insert 3 after 2. Sorted subarray: [1, 2, 3].",
+    "All elements processed. Return [1, 2, 3]."
+  ]
+}

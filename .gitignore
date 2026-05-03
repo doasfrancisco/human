@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+.env
+
+# Claude Code local overrides (per-machine hooks)
+.claude/settings.local.json
+
+# Generated compiler outputs (v0.0.1 TLA+ → Python)
+versions/v0.0.1-tla/*.py
+!versions/v0.0.1-tla/fran.py
+!versions/v0.0.1-tla/lexer.py
+!versions/v0.0.1-tla/tla_parser.py
+!versions/v0.0.1-tla/codegen.py
+
+# Generated compiler outputs (v0.0.2 .fpp → Python)
+versions/v0.0.2-macros/*.py
+!versions/v0.0.2-macros/fran.py
+!versions/v0.0.2-macros/lexer.py
+!versions/v0.0.2-macros/parser.py
+!versions/v0.0.2-macros/macros.py
+!versions/v0.0.2-macros/codegen.py
