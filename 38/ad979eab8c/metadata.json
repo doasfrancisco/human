@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "38ad979eab8c",
+  "strategy": "manual-commit",
+  "branch": "master",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".gitignore",
+    "nia.md",
+    "test_bedrock.py",
+    "versions/v0.0.4-context/COMPILE.md",
+    "versions/v0.0.4-context/README.md",
+    "versions/v0.0.4-context/compiler.py",
+    "versions/v0.0.4-context/examples/sort/sort.human",
+    "versions/v0.0.4-context/v4-insights.md",
+    "versions/v0.0.4-context/v4-language.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/38/ad979eab8c/0/metadata.json",
+      "transcript": "/38/ad979eab8c/0/full.jsonl",
+      "content_hash": "/38/ad979eab8c/0/content_hash.txt",
+      "prompt": "/38/ad979eab8c/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 219,
+    "cache_creation_tokens": 412630,
+    "cache_read_tokens": 7014094,
+    "output_tokens": 48737,
+    "api_call_count": 86
+  }
+}
