@@ -10,6 +10,7 @@
 | Dep | Nia identifier | Type |
 |---|---|---|
 | AWS docs (Bedrock API keys, boto3, runtime) | `https://docs.aws.amazon.com/` | documentation |
+| FastAPI framework | `fastapi/fastapi` / `d97110e7-825a-463f-87f6-7e21fe6cab4b` | repository |
 
 ## Examples
 
@@ -20,6 +21,8 @@ nia sources resolve "https://docs.aws.amazon.com/" --type documentation
 nia sources tree ad88402b-a9e3-4281-a9ee-7d484a943b8f
 nia sources grep ad88402b-a9e3-4281-a9ee-7d484a943b8f "AWS_BEARER_TOKEN_BEDROCK"
 nia sources read ad88402b-a9e3-4281-a9ee-7d484a943b8f bedrock/latest/userguide/api-keys-use.md
+nia search query "FastAPI route static files templates websocket examples" --repos "fastapi/fastapi"
+nia repos tree d97110e7-825a-463f-87f6-7e21fe6cab4b
 ```
 
 ### Multi-source query
