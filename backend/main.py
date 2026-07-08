@@ -4,6 +4,8 @@ import difflib
 import hashlib
 import json
 import os
+import re
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -32,16 +34,15 @@ REGION = os.environ.get("AWS_REGION", "us-east-1")
 WORKSPACE = Path(__file__).resolve().parent / "workspace"
 PROGRAM_NAME = "program"
 GRAPH_VERSION = 1
+PROJECTS_VERSION = 1
 DEFAULT_HUMAN = "insertion sort"
+DEFAULT_PROJECT_NAME = "untitled"
 
 app = FastAPI(title="fran++ v0.0.5 backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -78,6 +79,31 @@ class BundleRequest(BaseModel):
     humanHash: str
 
 
+class ProjectCreateRequest(BaseModel):
+    name: str
+
+
+class ProjectSelectRequest(BaseModel):
+    id: str
+
+
+class ProjectRenameRequest(BaseModel):
+    id: str
+    name: str
+
+
+class ProjectResponse(BaseModel):
+    id: str
+    name: str
+    created_at: str
+    updated_at: str
+    active: bool
+
+
+class ProjectsResponse(BaseModel):
+    projects: list[ProjectResponse]
+
+
 class ActiveResponse(BaseModel):
     humanHash: str | None
     contextHash: str | None
@@ -95,12 +121,14 @@ class ContextProvenanceResponse(BaseModel):
     source: str
     text: str
     previousLine: int | str | None = None
+    target: str | None = None
 
 
 class TreePythonResponse(BaseModel):
     hash: str
     preview: str
     active: bool
+    target: str | None = None
     createdAt: str
     updatedAt: str
 
@@ -109,6 +137,7 @@ class TreeContextResponse(BaseModel):
     hash: str
     preview: str
     active: bool
+    role: Literal["leaf", "split", "direct"] = "leaf"
     python: TreePythonResponse | None = None
     pythons: list[TreePythonResponse] = []
     createdAt: str
@@ -131,7 +160,9 @@ class FilesResponse(BaseModel):
     python: str
     active: ActiveResponse
     status: StatusResponse
+    contextRole: Literal["leaf", "split", "direct"] | None = None
     contextProvenance: list[ContextProvenanceResponse] = []
+    pythonProvenance: list[ContextProvenanceResponse] = []
     tree: list[TreeHumanResponse]
 
 
@@ -156,21 +187,124 @@ def preview(text: str, max_len: int = 72) -> str:
     return first
 
 
-def workspace_path(suffix: str) -> Path:
+def projects_index_path() -> Path:
     WORKSPACE.mkdir(parents=True, exist_ok=True)
-    return WORKSPACE / f"{PROGRAM_NAME}.{suffix}"
+    return WORKSPACE / "projects.json"
+
+
+def project_dir(project_id: str) -> Path:
+    return WORKSPACE / "projects" / project_id
+
+
+def empty_projects_index() -> dict[str, Any]:
+    return {"version": PROJECTS_VERSION, "active_id": None, "projects": []}
+
+
+def write_projects_index(index: dict[str, Any]) -> None:
+    projects_index_path().write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def read_projects_index() -> dict[str, Any]:
+    path = projects_index_path()
+    if not path.exists():
+        index = empty_projects_index()
+        write_projects_index(index)
+        return index
+
+    try:
+        index = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=500, detail=f"projects index is invalid JSON: {exc}") from exc
+
+    index.setdefault("version", PROJECTS_VERSION)
+    index.setdefault("projects", [])
+    index.setdefault("active_id", None)
+    ids = {project["id"] for project in index["projects"]}
+    if index["active_id"] not in ids:
+        index["active_id"] = index["projects"][0]["id"] if index["projects"] else None
+        write_projects_index(index)
+    return index
+
+
+def slugify(name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-")
+    return slug or "project"
+
+
+def new_project_id(index: dict[str, Any], name: str) -> str:
+    base = f"{slugify(name)}-{content_hash(name)[:8]}"
+    existing = {project["id"] for project in index["projects"]}
+    if base not in existing:
+        return base
+    counter = 2
+    while f"{base}-{counter}" in existing:
+        counter += 1
+    return f"{base}-{counter}"
+
+
+def create_project(index: dict[str, Any], name: str) -> dict[str, Any]:
+    project_id = new_project_id(index, name)
+    timestamp = now_iso()
+    project = {
+        "id": project_id,
+        "name": name.strip() or DEFAULT_PROJECT_NAME,
+        "created_at": timestamp,
+        "updated_at": timestamp,
+    }
+    index["projects"].append(project)
+    index["active_id"] = project_id
+    directory = project_dir(project_id)
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "graph.json").write_text(
+        json.dumps(empty_graph(), indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    write_projects_index(index)
+    return project
+
+
+def active_project_id() -> str:
+    index = read_projects_index()
+    if index["active_id"] is None:
+        return create_project(index, DEFAULT_PROJECT_NAME)["id"]
+    return index["active_id"]
+
+
+def touch_active_project() -> None:
+    index = read_projects_index()
+    for project in index["projects"]:
+        if project["id"] == index["active_id"]:
+            project["updated_at"] = now_iso()
+            write_projects_index(index)
+            return
+
+
+def projects_response(index: dict[str, Any]) -> ProjectsResponse:
+    return ProjectsResponse(
+        projects=[
+            ProjectResponse(
+                id=project["id"],
+                name=project["name"],
+                created_at=project.get("created_at", ""),
+                updated_at=project.get("updated_at", ""),
+                active=project["id"] == index["active_id"],
+            )
+            for project in index["projects"]
+        ]
+    )
+
+
+def active_workspace() -> Path:
+    directory = project_dir(active_project_id())
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
+def workspace_path(suffix: str) -> Path:
+    return active_workspace() / f"{PROGRAM_NAME}.{suffix}"
 
 
 def graph_path() -> Path:
-    WORKSPACE.mkdir(parents=True, exist_ok=True)
-    return WORKSPACE / "graph.json"
-
-
-def read_legacy_file(suffix: str, default: str = "") -> str:
-    path = workspace_path(suffix)
-    if not path.exists():
-        return default
-    return path.read_text(encoding="utf-8")
+    return active_workspace() / "graph.json"
 
 
 def write_file(suffix: str, text: str) -> None:
@@ -199,18 +333,7 @@ def read_graph() -> dict[str, Any]:
     path = graph_path()
     if not path.exists():
         graph = empty_graph()
-        human = read_legacy_file("human", DEFAULT_HUMAN)
-        ensure_human(graph, human)
-        context = read_legacy_file("context")
-        python = read_legacy_file("py")
-        if context:
-            ensure_context(graph, context, graph["current_human_hash"])
-        if python and graph["current_human_hash"]:
-            context_hash = graph["humans"][graph["current_human_hash"]].get("context_hash")
-            if context_hash:
-                ensure_python(graph, python, context_hash)
         write_graph(graph)
-        materialize_current(graph)
         return graph
 
     try:
@@ -229,11 +352,19 @@ def read_graph() -> dict[str, Any]:
         if "provenance" not in context:
             human_text = graph["humans"].get(context.get("human_hash"), {}).get("text", DEFAULT_HUMAN)
             context["provenance"] = context_provenance_from_scratch(human_text, context.get("text", ""))
+        if "role" not in context:
+            context["role"] = "leaf"
+        if context.get("role") == "direct" and context.get("python_hash"):
+            python = graph["pythons"].get(context["python_hash"])
+            if python is not None and "provenance" not in python:
+                human_text = graph["humans"].get(context.get("human_hash"), {}).get("text", "")
+                python["provenance"] = python_provenance_fallback(human_text, python.get("text", ""))
     return graph
 
 
 def write_graph(graph: dict[str, Any]) -> None:
     graph_path().write_text(json.dumps(graph, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    touch_active_project()
 
 
 def touch(node: dict[str, Any]) -> None:
@@ -396,6 +527,7 @@ def ensure_context(
     human_hash: str | None,
     provenance: list[dict[str, Any]] | None = None,
     parent_context_hash: str | None = None,
+    role: Literal["leaf", "split", "direct"] | None = None,
 ) -> str:
     if not human_hash:
         human_hash = ensure_human(graph, DEFAULT_HUMAN)
@@ -409,6 +541,7 @@ def ensure_context(
             "text": text,
             "human_hash": human_hash,
             "python_hash": None,
+            "role": role or "leaf",
             "provenance": provenance or context_provenance_from_scratch(graph["humans"][human_hash]["text"], text),
             "parent_context_hash": parent_context_hash,
             "created_at": timestamp,
@@ -417,6 +550,9 @@ def ensure_context(
     else:
         touch(contexts[hash_])
         contexts[hash_].setdefault("human_hash", human_hash)
+        if role is not None:
+            contexts[hash_]["role"] = role
+        contexts[hash_].setdefault("role", "leaf")
         if provenance is not None:
             contexts[hash_]["provenance"] = provenance
         contexts[hash_].setdefault("provenance", context_provenance_from_scratch(graph["humans"][human_hash]["text"], text))
@@ -598,6 +734,7 @@ def python_tree_response(graph: dict[str, Any], python: dict[str, Any], active_p
         hash=python["hash"],
         preview=preview(python["text"]),
         active=python["hash"] == active_python,
+        target=python.get("target"),
         createdAt=python.get("created_at", ""),
         updatedAt=python.get("updated_at", ""),
     )
@@ -618,6 +755,7 @@ def context_tree_response(graph: dict[str, Any], context: dict[str, Any], active
         hash=context["hash"],
         preview=preview(context["text"]),
         active=context["hash"] == active_context,
+        role=context.get("role", "leaf"),
         python=current_python,
         pythons=python_responses,
         createdAt=context.get("created_at", ""),
@@ -660,10 +798,30 @@ def graph_tree(graph: dict[str, Any]) -> list[TreeHumanResponse]:
     return tree
 
 
+def provenance_response(entries: list[Any]) -> list[ContextProvenanceResponse]:
+    return [
+        ContextProvenanceResponse(
+            line=entry.get("line", "?"),
+            status=entry.get("status", "unknown"),
+            source=entry.get("source", "unknown source"),
+            text=entry.get("text", ""),
+            previousLine=entry.get("previous_line"),
+            target=entry.get("target"),
+        )
+        for entry in entries
+        if isinstance(entry, dict)
+    ]
+
+
 def files_response(graph: dict[str, Any]) -> FilesResponse:
     human_hash, context_hash, python_hash = active_hashes(graph)
     human, context, python = active_texts(graph)
-    provenance = graph["contexts"].get(context_hash, {}).get("provenance", []) if context_hash else []
+    context_node = graph["contexts"].get(context_hash, {}) if context_hash else {}
+    python_provenance = (
+        graph["pythons"].get(python_hash, {}).get("provenance", [])
+        if python_hash and context_node.get("role") == "direct"
+        else []
+    )
     return FilesResponse(
         human=human,
         context=context,
@@ -677,17 +835,9 @@ def files_response(graph: dict[str, Any]) -> FilesResponse:
             hasContext=context_hash is not None,
             hasPython=python_hash is not None,
         ),
-        contextProvenance=[
-            ContextProvenanceResponse(
-                line=entry.get("line", "?"),
-                status=entry.get("status", "unknown"),
-                source=entry.get("source", "unknown source"),
-                text=entry.get("text", ""),
-                previousLine=entry.get("previous_line"),
-            )
-            for entry in provenance
-            if isinstance(entry, dict)
-        ],
+        contextRole=context_node.get("role", "leaf") if context_hash else None,
+        contextProvenance=provenance_response(context_node.get("provenance", [])),
+        pythonProvenance=provenance_response(python_provenance),
         tree=graph_tree(graph),
     )
 
@@ -769,6 +919,78 @@ Rules:
 - Remove or replace old context lines only when they conflict with the new human intent.
 """
 
+HUMAN_TO_SPLIT_SYSTEM = """You are the .human -> .context split compiler stage for fran++ v0.0.5.
+
+Input: freeform human intent.
+Output: a readable decomposition of the intent into units, as plain-text sections.
+
+Rules:
+- Do not output JSON.
+- Do not output markdown.
+- Do not output code.
+- One section per unit, sections separated by exactly one blank line.
+- Every section starts with a line of exactly this form: <target> — <description>
+- <target> is the file the unit compiles to, ending in .py, or an inner context ending in .context for a unit that needs its own decomposition later.
+- <description> is a plain-English sentence or short paragraph (it may continue on the following lines of the section) saying what the unit does, what it takes in, what it produces, and which other units it uses.
+- Example: serve.py — Bind to the host and port, accept connections, and dispatch each request to the handler.
+- Exactly one unit targets main.py and its description says how it orchestrates the other units.
+- Decompose the intent into the smallest set of cohesive units that covers it completely.
+- Each unit's description must be precise enough to compile that unit to Python in isolation.
+"""
+
+CONTEXT_SHAPE_SYSTEM = """You are the .context shape triage stage for fran++ v0.0.5.
+
+Input: freeform human intent.
+Output: exactly one word: leaf or split.
+
+Rules:
+- Answer split only when the intent clearly decomposes into several cohesive units (a pipeline, multiple components, distinct responsibilities) that deserve separate files.
+- Answer leaf when the intent is a single cohesive unit, even if it needs many implementation decisions.
+- When unsure, answer leaf.
+- Output the single word and nothing else.
+"""
+
+COMPILE_TRIAGE_SYSTEM = """You are the compile triage stage for fran++ v0.0.5.
+
+Input: freeform human intent.
+Output: exactly one word: direct or context.
+
+Rules:
+- Answer direct when a competent programmer could write the Python immediately with no design notes in between.
+- direct covers: named textbook algorithms (insertion sort, binary search, fizzbuzz, reverse a string, fibonacci), one-liner utilities, tiny single-file scripts, and an algorithm or task name optionally followed by sample input values.
+- Terse intents are fine for direct: "insertion sort 1 3 2" means implement insertion sort and demo it on 1 3 2, so it is direct.
+- Answer context only when the intent has multiple distinct components, needs architectural decisions, or is so under-specified that sensible defaults cannot settle it.
+- If the intent is a single small self-contained script and you are torn, answer direct.
+- Output the single word and nothing else.
+"""
+
+HUMAN_TO_PYTHON_SYSTEM = """You are the direct .human -> .py compiler stage for fran++ v0.0.5.
+
+Input: freeform human intent.
+Output: Python source code only.
+
+Rules:
+- No prose.
+- No markdown fences.
+- The first line must be exactly: \"\"\"Compiled directly from .human — DO NOT EDIT.\"\"\"
+- Implement the intent faithfully with sensible defaults.
+- Include a small if __name__ == \"__main__\": example when appropriate.
+- Keep imports minimal.
+"""
+
+PYTHON_PROVENANCE_SYSTEM = """You are the .human -> .py provenance mapping stage for fran++ v0.0.5.
+
+Input: a human intent and the numbered lines of the Python compiled directly from it.
+Output: a JSON array only.
+
+Rules:
+- Each array element is an object with exactly two keys: "line" (an integer line number from the numbered Python) and "source" (the human phrase that motivates that line, quoted verbatim from the intent).
+- Cover every non-blank Python line; skip blank lines.
+- Prefer the shortest human phrase that explains the line; when a line is general boilerplate implied by the whole intent, use the entire intent as the phrase.
+- Do not invent phrases that are not in the human intent.
+- Output the JSON array and nothing else.
+"""
+
 CONTEXT_TO_PYTHON_SYSTEM = """You are the .context -> .py compiler stage for fran++ v0.0.5.
 
 Input: free-text implementation context.
@@ -813,12 +1035,207 @@ def update_context(previous_human: str, previous_context: str, new_human: str) -
     return strip_code_fences(raw) + "\n"
 
 
+def human_to_split(human: str) -> str:
+    raw = call_bedrock(
+        HUMAN_TO_SPLIT_SYSTEM,
+        f"Human intent:\n{human.strip()}\n\nReturn only the split .context rows.",
+    )
+    return strip_code_fences(raw) + "\n"
+
+
 def context_to_python(context: str) -> str:
     raw = call_bedrock(
         CONTEXT_TO_PYTHON_SYSTEM,
         f"Context:\n{context.strip()}\n\nReturn only the Python source.",
     )
     return strip_code_fences(raw) + "\n"
+
+
+def human_to_python(human: str) -> str:
+    raw = call_bedrock(
+        HUMAN_TO_PYTHON_SYSTEM,
+        f"Human intent:\n{human.strip()}\n\nReturn only the Python source.",
+    )
+    return strip_code_fences(raw) + "\n"
+
+
+def decide_word(system_prompt: str, human: str, options: set[str], default: str) -> str:
+    raw = call_bedrock(system_prompt, f"Human intent:\n{human.strip()}\n\nAnswer with one word.", max_tokens=16)
+    for token in raw.strip().lower().split():
+        word = token.strip(".,:;!\"'")
+        if word in options:
+            return word
+    return default
+
+
+def decide_context_shape(human: str) -> Literal["leaf", "split"]:
+    return decide_word(CONTEXT_SHAPE_SYSTEM, human, {"leaf", "split"}, "leaf")
+
+
+def decide_compile_route(human: str) -> Literal["direct", "context"]:
+    return decide_word(COMPILE_TRIAGE_SYSTEM, human, {"direct", "context"}, "context")
+
+
+SPLIT_TARGET_RE = re.compile(r"^([\w.\-/]+\.(?:py|context))\s*(?:—|–|--|:)\s*(.*)$")
+
+
+def parse_split_sections(text: str) -> list[dict[str, Any]]:
+    sections: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        match = SPLIT_TARGET_RE.match(stripped)
+        if match:
+            current = {"target": match.group(1), "description": [match.group(2).strip()]}
+            sections.append(current)
+        elif current:
+            current["description"].append(stripped)
+    return sections
+
+
+def split_provenance(human: str, context: str) -> list[dict[str, Any]]:
+    source = f'human phrase "{human.strip()}"'
+    provenance: list[dict[str, Any]] = []
+    target: str | None = None
+    for index, line in enumerate(context.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        match = SPLIT_TARGET_RE.match(stripped)
+        if match:
+            target = match.group(1)
+        provenance.append({"line": index, "status": "added", "source": source, "text": stripped, "target": target})
+    return provenance
+
+
+def direct_context_text(human_hash: str) -> str:
+    return f"compiled directly from .human {human_hash[:12]}; no intermediate .context\n"
+
+
+def python_provenance_fallback(human: str, python: str) -> list[dict[str, Any]]:
+    source = f'human phrase "{human.strip()}"'
+    return [
+        {"line": index, "status": "added", "source": source, "text": line, "target": f"{PROGRAM_NAME}.py"}
+        for index, line in enumerate(python.splitlines(), start=1)
+        if line.strip()
+    ]
+
+
+def python_provenance_from_llm(human: str, python: str) -> list[dict[str, Any]] | None:
+    lines = python.splitlines()
+    numbered = "\n".join(f"{index}: {line}" for index, line in enumerate(lines, start=1))
+    raw = call_bedrock(
+        PYTHON_PROVENANCE_SYSTEM,
+        f"Human intent:\n{human.strip()}\n\nNumbered Python:\n{numbered}\n\nReturn only the JSON array.",
+    )
+    try:
+        entries = json.loads(strip_code_fences(raw))
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(entries, list):
+        return None
+
+    provenance: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        line = entry.get("line")
+        source = entry.get("source")
+        if not isinstance(line, int) or line < 1 or line > len(lines) or line in seen:
+            continue
+        if not isinstance(source, str) or not source.strip():
+            continue
+        text = lines[line - 1]
+        if not text.strip():
+            continue
+        seen.add(line)
+        provenance.append(
+            {
+                "line": line,
+                "status": "added",
+                "source": f'human phrase "{source.strip()}"',
+                "text": text,
+                "target": f"{PROGRAM_NAME}.py",
+            }
+        )
+    return provenance or None
+
+
+def python_provenance_for_direct(human: str, python: str) -> list[dict[str, Any]]:
+    if not python.strip():
+        return []
+    try:
+        mapped = python_provenance_from_llm(human, python)
+    except HTTPException:
+        mapped = None
+    return mapped or python_provenance_fallback(human, python)
+
+
+def resolve_adaptive_context(graph: dict[str, Any], req: HumanRequest) -> str:
+    previous_human_hash, previous_context_hash, _ = active_hashes(graph)
+    previous_human = graph["humans"].get(previous_human_hash, {}).get("text", "") if previous_human_hash else ""
+    previous_context_node = graph["contexts"].get(previous_context_hash) if previous_context_hash else None
+    previous_context = previous_context_node.get("text", "") if previous_context_node else ""
+
+    human_hash = ensure_human(graph, req.human)
+    human = graph["humans"][human_hash]
+
+    if human.get("context_hash") and not req.force:
+        return human["context_hash"]
+
+    shape = decide_context_shape(req.human)
+    if shape == "split":
+        context = human_to_split(req.human)
+        provenance = split_provenance(req.human, context)
+        return ensure_context(graph, context, human_hash, provenance=provenance, role="split")
+
+    if previous_context and previous_human_hash != human_hash and previous_context_node.get("role", "leaf") == "leaf":
+        context = update_context(previous_human, previous_context, req.human)
+        provenance = context_provenance_from_update(previous_human, previous_context_node, req.human, context)
+        return ensure_context(graph, context, human_hash, provenance=provenance, parent_context_hash=previous_context_hash, role="leaf")
+
+    context = human_to_context(req.human)
+    provenance = context_provenance_from_scratch(req.human, context)
+    return ensure_context(graph, context, human_hash, provenance=provenance, role="leaf")
+
+
+def compile_split_children(graph: dict[str, Any], context_hash: str) -> None:
+    context_node = graph["contexts"][context_hash]
+    sections = parse_split_sections(context_node["text"])
+    targets = [section["target"] for section in sections]
+    for section in sections:
+        if not section["target"].endswith(".py"):
+            continue
+        unit_context = "\n".join(
+            [
+                f"Compile only the unit that targets {section['target']}.",
+                f"The full program is split into these units: {', '.join(targets)}.",
+                "When the description says this unit uses another unit, import that unit by its module name.",
+                "Unit description:",
+                *section["description"],
+            ]
+        )
+        python = context_to_python(unit_context)
+        python_hash = ensure_python(graph, python, context_hash)
+        graph["pythons"][python_hash]["target"] = section["target"]
+
+
+def complete_python(graph: dict[str, Any], context_hash: str, human: str, force: bool = False) -> None:
+    context_node = graph["contexts"][context_hash]
+    if context_node.get("python_hash") and not force:
+        return
+    role = context_node.get("role", "leaf")
+    if role == "split":
+        compile_split_children(graph, context_hash)
+    elif role == "direct":
+        python_text = human_to_python(human)
+        python_hash = ensure_python(graph, python_text, context_hash)
+        graph["pythons"][python_hash]["provenance"] = python_provenance_for_direct(human, python_text)
+    else:
+        ensure_python(graph, context_to_python(context_node["text"]), context_hash)
 
 
 @app.get("/")
@@ -829,6 +1246,66 @@ def root():
 @app.get("/api/health")
 def health():
     return {"ok": True, "model": MODEL_ID, "region": REGION}
+
+
+@app.get("/api/projects", response_model=ProjectsResponse)
+def list_projects():
+    return projects_response(read_projects_index())
+
+
+@app.post("/api/projects", response_model=ProjectsResponse)
+def create_project_endpoint(req: ProjectCreateRequest):
+    index = read_projects_index()
+    create_project(index, req.name)
+    return projects_response(index)
+
+
+@app.post("/api/projects/select", response_model=FilesResponse)
+def select_project(req: ProjectSelectRequest):
+    index = read_projects_index()
+    if req.id not in {project["id"] for project in index["projects"]}:
+        raise HTTPException(status_code=404, detail="Project not found")
+    index["active_id"] = req.id
+    write_projects_index(index)
+    graph = read_graph()
+    materialize_current(graph)
+    return files_response(graph)
+
+
+@app.post("/api/projects/rename", response_model=ProjectsResponse)
+def rename_project(req: ProjectRenameRequest):
+    index = read_projects_index()
+    for project in index["projects"]:
+        if project["id"] == req.id:
+            project["name"] = req.name.strip() or project["name"]
+            project["updated_at"] = now_iso()
+            write_projects_index(index)
+            return projects_response(index)
+    raise HTTPException(status_code=404, detail="Project not found")
+
+
+@app.post("/api/projects/delete", response_model=ProjectsResponse)
+def delete_project(req: ProjectSelectRequest):
+    index = read_projects_index()
+    if req.id not in {project["id"] for project in index["projects"]}:
+        raise HTTPException(status_code=404, detail="Project not found")
+    shutil.rmtree(project_dir(req.id), ignore_errors=True)
+    index["projects"] = [project for project in index["projects"] if project["id"] != req.id]
+    if index["active_id"] == req.id:
+        index["active_id"] = index["projects"][0]["id"] if index["projects"] else None
+    write_projects_index(index)
+    return projects_response(index)
+
+
+@app.post("/api/projects/wipe", response_model=ProjectsResponse)
+def wipe_projects():
+    shutil.rmtree(WORKSPACE / "projects", ignore_errors=True)
+    for suffix in ["human", "context", "py", "explain"]:
+        (WORKSPACE / f"{PROGRAM_NAME}.{suffix}").unlink(missing_ok=True)
+    (WORKSPACE / "graph.json").unlink(missing_ok=True)
+    index = empty_projects_index()
+    write_projects_index(index)
+    return projects_response(index)
 
 
 @app.get("/api/files", response_model=FilesResponse)
@@ -919,23 +1396,23 @@ def delete(req: DeleteRequest):
 @app.post("/api/human-to-context", response_model=FilesResponse)
 def human_to_context_endpoint(req: HumanRequest):
     graph = read_graph()
-    previous_human_hash, previous_context_hash, _ = active_hashes(graph)
-    previous_human = graph["humans"].get(previous_human_hash, {}).get("text", "") if previous_human_hash else ""
-    previous_context_node = graph["contexts"].get(previous_context_hash) if previous_context_hash else None
-    previous_context = previous_context_node.get("text", "") if previous_context_node else ""
+    resolve_adaptive_context(graph, req)
+    write_graph(graph)
+    materialize_current(graph)
+    return files_response(graph)
 
+
+@app.post("/api/human-to-split", response_model=FilesResponse)
+def human_to_split_endpoint(req: HumanRequest):
+    graph = read_graph()
     human_hash = ensure_human(graph, req.human)
     human = graph["humans"][human_hash]
+    current_context = graph["contexts"].get(human.get("context_hash")) if human.get("context_hash") else None
 
-    if not human.get("context_hash") or req.force:
-        if previous_context and previous_human_hash != human_hash:
-            context = update_context(previous_human, previous_context, req.human)
-            provenance = context_provenance_from_update(previous_human, previous_context_node, req.human, context)
-            ensure_context(graph, context, human_hash, provenance=provenance, parent_context_hash=previous_context_hash)
-        else:
-            context = human_to_context(req.human)
-            provenance = context_provenance_from_scratch(req.human, context)
-            ensure_context(graph, context, human_hash, provenance=provenance)
+    if not current_context or current_context.get("role") != "split" or req.force:
+        context = human_to_split(req.human)
+        provenance = split_provenance(req.human, context)
+        ensure_context(graph, context, human_hash, provenance=provenance, role="split")
 
     write_graph(graph)
     materialize_current(graph)
@@ -994,6 +1471,43 @@ def compile_all(req: HumanRequest):
     if not context_node.get("python_hash") or req.force:
         python = context_to_python(context)
         ensure_python(graph, python, context_hash)
+
+    write_graph(graph)
+    materialize_current(graph)
+    return files_response(graph)
+
+
+@app.post("/api/compile", response_model=FilesResponse)
+def compile_endpoint(req: HumanRequest):
+    graph = read_graph()
+    cached = graph["humans"].get(content_hash(req.human))
+
+    if cached and cached.get("context_hash") and not req.force:
+        ensure_human(graph, req.human)
+        complete_python(graph, cached["context_hash"], req.human)
+        write_graph(graph)
+        materialize_current(graph)
+        return files_response(graph)
+
+    route = decide_compile_route(req.human)
+    if route == "direct":
+        human_hash = ensure_human(graph, req.human)
+        marker = direct_context_text(human_hash)
+        provenance = [
+            {
+                "line": 1,
+                "status": "added",
+                "source": f'human phrase "{req.human.strip()}"',
+                "text": marker.strip(),
+            }
+        ]
+        context_hash = ensure_context(graph, marker, human_hash, provenance=provenance, role="direct")
+        python_text = human_to_python(req.human)
+        python_hash = ensure_python(graph, python_text, context_hash)
+        graph["pythons"][python_hash]["provenance"] = python_provenance_for_direct(req.human, python_text)
+    else:
+        context_hash = resolve_adaptive_context(graph, req)
+        complete_python(graph, context_hash, req.human, force=req.force)
 
     write_graph(graph)
     materialize_current(graph)
