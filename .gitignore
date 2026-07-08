@@ -5,6 +5,9 @@ __pycache__/
 .venv/
 .env
 
+# Playwright MCP browser artifacts
+.playwright-mcp/
+
 # Claude Code local overrides (per-machine hooks)
 .claude/settings.local.json
 

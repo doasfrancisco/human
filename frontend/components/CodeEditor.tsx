@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { basicSetup } from "codemirror";
-import { EditorSelection, EditorState, Extension, RangeSetBuilder, StateField } from "@codemirror/state";
+import { Compartment, EditorSelection, EditorState, Extension, RangeSetBuilder, StateField } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
 import { python } from "@codemirror/lang-python";
 
@@ -180,6 +180,7 @@ export function CodeEditor({
   const onSelectionChangeRef = useRef(onSelectionChange);
   const onModClickRef = useRef(onModClick);
   const suppressChangeRef = useRef(false);
+  const compartmentsRef = useRef({ lines: new Compartment(), ranges: new Compartment() });
   const highlightKey = useMemo(() => highlightedLines.join(","), [highlightedLines]);
   const rangeHighlightKey = useMemo(
     () => highlightedRanges.map((range) => `${range.from}:${range.to}`).join(","),
@@ -205,8 +206,8 @@ export function CodeEditor({
       basicSetup,
       editorTheme,
       readOnly ? readOnlyTheme : [],
-      highlightedLines.length ? lineHighlightExtension(highlightedLines) : [],
-      highlightedRanges.length ? rangeHighlightExtension(highlightedRanges) : [],
+      compartmentsRef.current.lines.of(highlightedLines.length ? lineHighlightExtension(highlightedLines) : []),
+      compartmentsRef.current.ranges.of(highlightedRanges.length ? rangeHighlightExtension(highlightedRanges) : []),
       EditorState.readOnly.of(readOnly),
       EditorView.lineWrapping,
       EditorView.domEventHandlers({
@@ -250,9 +251,8 @@ export function CodeEditor({
       view.destroy();
       viewRef.current = null;
     };
-    // Recreate only when editor mode/read-only/highlights change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, readOnly, highlightKey, rangeHighlightKey]);
+  }, [mode, readOnly]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -276,7 +276,7 @@ export function CodeEditor({
 
   useEffect(() => {
     const view = viewRef.current;
-    if (!view || !selection) return;
+    if (!view || !selection || view.hasFocus) return;
 
     const nextSelection = toEditorSelection(selection, view.state.doc.length);
     if (!nextSelection) return;
@@ -289,6 +289,38 @@ export function CodeEditor({
     // Only cursor endpoints matter here; depending on the object causes noisy remount updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selection?.anchor, selection?.head]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    view.dispatch({
+      effects: compartmentsRef.current.lines.reconfigure(
+        highlightedLines.length ? lineHighlightExtension(highlightedLines) : []
+      ),
+    });
+
+    if (!highlightedLines.length) return;
+    const firstLine = Math.min(...highlightedLines);
+    if (firstLine >= 1 && firstLine <= view.state.doc.lines) {
+      view.dispatch({
+        effects: EditorView.scrollIntoView(view.state.doc.line(firstLine).from, { y: "center" }),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightKey]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    view.dispatch({
+      effects: compartmentsRef.current.ranges.reconfigure(
+        highlightedRanges.length ? rangeHighlightExtension(highlightedRanges) : []
+      ),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rangeHighlightKey]);
 
   return <div ref={hostRef} className="h-full overflow-hidden" />;
 }

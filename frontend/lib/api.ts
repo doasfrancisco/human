@@ -2,14 +2,18 @@ export type TreePython = {
   hash: string;
   preview: string;
   active: boolean;
+  target?: string | null;
   createdAt: string;
   updatedAt: string;
 };
+
+export type ContextRole = "leaf" | "split" | "direct";
 
 export type TreeContext = {
   hash: string;
   preview: string;
   active: boolean;
+  role: ContextRole;
   python: TreePython | null;
   pythons: TreePython[];
   createdAt: string;
@@ -32,6 +36,7 @@ export type ContextProvenance = {
   source: string;
   text: string;
   previousLine?: number | string | null;
+  target?: string | null;
 };
 
 export type Files = {
@@ -47,7 +52,9 @@ export type Files = {
     hasContext: boolean;
     hasPython: boolean;
   };
+  contextRole: ContextRole | null;
   contextProvenance: ContextProvenance[];
+  pythonProvenance: ContextProvenance[];
   tree: TreeHuman[];
 };
 
@@ -55,6 +62,18 @@ export type Bundle = {
   human: string;
   context: string;
   python: string;
+};
+
+export type Project = {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  active: boolean;
+};
+
+export type ProjectList = {
+  projects: Project[];
 };
 
 const API_BASE_URL =
@@ -83,26 +102,31 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function requestFiles(path: string, init?: RequestInit): Promise<Files> {
+  const files = await request<Omit<Files, "pythonProvenance"> & { pythonProvenance?: ContextProvenance[] }>(path, init);
+  return { ...files, pythonProvenance: files.pythonProvenance ?? [] };
+}
+
 export function getFiles() {
-  return request<Files>("/api/files");
+  return requestFiles("/api/files");
 }
 
 export function saveFiles(files: Partial<Pick<Files, "human" | "context" | "python">>) {
-  return request<Files>("/api/save", {
+  return requestFiles("/api/save", {
     method: "POST",
     body: JSON.stringify(files),
   });
 }
 
 export function checkout(kind: "human" | "context" | "python", hash: string) {
-  return request<Files>("/api/checkout", {
+  return requestFiles("/api/checkout", {
     method: "POST",
     body: JSON.stringify({ kind, hash }),
   });
 }
 
 export function deleteSnapshot(kind: "human" | "context" | "python", hash: string) {
-  return request<Files>("/api/delete", {
+  return requestFiles("/api/delete", {
     method: "POST",
     body: JSON.stringify({ kind, hash }),
   });
@@ -116,22 +140,67 @@ export function getBundle(humanHash: string) {
 }
 
 export function humanToContext(human: string, force = false) {
-  return request<Files>("/api/human-to-context", {
+  return requestFiles("/api/human-to-context", {
+    method: "POST",
+    body: JSON.stringify({ human, force }),
+  });
+}
+
+export function humanToSplit(human: string, force = false) {
+  return requestFiles("/api/human-to-split", {
     method: "POST",
     body: JSON.stringify({ human, force }),
   });
 }
 
 export function contextToPython(context: string, force = false) {
-  return request<Files>("/api/context-to-python", {
+  return requestFiles("/api/context-to-python", {
     method: "POST",
     body: JSON.stringify({ context, force }),
   });
 }
 
-export function compileAll(human: string, force = false) {
-  return request<Files>("/api/compile-all", {
+export function compile(human: string, force = false) {
+  return requestFiles("/api/compile", {
     method: "POST",
     body: JSON.stringify({ human, force }),
+  });
+}
+
+export function getProjects() {
+  return request<ProjectList>("/api/projects");
+}
+
+export function createProject(name: string) {
+  return request<ProjectList>("/api/projects", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function selectProject(id: string) {
+  return requestFiles("/api/projects/select", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });
+}
+
+export function deleteProject(id: string) {
+  return request<ProjectList>("/api/projects/delete", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });
+}
+
+export function renameProject(id: string, name: string) {
+  return request<ProjectList>("/api/projects/rename", {
+    method: "POST",
+    body: JSON.stringify({ id, name }),
+  });
+}
+
+export function wipeProjects() {
+  return request<ProjectList>("/api/projects/wipe", {
+    method: "POST",
   });
 }
