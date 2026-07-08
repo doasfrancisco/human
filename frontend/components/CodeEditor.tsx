@@ -93,6 +93,7 @@ type CodeEditorProps = {
   onChange?: (value: string) => void;
   onSelectionChange?: (selection: CursorSelection) => void;
   onModClick?: (event: ModClickEvent) => void;
+  onModContextMenu?: (event: ModClickEvent) => void;
   highlightedLines?: number[];
   highlightedRanges?: HighlightedRange[];
 };
@@ -171,6 +172,7 @@ export function CodeEditor({
   onChange,
   onSelectionChange,
   onModClick,
+  onModContextMenu,
   highlightedLines = [],
   highlightedRanges = [],
 }: CodeEditorProps) {
@@ -179,6 +181,7 @@ export function CodeEditor({
   const onChangeRef = useRef(onChange);
   const onSelectionChangeRef = useRef(onSelectionChange);
   const onModClickRef = useRef(onModClick);
+  const onModContextMenuRef = useRef(onModContextMenu);
   const suppressChangeRef = useRef(false);
   const compartmentsRef = useRef({ lines: new Compartment(), ranges: new Compartment() });
   const highlightKey = useMemo(() => highlightedLines.join(","), [highlightedLines]);
@@ -200,6 +203,10 @@ export function CodeEditor({
   }, [onModClick]);
 
   useEffect(() => {
+    onModContextMenuRef.current = onModContextMenu;
+  }, [onModContextMenu]);
+
+  useEffect(() => {
     if (!hostRef.current) return;
 
     const extensions = [
@@ -218,6 +225,15 @@ export function CodeEditor({
           const line = view.state.doc.lineAt(pos);
           event.preventDefault();
           onModClickRef.current({ pos, line: line.number, lineText: line.text });
+          return true;
+        },
+        contextmenu(event, view) {
+          if (!onModContextMenuRef.current || (!event.ctrlKey && !event.metaKey)) return false;
+          const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+          if (pos === null) return false;
+          const line = view.state.doc.lineAt(pos);
+          event.preventDefault();
+          onModContextMenuRef.current({ pos, line: line.number, lineText: line.text });
           return true;
         },
       }),
