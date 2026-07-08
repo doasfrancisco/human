@@ -65,6 +65,10 @@ class ContextRequest(BaseModel):
     force: bool = False
 
 
+class RewordRequest(BaseModel):
+    human: str
+
+
 class CheckoutRequest(BaseModel):
     kind: Literal["human", "context", "python"] = "human"
     hash: str
@@ -400,6 +404,107 @@ def human_refinement_phrase(previous_human: str, new_human: str) -> str:
     return strip_refinement_connector(" ".join(inserted)) or new_human
 
 
+def word_kind(word: str) -> str:
+    return "number" if re.fullmatch(r"[-+]?\d+(?:\.\d+)?", word) else "word"
+
+
+def word_groups(words: list[str]) -> list[tuple[int, int]]:
+    groups: list[tuple[int, int]] = []
+    start = 0
+    for index in range(1, len(words) + 1):
+        if index == len(words) or word_kind(words[index]) != word_kind(words[start]):
+            groups.append((start, index))
+            start = index
+    return groups
+
+
+def find_word_span(words: list[str], phrase_words: list[str]) -> tuple[int, int] | None:
+    size = len(phrase_words)
+    for start in range(len(words) - size + 1):
+        if words[start : start + size] == phrase_words:
+            return start, start + size
+    return None
+
+
+def snap_span_to_groups(words: list[str], start: int, end: int) -> tuple[int, int]:
+    groups = word_groups(words)
+    left = next(group for group in groups if group[0] <= start < group[1])
+    right = next(group for group in groups if group[0] < end <= group[1])
+    snapped_start = start
+    snapped_end = end
+    if start != left[0] and word_kind(words[start]) == "number":
+        snapped_start = left[1]
+    if end != right[1] and word_kind(words[end - 1]) == "number":
+        snapped_end = right[0]
+    if snapped_start < snapped_end:
+        return snapped_start, snapped_end
+    return left[0], right[1]
+
+
+def snap_phrase_to_human(human: str, phrase: str) -> str | None:
+    phrase_words = phrase.split()
+    if not phrase_words:
+        return None
+    if phrase_words == human.split():
+        return " ".join(phrase_words)
+    for line in human.splitlines():
+        words = line.split()
+        span = find_word_span(words, phrase_words)
+        if span is None:
+            continue
+        start, end = snap_span_to_groups(words, span[0], span[1])
+        return " ".join(words[start:end])
+    return None
+
+
+def phrase_memo(graph: dict[str, Any]) -> dict[str, list[str]]:
+    return graph.setdefault("phrase_memo", {})
+
+
+def remap_phrase_to_memo(graph: dict[str, Any], human: str, phrase: str) -> str:
+    for line in human.splitlines():
+        words = line.split()
+        span = find_word_span(words, phrase.split())
+        if span is None:
+            continue
+        stored = phrase_memo(graph).get(" ".join(words), [])
+        if not stored or phrase in stored:
+            return phrase
+        best = phrase
+        best_score = 0.0
+        for candidate in stored:
+            candidate_span = find_word_span(words, candidate.split())
+            if candidate_span is None:
+                continue
+            overlap = min(span[1], candidate_span[1]) - max(span[0], candidate_span[0])
+            if overlap <= 0:
+                continue
+            score = 2 * overlap / ((span[1] - span[0]) + (candidate_span[1] - candidate_span[0]))
+            if score > best_score:
+                best = candidate
+                best_score = score
+        return best
+    return phrase
+
+
+def update_phrase_memo(graph: dict[str, Any], human: str, phrases: list[str]) -> None:
+    memo = phrase_memo(graph)
+    for line in human.splitlines():
+        words = line.split()
+        if not words:
+            continue
+        key = " ".join(words)
+        if key in memo:
+            continue
+        line_phrases = [
+            phrase
+            for index, phrase in enumerate(phrases)
+            if phrase not in phrases[:index] and find_word_span(words, phrase.split()) is not None
+        ]
+        if line_phrases:
+            memo[key] = line_phrases
+
+
 def context_provenance_from_scratch(human: str, context: str) -> list[dict[str, Any]]:
     source = f'human phrase "{human.strip()}"'
     return [
@@ -434,6 +539,7 @@ def context_provenance_from_update(
         if isinstance(entry, dict) and entry.get("text")
     }
     refinement = human_refinement_phrase(previous_human, new_human)
+    refinement = snap_phrase_to_human(new_human, refinement) or new_human.strip()
     inherited_source = f'human phrase "{previous_human.strip()}"'
     added_source = f'human phrase "{refinement}"'
 
@@ -987,6 +1093,9 @@ Rules:
 - Each array element is an object with exactly two keys: "line" (an integer line number from the numbered Python) and "source" (the human phrase that motivates that line, quoted verbatim from the intent).
 - Cover every non-blank Python line; skip blank lines.
 - Prefer the shortest human phrase that explains the line; when a line is general boilerplate implied by the whole intent, use the entire intent as the phrase.
+- Each "source" must be a contiguous span of a single line of the intent, starting and ending on whole words — never cut a word in half.
+- Never split a tight group such as a run of consecutive numbers: a phrase includes the whole run or none of it. For "insertion sort 1 2 3" the valid phrases are "insertion sort" and "1 2 3", never "insertion sort 1" or "2 3".
+- Distinct phrases must not partially overlap; reuse the identical phrase for every line motivated by the same part of the intent.
 - Do not invent phrases that are not in the human intent.
 - Output the JSON array and nothing else.
 """
@@ -1123,7 +1232,7 @@ def python_provenance_fallback(human: str, python: str) -> list[dict[str, Any]]:
     ]
 
 
-def python_provenance_from_llm(human: str, python: str) -> list[dict[str, Any]] | None:
+def python_provenance_from_llm(graph: dict[str, Any], human: str, python: str) -> list[dict[str, Any]] | None:
     lines = python.splitlines()
     numbered = "\n".join(f"{index}: {line}" for index, line in enumerate(lines, start=1))
     raw = call_bedrock(
@@ -1138,6 +1247,7 @@ def python_provenance_from_llm(human: str, python: str) -> list[dict[str, Any]] 
         return None
 
     provenance: list[dict[str, Any]] = []
+    used_phrases: list[str] = []
     seen: set[int] = set()
     for entry in entries:
         if not isinstance(entry, dict):
@@ -1146,29 +1256,37 @@ def python_provenance_from_llm(human: str, python: str) -> list[dict[str, Any]] 
         source = entry.get("source")
         if not isinstance(line, int) or line < 1 or line > len(lines) or line in seen:
             continue
-        if not isinstance(source, str) or not source.strip():
+        if not isinstance(source, str):
             continue
+        snapped = snap_phrase_to_human(human, source.strip())
+        if not snapped:
+            continue
+        snapped = remap_phrase_to_memo(graph, human, snapped)
         text = lines[line - 1]
         if not text.strip():
             continue
         seen.add(line)
+        used_phrases.append(snapped)
         provenance.append(
             {
                 "line": line,
                 "status": "added",
-                "source": f'human phrase "{source.strip()}"',
+                "source": f'human phrase "{snapped}"',
                 "text": text,
                 "target": f"{PROGRAM_NAME}.py",
             }
         )
-    return provenance or None
+    if not provenance:
+        return None
+    update_phrase_memo(graph, human, used_phrases)
+    return provenance
 
 
-def python_provenance_for_direct(human: str, python: str) -> list[dict[str, Any]]:
+def python_provenance_for_direct(graph: dict[str, Any], human: str, python: str) -> list[dict[str, Any]]:
     if not python.strip():
         return []
     try:
-        mapped = python_provenance_from_llm(human, python)
+        mapped = python_provenance_from_llm(graph, human, python)
     except HTTPException:
         mapped = None
     return mapped or python_provenance_fallback(human, python)
@@ -1233,7 +1351,7 @@ def complete_python(graph: dict[str, Any], context_hash: str, human: str, force:
     elif role == "direct":
         python_text = human_to_python(human)
         python_hash = ensure_python(graph, python_text, context_hash)
-        graph["pythons"][python_hash]["provenance"] = python_provenance_for_direct(human, python_text)
+        graph["pythons"][python_hash]["provenance"] = python_provenance_for_direct(graph, human, python_text)
     else:
         ensure_python(graph, context_to_python(context_node["text"]), context_hash)
 
@@ -1345,6 +1463,47 @@ def save_files(req: SaveRequest):
         elif context_hash:
             graph["contexts"][context_hash]["python_hash"] = None
             touch(graph["contexts"][context_hash])
+
+    write_graph(graph)
+    materialize_current(graph)
+    return files_response(graph)
+
+
+@app.post("/api/reword", response_model=FilesResponse)
+def reword(req: RewordRequest):
+    graph = read_graph()
+    _, context_hash, python_hash = active_hashes(graph)
+    if not context_hash or not python_hash:
+        raise HTTPException(status_code=400, detail="nothing compiled to rebind")
+
+    human_hash = ensure_human(graph, req.human)
+    human = graph["humans"][human_hash]
+    human["context_hash"] = context_hash
+    touch(human)
+
+    context = graph["contexts"][context_hash]
+    human_hashes = context.setdefault("human_hashes", [])
+    if human_hash not in human_hashes:
+        human_hashes.append(human_hash)
+    context["python_hash"] = python_hash
+
+    role = context.get("role", "leaf")
+    if role == "direct":
+        python = graph["pythons"][python_hash]
+        python["provenance"] = python_provenance_for_direct(graph, req.human, python["text"])
+        context["provenance"] = [
+            {
+                "line": 1,
+                "status": "added",
+                "source": f'human phrase "{req.human.strip()}"',
+                "text": context["text"].strip(),
+            }
+        ]
+    elif role == "split":
+        context["provenance"] = split_provenance(req.human, context["text"])
+    else:
+        context["provenance"] = context_provenance_from_scratch(req.human, context["text"])
+    touch(context)
 
     write_graph(graph)
     materialize_current(graph)
@@ -1504,7 +1663,7 @@ def compile_endpoint(req: HumanRequest):
         context_hash = ensure_context(graph, marker, human_hash, provenance=provenance, role="direct")
         python_text = human_to_python(req.human)
         python_hash = ensure_python(graph, python_text, context_hash)
-        graph["pythons"][python_hash]["provenance"] = python_provenance_for_direct(req.human, python_text)
+        graph["pythons"][python_hash]["provenance"] = python_provenance_for_direct(graph, req.human, python_text)
     else:
         context_hash = resolve_adaptive_context(graph, req)
         complete_python(graph, context_hash, req.human, force=req.force)

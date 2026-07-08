@@ -167,6 +167,13 @@ export function compile(human: string, force = false) {
   });
 }
 
+export function reword(human: string) {
+  return requestFiles("/api/reword", {
+    method: "POST",
+    body: JSON.stringify({ human }),
+  });
+}
+
 export function getProjects() {
   return request<ProjectList>("/api/projects");
 }

@@ -16,6 +16,7 @@ import {
   getFiles,
   getProjects,
   humanToContext,
+  reword,
   saveFiles,
   type ContextRole,
   type Files,
@@ -48,6 +49,7 @@ type Busy =
   | "human-to-context"
   | "context-to-python"
   | "compile"
+  | "reword"
   | null;
 
 type FileKind = "human" | "context" | "python";
@@ -57,6 +59,13 @@ type PendingDelete = {
   hash: string;
   title: string;
   description: string;
+} | null;
+
+type RewordDraft = {
+  start: number;
+  end: number;
+  original: string;
+  text: string;
 } | null;
 
 const fileLabels: Record<FileKind, { title: string; subtitle: string; mode: "text" | "python" }> = {
@@ -92,6 +101,7 @@ export default function Home() {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [highlightedLines, setHighlightedLines] = useState<number[]>([]);
+  const [rewordDraft, setRewordDraft] = useState<RewordDraft>(null);
   const [modKeyDown, setModKeyDown] = useState(false);
   const [busy, setBusy] = useState<Busy>("load");
   const [message, setMessage] = useState("Loading workspace...");
@@ -337,11 +347,14 @@ export default function Home() {
     );
   }
 
-  function handleHumanModClick(pos: number) {
-    const matches = activeProvenance.flatMap((entry) =>
+  function provenancePhraseMatches() {
+    return activeProvenance.flatMap((entry) =>
       humanPhrasesFromSource(entry.source).map((phrase) => ({ phrase, line: Number(entry.line) }))
     );
-    const clicked = matches
+  }
+
+  function narrowestPhraseMatchesAt(pos: number) {
+    return provenancePhraseMatches()
       .flatMap((match) => {
         if (!Number.isFinite(match.line)) return [];
         const range = phraseRangeAtPosition(drafts.human, match.phrase, pos);
@@ -353,6 +366,11 @@ export default function Home() {
           a.phrase.length - b.phrase.length ||
           a.range.start - b.range.start
       );
+  }
+
+  function handleHumanModClick(pos: number) {
+    const matches = provenancePhraseMatches();
+    const clicked = narrowestPhraseMatchesAt(pos);
 
     if (!clicked.length) {
       setHighlightedLines([]);
@@ -372,6 +390,51 @@ export default function Home() {
     setHighlightedLines(lines);
     setSelected(provenanceKind);
     setMessage(`Highlighted ${lines.length} ${provenanceLabel} line${lines.length === 1 ? "" : "s"} from "${phrase}"`);
+  }
+
+  function lineSpan(text: string, lineNumber: number) {
+    const lines = text.split("\n");
+    let start = 0;
+    for (let i = 0; i < lineNumber - 1 && i < lines.length; i += 1) start += lines[i].length + 1;
+    return { start, end: start + (lines[lineNumber - 1]?.length ?? 0) };
+  }
+
+  function handleHumanModContextMenu({ pos, line }: { pos: number; line: number }) {
+    const clicked = narrowestPhraseMatchesAt(pos);
+    const span = clicked.length
+      ? { start: clicked[0].range.start, end: clicked[0].range.end }
+      : lineSpan(drafts.human, line);
+    const original = drafts.human.slice(span.start, span.end);
+    if (!original) return;
+    setRewordDraft({ start: span.start, end: span.end, original, text: original });
+  }
+
+  function confirmReword() {
+    if (!rewordDraft) return;
+    const target = rewordDraft;
+    if (drafts.human.slice(target.start, target.end) !== target.original) {
+      setRewordDraft(null);
+      setError("The .human text changed under the reword editor; reopen it");
+      return;
+    }
+    const updated = drafts.human.slice(0, target.start) + target.text + drafts.human.slice(target.end);
+    setRewordDraft(null);
+    run(
+      "reword",
+      async () => {
+        try {
+          return await reword(updated);
+        } catch (err) {
+          const detail = err instanceof Error ? err.message : String(err);
+          throw new Error(
+            detail === "Not Found" || detail.startsWith("404")
+              ? "Reword is not available yet: the backend /api/reword endpoint is missing"
+              : detail
+          );
+        }
+      },
+      "Reworded .human; compiled output untouched"
+    );
   }
 
   function linesForTarget(target: string, provenance = files.contextProvenance) {
@@ -500,7 +563,50 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 p-3">{renderBody()}</div>
+        <div className="relative min-h-0 flex-1 p-3">
+          {renderBody()}
+          {selected === "human" && rewordDraft ? (
+            <div className="absolute left-1/2 top-8 z-20 w-[min(560px,90%)] -translate-x-1/2 rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">reword phrase</p>
+              <p className="mt-1 truncate font-mono text-xs text-zinc-500">was: {rewordDraft.original}</p>
+              <input
+                autoFocus
+                value={rewordDraft.text}
+                onChange={(event) =>
+                  setRewordDraft((current) => (current ? { ...current, text: event.target.value } : current))
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    confirmReword();
+                  } else if (event.key === "Escape") {
+                    event.preventDefault();
+                    setRewordDraft(null);
+                  }
+                }}
+                className="mt-3 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-100 outline-none focus:border-indigo-500"
+              />
+              <p className="mt-2 text-xs text-zinc-500">
+                Rebinds the same compiled .context/.py to this wording — nothing recompiles.
+              </p>
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  className="rounded-md px-3 py-1.5 text-xs font-semibold text-zinc-400 transition hover:bg-zinc-800"
+                  onClick={() => setRewordDraft(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary text-xs"
+                  disabled={disabled || !rewordDraft.text.trim() || rewordDraft.text === rewordDraft.original}
+                  onClick={confirmReword}
+                >
+                  Save wording
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </section>
 
       {pendingDelete ? (
@@ -652,6 +758,7 @@ export default function Home() {
           onChange={(value) => setDraft(selected, value)}
           onSelectionChange={(selection) => setEditorSelection(selected, selection)}
           onModClick={contextModClickHandler()}
+          onModContextMenu={selected === "human" ? handleHumanModContextMenu : undefined}
         />
       );
     }
@@ -668,6 +775,7 @@ export default function Home() {
           onChange={(value) => setDraft(selected, value)}
           onSelectionChange={(selection) => setEditorSelection(selected, selection)}
           onModClick={contextModClickHandler()}
+          onModContextMenu={selected === "human" ? handleHumanModContextMenu : undefined}
         />
       </EditorShell>
     );
@@ -903,6 +1011,7 @@ function DirtyEditor({
   onChange,
   onSelectionChange,
   onModClick,
+  onModContextMenu,
 }: {
   kind: FileKind;
   saved: string;
@@ -914,6 +1023,7 @@ function DirtyEditor({
   onChange: (value: string) => void;
   onSelectionChange: (selection: CursorSelection) => void;
   onModClick?: (event: { pos: number; line: number; lineText: string }) => void;
+  onModContextMenu?: (event: { pos: number; line: number; lineText: string }) => void;
 }) {
   return (
     <div className="grid h-full grid-cols-1 gap-3 xl:grid-cols-2">
@@ -928,6 +1038,7 @@ function DirtyEditor({
           onChange={onChange}
           onSelectionChange={onSelectionChange}
           onModClick={onModClick}
+          onModContextMenu={onModContextMenu}
         />
       </EditorShell>
       <EditorShell title="changes" subtitle="read-only diff against the saved snapshot">
