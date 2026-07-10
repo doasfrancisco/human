@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "human",
+  "scopeName": "source.human",
+  "patterns": [
+    {
+      "name": "string.quoted.double.human",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.human",
+          "match": "\\\\."
+        }
+      ]
+    },
+    {
+      "name": "constant.numeric.human",
+      "match": "\\b\\d+(\\.\\d+)?\\b"
+    }
+  ]
+}
