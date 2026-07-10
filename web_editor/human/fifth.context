@@ -1,0 +1,5 @@
+main.py — Orchestrate the program by starting the HTTP server from server.py and running the random test from test.py in sequence.
+
+server.py — Implement a basic HTTP server that listens on localhost port 8080, responds to all incoming requests with a 200 OK status and a plain-text body saying "Hello from the HTTP server", using the built-in http.server module.
+
+test.py — Pick a random integer between 1 and 100, print it, then assert it falls within that range, serving as a simple standalone random value test. Uses the random module from the standard library.

@@ -1,0 +1,203 @@
+{
+  "name": "franpp",
+  "displayName": "fran++",
+  "description": "LLM-compiled programming: .human -> .context -> .py",
+  "version": "0.0.1",
+  "publisher": "franpp",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:human"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "human",
+        "extensions": [
+          ".human"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "context",
+        "extensions": [
+          ".context"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "human",
+        "scopeName": "source.human",
+        "path": "./syntaxes/human.tmLanguage.json"
+      },
+      {
+        "language": "context",
+        "scopeName": "source.context",
+        "path": "./syntaxes/context.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "franpp.compile",
+        "title": "Compile",
+        "category": "fran++"
+      },
+      {
+        "command": "franpp.generateContext",
+        "title": "Generate Context",
+        "category": "fran++"
+      },
+      {
+        "command": "franpp.reword",
+        "title": "Reword File (keep compiled output)",
+        "category": "fran++"
+      },
+      {
+        "command": "franpp.rewordPhrase",
+        "title": "Reword Phrase (keep compiled output)",
+        "category": "fran++"
+      },
+      {
+        "command": "franpp.checkout",
+        "title": "Checkout Snapshot",
+        "category": "fran++"
+      },
+      {
+        "command": "franpp.deleteNode",
+        "title": "Delete Snapshot",
+        "category": "fran++"
+      },
+      {
+        "command": "franpp.copyFlow",
+        "title": "Copy Flow",
+        "category": "fran++"
+      },
+      {
+        "command": "franpp.refreshHistory",
+        "title": "Refresh History",
+        "category": "fran++"
+      },
+      {
+        "command": "franpp.toggleProvenance",
+        "title": "Toggle Provenance Highlighting",
+        "category": "fran++"
+      },
+      {
+        "command": "franpp.showDiff",
+        "title": "Show Diff Against Last Compiled",
+        "category": "fran++"
+      },
+      {
+        "command": "franpp.toggleGenerated",
+        "title": "Show/Hide Generated Files",
+        "category": "fran++"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "franpp",
+          "title": "fran++",
+          "icon": "media/sparkles.svg"
+        }
+      ]
+    },
+    "views": {
+      "franpp": [
+        {
+          "id": "franpp.history",
+          "name": "History"
+        }
+      ]
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "franpp.compile",
+          "when": "resourceExtname == .human",
+          "group": "navigation"
+        },
+        {
+          "command": "franpp.showDiff",
+          "when": "resourceExtname == .human",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "franpp.rewordPhrase",
+          "when": "resourceExtname == .human",
+          "group": "navigation@1"
+        },
+        {
+          "command": "franpp.compile",
+          "when": "resourceExtname == .human",
+          "group": "navigation@2"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "franpp.refreshHistory",
+          "when": "view == franpp.history",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "franpp.checkout",
+          "when": "view == franpp.history"
+        },
+        {
+          "command": "franpp.copyFlow",
+          "when": "view == franpp.history"
+        },
+        {
+          "command": "franpp.deleteNode",
+          "when": "view == franpp.history"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "franpp.rewordPhrase",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "editorTextFocus && resourceExtname == .human"
+      }
+    ],
+    "configuration": {
+      "title": "fran++",
+      "properties": {
+        "franpp.backendUrl": {
+          "type": "string",
+          "default": "http://localhost:8000"
+        },
+        "franpp.provenanceEnabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "franpp.showGenerated": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}

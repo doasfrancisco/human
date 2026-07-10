@@ -1,0 +1,10 @@
+[project]
+name = "fran-v5-backend"
+version = "0.1.0"
+description = "FastAPI backend for fran++ v0.0.5 human -> context -> python compilation"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi[standard]",
+    "boto3",
+    "python-dotenv",
+]
