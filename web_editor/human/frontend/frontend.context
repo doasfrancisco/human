@@ -1,0 +1,7 @@
+app/app.context — The app router pages: the root layout and site-wide styles, the main editor screen, the project picker screen, and the explorer redirect.
+
+components/components.context — The reusable react components: the action button, the codemirror editor wrapper, the delete confirmation modal, the diff preview, the sidebar shell, the file tree rows, and the svg icon set.
+
+lib/lib.context — The api client in lib that wraps every backend http endpoint with typed request helpers and exports the shared data types for the whole ui.
+
+config.context — The build config for the workspace: the package manifest, the tsconfig compiler settings, the next.config placeholder, the postcss setup, and the eslint rules.

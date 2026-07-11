@@ -16,9 +16,9 @@ type ExplorerSidebarProps = {
   refreshKey?: number;
   projectName?: string | null;
   activeFile?: string;
-  onOpenFile?: (node: FileNode) => void;
-  onOpenCreatedFile?: (node: FileNode) => void;
-  onRequestDelete?: (node: FileNode) => void;
+  onOpenFile?: (node: FileNode, rootPath: string, paired: boolean) => void;
+  onOpenCreatedFile?: (node: FileNode, rootPath: string) => void;
+  onRequestDelete?: (node: FileNode, rootPath: string) => void;
   children?: ReactNode;
 };
 
@@ -90,11 +90,11 @@ function ExplorerSidebarContent({
       if (event.key !== "Delete") return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, [contenteditable='true']")) return;
-      if (selected) onRequestDelete?.(selected.node);
+      if (selected && tree) onRequestDelete?.(selected.node, tree.path);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selected, onRequestDelete]);
+  }, [selected, tree, onRequestDelete]);
 
   function startCreate(kind: "file" | "dir") {
     if (!tree) return;
@@ -109,7 +109,8 @@ function ExplorerSidebarContent({
   }
 
   function submitCreate(name: string) {
-    if (!creating) return;
+    if (!creating || !tree) return;
+    const rootPath = tree.path;
     fsCreate(creating.parent, name, creating.kind)
       .then((made) => {
         setCreating(null);
@@ -117,8 +118,8 @@ function ExplorerSidebarContent({
         setLocalRefresh((key) => key + 1);
         if (made.type === "file") {
           const node: FileNode = { name: made.name, path: made.path, type: "file", children: [] };
-          if (onOpenCreatedFile) onOpenCreatedFile(node);
-          else onOpenFile?.(node);
+          if (onOpenCreatedFile) onOpenCreatedFile(node, rootPath);
+          else onOpenFile?.(node, rootPath, true);
         } else {
           setExpanded((current) => ({ ...current, [made.path]: true }));
         }
@@ -190,7 +191,7 @@ function ExplorerSidebarContent({
             createError={createError}
             onToggle={(path, open) => setExpanded((current) => ({ ...current, [path]: open }))}
             onSelect={(node, parentPath) => setSelected({ node, parentPath })}
-            onOpen={(node) => onOpenFile?.(node)}
+            onOpen={(node, paired) => onOpenFile?.(node, tree.path, paired)}
             onContextMenu={(node, parentPath, x, y) => {
               setSelected({ node, parentPath });
               setMenu({ node, x, y });
@@ -224,7 +225,7 @@ function ExplorerSidebarContent({
               onClick={() => {
                 const node = menu.node;
                 setMenu(null);
-                onRequestDelete?.(node);
+                if (tree) onRequestDelete?.(node, tree.path);
               }}
             >
               Delete

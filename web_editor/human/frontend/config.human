@@ -1,0 +1,5 @@
+the package manifest with the dev scripts and dependencies
+the tsconfig compiler settings
+the next.config placeholder
+the postcss setup
+the eslint rules

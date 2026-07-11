@@ -18,6 +18,7 @@ import {
   type IconProps,
 } from "@/components/icons";
 import {
+  adoptProgram,
   checkout,
   compile,
   contextToPython,
@@ -30,7 +31,11 @@ import {
   humanToContext,
   reword,
   saveFiles,
+  saveUnit,
+  COMPILE_LANGUAGES,
+  DEFAULT_COMPILE_LANGUAGE,
   DEFAULT_PROGRAM,
+  type CompileLanguage,
   type CompiledUnit,
   type ContextRole,
   type FileNode,
@@ -51,6 +56,7 @@ const initialFiles: Files = {
   contextProvenance: [],
   pythonProvenance: [],
   tree: [],
+  seeded: false,
 };
 
 type CursorSelection = {
@@ -104,12 +110,32 @@ const fileMeta: Record<FileKind, { extension: string; subtitle: string; mode: "t
 };
 
 function fileTitle(kind: FileKind, name: string) {
-  return `${name}.${fileMeta[kind].extension}`;
+  const base = name.split("/").pop() ?? name;
+  return `${base}.${fileMeta[kind].extension}`;
 }
 
-function programNameFromFile(fileName: string) {
-  const match = fileName.match(/^(.+)\.(human|context|py)$/);
+function normalizePath(value: string) {
+  return value.replace(/\\/g, "/").replace(/\/+$/, "");
+}
+
+function relativeNodePath(nodePath: string, rootPath: string) {
+  const node = normalizePath(nodePath);
+  const root = normalizePath(rootPath);
+  if (node === root) return "";
+  return node.startsWith(`${root}/`) ? node.slice(root.length + 1) : (node.split("/").pop() ?? node);
+}
+
+function stripContainer(relativePath: string, container: string) {
+  return relativePath.startsWith(`${container}/`) ? relativePath.slice(container.length + 1) : relativePath;
+}
+
+function programNameFromPath(relativePath: string) {
+  const match = stripContainer(relativePath, "human").match(/^(.+)\.(human|context|py)$/);
   return match ? match[1] : null;
+}
+
+function unitRelativePath(relativePath: string) {
+  return stripContainer(relativePath, "project");
 }
 
 function kindFromFileName(fileName: string): FileKind | null {
@@ -130,6 +156,12 @@ function tabWithinPath(tabPath: string, targetPath: string) {
 }
 
 const KINDS: FileKind[] = ["human", "context", "python"];
+
+const COMPILE_LANGUAGE_STORAGE_KEY = "franpp.compile-language";
+
+function isCompileLanguage(value: string | null): value is CompileLanguage {
+  return value !== null && (COMPILE_LANGUAGES as readonly string[]).includes(value);
+}
 
 const fileGlyphs: Record<FileKind, (props: IconProps) => ReactElement> = {
   human: FileHumanIcon,
@@ -154,6 +186,7 @@ export default function Home() {
   const [plainTabs, setPlainTabs] = useState<PlainTab[]>([]);
   const [activePlain, setActivePlain] = useState<string | null>(null);
   const [activeUnit, setActiveUnit] = useState<string | null>(null);
+  const [unitDrafts, setUnitDrafts] = useState<Record<string, { hash: string; code: string }>>({});
   const [closedUnits, setClosedUnits] = useState<Record<string, boolean>>({});
   const [unitHighlight, setUnitHighlight] = useState<{ target: string; lines: number[] } | null>(null);
   const [closedKinds, setClosedKinds] = useState<Record<FileKind, boolean>>({
@@ -161,13 +194,14 @@ export default function Home() {
     context: false,
     python: false,
   });
-  const [fsDeleteTarget, setFsDeleteTarget] = useState<FileNode | null>(null);
+  const [fsDeleteTarget, setFsDeleteTarget] = useState<{ node: FileNode; rootPath: string } | null>(null);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [highlighted, setHighlighted] = useState<{ kind: FileKind; lines: number[] }>({
     kind: "context",
     lines: [],
   });
   const [rewordDraft, setRewordDraft] = useState<RewordDraft>(null);
+  const [compileLanguage, setCompileLanguage] = useState<CompileLanguage>(DEFAULT_COMPILE_LANGUAGE);
   const [modKeyDown, setModKeyDown] = useState(false);
   const [treeVersion, setTreeVersion] = useState(0);
   const [busy, setBusy] = useState<Busy>(null);
@@ -197,9 +231,11 @@ export default function Home() {
         context: nextFiles.context,
         python: nextFiles.python,
       });
+      setUnitDrafts({});
     }
     if (!nextFiles.units.length) {
       setActiveUnit(null);
+      setUnitDrafts({});
       setClosedUnits({});
       setUnitHighlight(null);
     }
@@ -222,11 +258,24 @@ export default function Home() {
     setError(null);
     setMessage("Working...");
     try {
-      const nextFiles = await action();
+      let nextFiles = await action();
+      let adoptError: string | null = null;
+      if (nextFiles.seeded) {
+        try {
+          nextFiles = await adoptProgram(nextFiles.name || DEFAULT_PROGRAM);
+        } catch (err) {
+          adoptError = err instanceof Error ? err.message : String(err);
+        }
+      }
       adoptWorkspace(nextFiles, label === "checkout" ? "replace" : "merge");
       setTreeVersion((version) => version + 1);
       after?.(nextFiles);
-      setMessage(success);
+      if (adoptError) {
+        setError(adoptError);
+        setMessage("Failed");
+      } else {
+        setMessage(success);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setMessage("Failed");
@@ -249,11 +298,20 @@ export default function Home() {
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       setMounted(true);
+      const stored = window.localStorage.getItem(COMPILE_LANGUAGE_STORAGE_KEY);
+      if (isCompileLanguage(stored)) setCompileLanguage(stored);
       void loadActiveProject();
     });
     return () => window.cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function updateCompileLanguage(next: CompileLanguage) {
+    setCompileLanguage(next);
+    try {
+      window.localStorage.setItem(COMPILE_LANGUAGE_STORAGE_KEY, next);
+    } catch {}
+  }
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -293,6 +351,12 @@ export default function Home() {
   const disabled = busy !== null;
   const plainTab = activePlain !== null ? (plainTabs.find((tab) => tab.path === activePlain) ?? null) : null;
   const unitList = files.units;
+  const programDir = programName.includes("/") ? programName.slice(0, programName.lastIndexOf("/")) : "";
+
+  function programRelativePath(fileName: string) {
+    const normalized = fileName.replace(/\\/g, "/");
+    return programDir ? `${programDir}/${normalized}` : normalized;
+  }
   const visibleUnits = unitList.filter((unit) => !closedUnits[unit.target]);
   const activeUnitTab =
     activeUnit !== null ? (visibleUnits.find((unit) => unit.target === activeUnit) ?? null) : null;
@@ -324,6 +388,31 @@ export default function Home() {
 
   const visibleKinds = KINDS.filter((kind) => isKindVisible(kind));
 
+  const openTabTitles = [
+    ...visibleKinds.map((kind) => fileTitle(kind, programName)),
+    ...visibleUnits.map((unit) => unit.target.split("/").pop() ?? unit.target),
+    ...plainTabs.map((tab) => tab.name),
+  ];
+  const duplicateTabTitles = new Set(openTabTitles.filter((title, index) => openTabTitles.indexOf(title) !== index));
+
+  function pipelineTabTitle(kind: FileKind) {
+    const title = fileTitle(kind, programName);
+    const parent = programDir.split("/").pop();
+    return duplicateTabTitles.has(title) && parent ? `${title} · ${parent}` : title;
+  }
+
+  function unitTabTitle(target: string) {
+    const base = target.split("/").pop() ?? target;
+    return duplicateTabTitles.has(base) ? `${base} · ${programName}` : target;
+  }
+
+  function plainTabTitle(tab: PlainTab) {
+    if (!duplicateTabTitles.has(tab.name)) return tab.name;
+    const segments = normalizePath(tab.path).split("/");
+    const parent = segments[segments.length - 2];
+    return parent ? `${tab.name} · ${parent}` : tab.name;
+  }
+
   if (activeUnit !== null && !activeUnitTab) {
     setActiveUnit(null);
   }
@@ -344,6 +433,23 @@ export default function Home() {
           ? { context: drafts.context }
           : { python: drafts.python };
     run("save", () => saveFiles(payload, programName), `Saved / looked up ${fileTitle(selected, programName)}`);
+  }
+
+  function unitDraftFor(unit: CompiledUnit) {
+    const draft = unitDrafts[unit.target];
+    return draft && draft.hash === unit.hash ? draft.code : unit.python;
+  }
+
+  function unitDirty(unit: CompiledUnit) {
+    return unitDraftFor(unit) !== unit.python;
+  }
+
+  function setUnitDraft(unit: CompiledUnit, code: string) {
+    setUnitDrafts((current) => ({ ...current, [unit.target]: { hash: unit.hash, code } }));
+  }
+
+  function saveUnitDraft(unit: CompiledUnit) {
+    run("save", () => saveUnit(programName, unit.target, unitDraftFor(unit)), `Saved ${unit.target}`);
   }
 
   async function savePlainTab(tab: PlainTab) {
@@ -372,7 +478,10 @@ export default function Home() {
         void savePlainTab(plainTab);
         return;
       }
-      if (activeUnitTab) return;
+      if (activeUnitTab) {
+        if (unitDirty(activeUnitTab)) saveUnitDraft(activeUnitTab);
+        return;
+      }
       if (!isKindVisible(selected) || !selectedDirty) return;
       saveSelected();
     };
@@ -397,13 +506,12 @@ export default function Home() {
     );
   }
 
-  function openProgramFile(node: FileNode) {
-    const nextName = programNameFromFile(node.name);
+  function openProgramFile(node: FileNode, nextName: string) {
     const kind = kindFromFileName(node.name);
     if (!nextName || !kind) return;
     setClosedKinds((current) => ({ ...current, [kind]: false }));
     setActivePlain(null);
-    if (nextName === programName && programLoaded) {
+    if (nextName === programName && programLoaded && !files.seeded) {
       if (kind === "python" && focusUnits(files)) return;
       setActiveUnit(null);
       setSelected(kind);
@@ -442,8 +550,8 @@ export default function Home() {
     }
   }
 
-  async function openCreatedFile(node: FileNode) {
-    const nextName = programNameFromFile(node.name);
+  async function openCreatedFile(node: FileNode, rootPath: string) {
+    const nextName = programNameFromPath(relativeNodePath(node.path, rootPath));
     const kind = kindFromFileName(node.name);
     if (!nextName || !kind) {
       await openPlainFile(node);
@@ -477,16 +585,18 @@ export default function Home() {
     });
   }
 
-  function openFile(node: FileNode) {
+  function openFile(node: FileNode, rootPath: string, paired: boolean) {
     if (node.type !== "file") return;
-    const unit = unitList.find((candidate) => candidate.target === node.name);
+    const relative = relativeNodePath(node.path, rootPath);
+    const unit = unitList.find((candidate) => programRelativePath(candidate.target) === unitRelativePath(relative));
     if (unit) {
       setClosedUnits((current) => ({ ...current, [unit.target]: false }));
       setActivePlain(null);
       setActiveUnit(unit.target);
       return;
     }
-    if (kindFromFileName(node.name) && programNameFromFile(node.name)) openProgramFile(node);
+    const nextName = programNameFromPath(relative);
+    if (paired && kindFromFileName(node.name) && nextName) openProgramFile(node, nextName);
     else void openPlainFile(node);
   }
 
@@ -524,7 +634,7 @@ export default function Home() {
 
   async function confirmFsDelete() {
     if (!fsDeleteTarget) return;
-    const target = fsDeleteTarget;
+    const { node: target, rootPath } = fsDeleteTarget;
     setFsDeleteTarget(null);
     setBusy("delete");
     setError(null);
@@ -537,8 +647,15 @@ export default function Home() {
         setActivePlain(remaining.length ? remaining[remaining.length - 1].path : null);
       }
       const kind = kindFromFileName(target.name);
-      if (target.type === "file" && kind && programNameFromFile(target.name) === programName) {
+      const relative = relativeNodePath(target.path, rootPath);
+      if (target.type === "file" && kind && programNameFromPath(relative) === programName) {
         setClosedKinds((current) => ({ ...current, [kind]: true }));
+      }
+      const deletedUnit = unitList.find(
+        (candidate) => programRelativePath(candidate.target) === unitRelativePath(relative)
+      );
+      if (target.type === "file" && deletedUnit) {
+        closeUnitTab(deletedUnit.target);
       }
       setTreeVersion((version) => version + 1);
       setMessage(`Deleted ${target.name}`);
@@ -553,7 +670,7 @@ export default function Home() {
   async function copySelected() {
     try {
       await navigator.clipboard.writeText(
-        plainTab ? plainTab.draft : activeUnitTab ? activeUnitTab.python : drafts[selected]
+        plainTab ? plainTab.draft : activeUnitTab ? unitDraftFor(activeUnitTab) : drafts[selected]
       );
       setError(null);
       setMessage(`Copied ${plainTab ? plainTab.name : activeUnitTab ? activeUnitTab.target : fileTitle(selected, programName)}`);
@@ -667,6 +784,43 @@ export default function Home() {
     return { start, end: start + (lines[lineNumber - 1]?.length ?? 0) };
   }
 
+  function resolveBufferLine(buffer: string, recordedLine: number, entryText: string) {
+    const lines = buffer.split("\n").map((line) => line.trim());
+    const want = entryText.trim();
+    if (Number.isFinite(recordedLine) && lines[recordedLine - 1] === want) return recordedLine;
+    if (!want) return null;
+    let best: number | null = null;
+    for (let index = 0; index < lines.length; index += 1) {
+      if (lines[index] !== want) continue;
+      const candidate = index + 1;
+      if (best === null || Math.abs(candidate - recordedLine) < Math.abs(best - recordedLine)) best = candidate;
+    }
+    return best;
+  }
+
+  function entryBufferLines(entries: typeof files.pythonProvenance, buffer: string, saved: string) {
+    if (buffer === saved) return entryLines(entries);
+    const resolved = entries
+      .map((entry) => {
+        const recorded = Number(entry.line);
+        return Number.isFinite(recorded) ? resolveBufferLine(buffer, recorded, entry.text ?? "") : null;
+      })
+      .filter((line): line is number => line !== null);
+    return Array.from(new Set(resolved)).sort((a, b) => a - b);
+  }
+
+  function bufferLinesForProvenanceLines(kind: FileKind, lines: number[]) {
+    if (drafts[kind] === files[kind]) return lines;
+    const provenance = kind === "python" ? files.pythonProvenance : files.contextProvenance;
+    const resolved = lines
+      .map((line) => {
+        const entry = provenance.find((candidate) => Number(candidate.line) === line);
+        return entry ? resolveBufferLine(drafts[kind], line, entry.text ?? "") : line;
+      })
+      .filter((line): line is number => line !== null);
+    return Array.from(new Set(resolved)).sort((a, b) => a - b);
+  }
+
   function navigateToKind(kind: FileKind, lines: number[]) {
     setClosedKinds((current) => ({ ...current, [kind]: false }));
     setActivePlain(null);
@@ -743,17 +897,36 @@ export default function Home() {
     if (!clicked.length) return;
 
     const phrase = clicked[0].phrase;
-    const lines = linesForPhraseOccurrence(phrase, clicked[0].range);
+    const lines = bufferLinesForProvenanceLines(provenanceKind, linesForPhraseOccurrence(phrase, clicked[0].range));
     if (!lines.length) return;
 
     navigateToKind(provenanceKind, lines);
     setMessage(`Traced "${phrase}" to ${lines.length} ${provenanceLabel} line${lines.length === 1 ? "" : "s"}`);
   }
 
+  function provenanceLineForContextLine(line: number) {
+    const entryAt = files.contextProvenance.find((entry) => Number(entry.line) === line) ?? null;
+    if (drafts.context === files.context) return line;
+    const text = (drafts.context.split("\n")[line - 1] ?? "").trim();
+    if (entryAt && (entryAt.text ?? "").trim() === text) return line;
+    if (!text) return null;
+    const candidates = files.contextProvenance.filter((entry) => (entry.text ?? "").trim() === text);
+    if (!candidates.length) return null;
+    const nearest = candidates.reduce((best, entry) =>
+      Math.abs(Number(entry.line) - line) < Math.abs(Number(best.line) - line) ? entry : best
+    );
+    const resolved = Number(nearest.line);
+    return Number.isFinite(resolved) ? resolved : null;
+  }
+
   function pythonEntriesForContextLine(line: number) {
+    const provenanceLine = provenanceLineForContextLine(line);
+    if (provenanceLine === null) return [];
+    const referenced = files.pythonProvenance.filter((entry) => entry.contextLine === provenanceLine);
+    if (referenced.length) return referenced;
     const phrases = new Set(
       files.contextProvenance
-        .filter((entry) => Number(entry.line) === line)
+        .filter((entry) => Number(entry.line) === provenanceLine)
         .flatMap((entry) => humanPhrasesFromSource(entry.source))
         .map((phrase) => phrase.toLowerCase())
     );
@@ -766,14 +939,18 @@ export default function Home() {
   function pythonLinesForContextLine(line: number) {
     const entries = pythonEntriesForContextLine(line);
     const preferred = entries.filter((entry) => !entry.target || entry.target === `${programName}.py`);
-    return entryLines(preferred.length ? preferred : entries);
+    return entryBufferLines(preferred.length ? preferred : entries, drafts.python, files.python);
   }
 
   function unitForContextLine(line: number) {
     const entries = pythonEntriesForContextLine(line);
     const unit = unitList.find((candidate) => entries.some((entry) => entry.target === candidate.target));
     if (!unit) return null;
-    const lines = entryLines(entries.filter((entry) => entry.target === unit.target));
+    const lines = entryBufferLines(
+      entries.filter((entry) => entry.target === unit.target),
+      unitDraftFor(unit),
+      unit.python
+    );
     return lines.length ? { unit, lines } : null;
   }
 
@@ -809,7 +986,7 @@ export default function Home() {
       "reword",
       async () => {
         try {
-          return await reword(updated, programName);
+          return await reword(updated, programName, target.original, target.text);
         } catch (err) {
           const detail = err instanceof Error ? err.message : String(err);
           throw new Error(
@@ -873,16 +1050,16 @@ export default function Home() {
         projectName={activeProject?.name ?? null}
         activeFile={
           plainTab
-            ? plainTab.name
+            ? plainTab.path
             : activeUnitTab
-              ? activeUnitTab.target
+              ? programRelativePath(activeUnitTab.target)
               : programLoaded
-                ? fileTitle(selected, programName)
+                ? `${programName}.${fileMeta[selected].extension}`
                 : undefined
         }
         onOpenFile={openFile}
-        onOpenCreatedFile={(node) => void openCreatedFile(node)}
-        onRequestDelete={setFsDeleteTarget}
+        onOpenCreatedFile={(node, rootPath) => void openCreatedFile(node, rootPath)}
+        onRequestDelete={(node, rootPath) => setFsDeleteTarget({ node, rootPath })}
       >
         <div className="flex min-h-0 flex-1 flex-col border-t border-[#1F2328] p-3">
           <div className="mb-2 flex items-center justify-between px-1">
@@ -930,7 +1107,7 @@ export default function Home() {
           <div className="flex h-7 shrink-0 items-stretch border-b border-[#1F2328] bg-[#14181C]">
             {isKindVisible("human") ? (
               <EditorTab
-                title={fileTitle("human", programName)}
+                title={pipelineTabTitle("human")}
                 icon={fileGlyphs.human}
                 active={!plainTab && !activeUnitTab && selected === "human"}
                 dirty={humanDirty}
@@ -944,7 +1121,7 @@ export default function Home() {
             ) : null}
             {isKindVisible("context") ? (
               <EditorTab
-                title={fileTitle("context", programName)}
+                title={pipelineTabTitle("context")}
                 icon={fileGlyphs.context}
                 active={!plainTab && !activeUnitTab && selected === "context"}
                 dirty={contextDirty}
@@ -958,7 +1135,7 @@ export default function Home() {
             ) : null}
             {isKindVisible("python") ? (
               <EditorTab
-                title={fileTitle("python", programName)}
+                title={pipelineTabTitle("python")}
                 icon={fileGlyphs.python}
                 active={!plainTab && !activeUnitTab && selected === "python"}
                 dirty={pythonDirty}
@@ -973,10 +1150,10 @@ export default function Home() {
             {visibleUnits.map((unit) => (
               <EditorTab
                 key={unit.target}
-                title={unit.target}
+                title={unitTabTitle(unit.target)}
                 icon={plainTabIcon(unit.target)}
                 active={!plainTab && activeUnitTab?.target === unit.target}
-                dirty={false}
+                dirty={unitDirty(unit)}
                 onClick={() => {
                   setActivePlain(null);
                   setActiveUnit(unit.target);
@@ -987,7 +1164,7 @@ export default function Home() {
             {plainTabs.map((tab) => (
               <EditorTab
                 key={tab.path}
-                title={tab.name}
+                title={plainTabTitle(tab)}
                 icon={plainTabIcon(tab.name)}
                 active={activePlain === tab.path}
                 dirty={tab.draft !== tab.saved}
@@ -1004,6 +1181,25 @@ export default function Home() {
 
           <div className="relative min-h-0 flex-1 bg-[#101317]">
             {renderBody()}
+            {error ? (
+              <div className="absolute left-1/2 top-3 z-30 flex w-[min(560px,90%)] -translate-x-1/2 items-start gap-3 rounded-xl border-[0.8px] border-[#F8717166] bg-[#1B1416] px-4 py-3 shadow-2xl">
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#F87171]">
+                    backend error
+                  </p>
+                  <p className="mt-1 break-words font-mono text-xs leading-5 text-[#FCA5A5]">{error}</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Dismiss error"
+                  title="Dismiss error"
+                  className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-[#F87171] transition-colors hover:bg-[#F871711A] hover:text-[#FCA5A5]"
+                  onClick={() => setError(null)}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : null}
             {!plainTab && !activeUnitTab && selected === "human" && rewordDraft ? (
               <div className="absolute left-1/2 top-8 z-20 w-[min(560px,90%)] -translate-x-1/2 rounded-xl border-[0.8px] border-[#232830] bg-[#15181C] p-4 shadow-2xl">
                 <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5D626B]">
@@ -1069,13 +1265,13 @@ export default function Home() {
 
       {fsDeleteTarget ? (
         <ConfirmDeleteModal
-          title={fsDeleteTarget.name}
+          title={fsDeleteTarget.node.name}
           description={
-            fsDeleteTarget.type === "dir"
+            fsDeleteTarget.node.type === "dir"
               ? "This deletes the folder and everything inside it."
               : "This deletes the file from the project folder."
           }
-          detail={fsDeleteTarget.path}
+          detail={fsDeleteTarget.node.path}
           disabled={disabled}
           onCancel={() => setFsDeleteTarget(null)}
           onConfirm={confirmFsDelete}
@@ -1091,7 +1287,16 @@ export default function Home() {
 
     if (activeUnitTab) {
       return (
-        <ActionIconButton text="copy" label={`Copy ${activeUnitTab.target}`} disabled={disabled} onClick={copySelected} />
+        <>
+          <ActionIconButton text="copy" label={`Copy ${activeUnitTab.target}`} disabled={disabled} onClick={copySelected} />
+          <ActionIconButton
+            text="save"
+            label={`Save ${activeUnitTab.target}`}
+            primary
+            disabled={disabled || !unitDirty(activeUnitTab)}
+            onClick={() => saveUnitDraft(activeUnitTab)}
+          />
+        </>
       );
     }
 
@@ -1101,13 +1306,14 @@ export default function Home() {
       return (
         <>
           <ActionIconButton text="copy" label="Copy .human" disabled={disabled} onClick={copySelected} />
+          <LanguageSelect value={compileLanguage} disabled={disabled} onChange={updateCompileLanguage} />
           <ActionIconButton
             icon={<SparklesIcon width={12} height={12} />}
             label="Compile"
             primary
             disabled={disabled || !drafts.human.trim()}
             onClick={() =>
-              run("compile", () => compile(drafts.human, false, programName), "Compiled", (nextFiles) => {
+              run("compile", () => compile(drafts.human, false, programName, compileLanguage), "Compiled", (nextFiles) => {
                 if (focusUnits(nextFiles)) return;
                 setSelected(nextFiles.status.hasPython ? "python" : "context");
               })
@@ -1121,6 +1327,7 @@ export default function Home() {
       return (
         <>
           <ActionIconButton text="copy" label="Copy .context" disabled={disabled} onClick={copySelected} />
+          <LanguageSelect value={compileLanguage} disabled={disabled} onChange={updateCompileLanguage} />
           <ActionIconButton
             icon={<SparklesIcon width={12} height={12} />}
             label="Compile"
@@ -1129,7 +1336,7 @@ export default function Home() {
             onClick={() =>
               run(
                 "context-to-python",
-                () => contextToPython(drafts.context, false, programName),
+                () => contextToPython(drafts.context, false, programName, compileLanguage),
                 "Compiled",
                 (nextFiles) => {
                   if (focusUnits(nextFiles)) return;
@@ -1164,16 +1371,18 @@ export default function Home() {
     }
 
     if (activeUnitTab) {
-      const lines = unitHighlight?.target === activeUnitTab.target ? unitHighlight.lines : [];
-      const span = lines.length ? lineSpan(activeUnitTab.python, lines[0]) : null;
+      const unitTarget = activeUnitTab.target;
+      const unitCode = unitDraftFor(activeUnitTab);
+      const lines = unitHighlight?.target === unitTarget ? unitHighlight.lines : [];
+      const span = lines.length ? lineSpan(unitCode, lines[0]) : null;
       return (
         <CodeEditor
-          key={activeUnitTab.target}
-          value={activeUnitTab.python}
+          key={unitTarget}
+          value={unitCode}
           mode="python"
-          readOnly
           selection={span ? { anchor: span.start, head: span.end } : undefined}
           highlightedLines={lines}
+          onChange={(value) => setUnitDraft(activeUnitTab, value)}
         />
       );
     }
@@ -1236,7 +1445,7 @@ export default function Home() {
           onClick={() =>
             run(
               "human-to-context",
-              () => humanToContext(drafts.human, false, programName),
+              () => humanToContext(drafts.human, false, programName, compileLanguage),
               "Generated .context",
               () => setSelected("context")
             )
@@ -1254,12 +1463,12 @@ export default function Home() {
           disabled={disabled || !files.status.hasContext}
           onClick={() =>
             files.contextRole === "direct"
-              ? run("compile", () => compile(drafts.human, false, programName), "Compiled .py", () =>
+              ? run("compile", () => compile(drafts.human, false, programName, compileLanguage), "Compiled .py", () =>
                   setSelected("python")
                 )
               : run(
                   "context-to-python",
-                  () => contextToPython(drafts.context, false, programName),
+                  () => contextToPython(drafts.context, false, programName, compileLanguage),
                   "Generated .py",
                   () => setSelected("python")
                 )
@@ -1301,6 +1510,33 @@ export default function Home() {
       />
     );
   }
+}
+
+function LanguageSelect({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: CompileLanguage;
+  disabled: boolean;
+  onChange: (language: CompileLanguage) => void;
+}) {
+  return (
+    <select
+      aria-label="Compile target language"
+      title="Compile target language"
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value as CompileLanguage)}
+      className="h-5 shrink-0 cursor-pointer rounded-md border-[0.8px] border-[#232830] bg-[#14181C] px-1.5 font-mono text-[10px] font-medium tracking-[0.02em] text-[#8A919E] outline-none transition-colors enabled:hover:border-[#2E3440] enabled:hover:text-[#E7EAF0] focus:border-[#4F46E5] disabled:opacity-60"
+    >
+      {COMPILE_LANGUAGES.map((language) => (
+        <option key={language} value={language} className="bg-[#14181C] text-[#E7EAF0]">
+          {language}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 function EditorTab({

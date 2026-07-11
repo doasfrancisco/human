@@ -37,6 +37,13 @@ export type ContextProvenance = {
   text: string;
   previousLine?: number | string | null;
   target?: string | null;
+  contextLine?: number | null;
+  phraseId?: string;
+};
+
+export type PhraseEntry = {
+  text: string;
+  line: number;
 };
 
 export type CompiledUnit = {
@@ -64,6 +71,8 @@ export type Files = {
   contextProvenance: ContextProvenance[];
   pythonProvenance: ContextProvenance[];
   tree: TreeHuman[];
+  seeded: boolean;
+  phrases?: Record<string, PhraseEntry>;
 };
 
 export type Bundle = {
@@ -97,6 +106,21 @@ export type ProjectList = {
 
 export const DEFAULT_PROGRAM = "program";
 
+export const COMPILE_LANGUAGES = [
+  "python",
+  "typescript",
+  "tsx",
+  "javascript",
+  "css",
+  "json",
+  "html",
+  "markdown",
+] as const;
+
+export type CompileLanguage = (typeof COMPILE_LANGUAGES)[number];
+
+export const DEFAULT_COMPILE_LANGUAGE: CompileLanguage = "python";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
 
@@ -125,16 +149,29 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 async function requestFiles(path: string, init?: RequestInit): Promise<Files> {
   const files = await request<
-    Omit<Files, "pythonProvenance" | "units"> & {
+    Omit<Files, "pythonProvenance" | "units" | "seeded"> & {
       pythonProvenance?: ContextProvenance[];
       units?: CompiledUnit[];
+      seeded?: boolean;
     }
   >(path, init);
-  return { ...files, pythonProvenance: files.pythonProvenance ?? [], units: files.units ?? [] };
+  return {
+    ...files,
+    pythonProvenance: files.pythonProvenance ?? [],
+    units: files.units ?? [],
+    seeded: files.seeded ?? false,
+  };
 }
 
 export function getFiles(name: string = DEFAULT_PROGRAM) {
   return requestFiles(`/api/files?name=${encodeURIComponent(name)}`);
+}
+
+export function adoptProgram(name: string = DEFAULT_PROGRAM) {
+  return requestFiles("/api/adopt", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
 }
 
 export function saveFiles(
@@ -144,6 +181,13 @@ export function saveFiles(
   return requestFiles("/api/save", {
     method: "POST",
     body: JSON.stringify({ ...files, name }),
+  });
+}
+
+export function saveUnit(name: string, target: string, code: string) {
+  return requestFiles("/api/save-unit", {
+    method: "POST",
+    body: JSON.stringify({ name, target, code }),
   });
 }
 
@@ -168,45 +212,75 @@ export function getBundle(humanHash: string, name: string = DEFAULT_PROGRAM) {
   });
 }
 
-export function humanToContext(human: string, force = false, name: string = DEFAULT_PROGRAM) {
+export function humanToContext(
+  human: string,
+  force = false,
+  name: string = DEFAULT_PROGRAM,
+  language: CompileLanguage = DEFAULT_COMPILE_LANGUAGE
+) {
   return requestFiles("/api/human-to-context", {
     method: "POST",
-    body: JSON.stringify({ human, force, name }),
+    body: JSON.stringify({ human, force, name, language }),
   });
 }
 
-export function humanToSplit(human: string, force = false, name: string = DEFAULT_PROGRAM) {
+export function humanToSplit(
+  human: string,
+  force = false,
+  name: string = DEFAULT_PROGRAM,
+  language: CompileLanguage = DEFAULT_COMPILE_LANGUAGE
+) {
   return requestFiles("/api/human-to-split", {
     method: "POST",
-    body: JSON.stringify({ human, force, name }),
+    body: JSON.stringify({ human, force, name, language }),
   });
 }
 
-export function contextToPython(context: string, force = false, name: string = DEFAULT_PROGRAM) {
+export function contextToPython(
+  context: string,
+  force = false,
+  name: string = DEFAULT_PROGRAM,
+  language: CompileLanguage = DEFAULT_COMPILE_LANGUAGE
+) {
   return requestFiles("/api/context-to-python", {
     method: "POST",
-    body: JSON.stringify({ context, force, name }),
+    body: JSON.stringify({ context, force, name, language }),
   });
 }
 
-export function compile(human: string, force = false, name: string = DEFAULT_PROGRAM) {
+export function compile(
+  human: string,
+  force = false,
+  name: string = DEFAULT_PROGRAM,
+  language: CompileLanguage = DEFAULT_COMPILE_LANGUAGE
+) {
   return requestFiles("/api/compile", {
     method: "POST",
-    body: JSON.stringify({ human, force, name }),
+    body: JSON.stringify({ human, force, name, language }),
   });
 }
 
-export function compileAll(human: string, force = false, name: string = DEFAULT_PROGRAM) {
+export function compileAll(
+  human: string,
+  force = false,
+  name: string = DEFAULT_PROGRAM,
+  language: CompileLanguage = DEFAULT_COMPILE_LANGUAGE
+) {
   return requestFiles("/api/compile-all", {
     method: "POST",
-    body: JSON.stringify({ human, force, name }),
+    body: JSON.stringify({ human, force, name, language }),
   });
 }
 
-export function reword(human: string, name: string = DEFAULT_PROGRAM) {
+export function reword(human: string, name: string = DEFAULT_PROGRAM, oldPhrase?: string, newPhrase?: string) {
   return requestFiles("/api/reword", {
     method: "POST",
-    body: JSON.stringify({ human, name }),
+    body: JSON.stringify({
+      human,
+      name,
+      ...(oldPhrase !== undefined ? { oldPhrase } : {}),
+      ...(newPhrase !== undefined ? { newPhrase } : {}),
+    }),
   });
 }
 

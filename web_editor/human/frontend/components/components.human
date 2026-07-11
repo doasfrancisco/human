@@ -1,0 +1,7 @@
+a small action button with primary and danger tones
+the codemirror editor wrapper with highlights and ctrl click handling
+the confirm delete modal
+the diff preview of saved versus draft
+the explorer sidebar shell with the project header and creation controls
+the file tree rows pairing each human with its context
+the svg icon set mapped by extension

@@ -39,6 +39,46 @@ GRAPH_VERSION = 1
 PROJECTS_VERSION = 1
 DEFAULT_HUMAN = "insertion sort"
 DEFAULT_PROJECT_NAME = "untitled"
+LANGUAGES = {
+    "python": "py",
+    "typescript": "ts",
+    "tsx": "tsx",
+    "javascript": "js",
+    "jsx": "jsx",
+    "css": "css",
+    "json": "json",
+    "html": "html",
+    "markdown": "md",
+    "toml": "toml",
+    "yaml": "yaml",
+    "text": "txt",
+    "svg": "svg",
+}
+LANGUAGE_LABELS = {
+    "python": "Python",
+    "typescript": "TypeScript",
+    "tsx": "TSX",
+    "javascript": "JavaScript",
+    "jsx": "JSX",
+    "css": "CSS",
+    "json": "JSON",
+    "html": "HTML",
+    "markdown": "Markdown",
+    "toml": "TOML",
+    "yaml": "YAML",
+    "text": "plain text",
+    "svg": "SVG",
+}
+EXTENSION_LANGUAGES = {extension: language for language, extension in LANGUAGES.items()} | {
+    "mjs": "javascript",
+    "cjs": "javascript",
+    "yml": "yaml",
+}
+SPLIT_CODE_EXTENSIONS = [
+    "py", "ts", "tsx", "js", "jsx", "mjs", "cjs", "css", "json",
+    "html", "md", "toml", "yaml", "yml", "txt", "svg",
+]
+SPLIT_TARGET_EXTENSIONS = ["context", *SPLIT_CODE_EXTENSIONS]
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FS_TREE_MAX_DEPTH = 12
 FS_SKIP_DIRS = {
@@ -87,12 +127,14 @@ class HumanRequest(BaseModel):
     human: str
     force: bool = False
     name: str = PROGRAM_NAME
+    language: str = "python"
 
 
 class ContextRequest(BaseModel):
     context: str
     force: bool = False
     name: str = PROGRAM_NAME
+    language: str = "python"
 
 
 class RewordRequest(BaseModel):
@@ -270,9 +312,44 @@ def normalize_name(name: str | None) -> str:
     name = (name or "").strip()
     if not name:
         return PROGRAM_NAME
-    if not NAME_RE.fullmatch(name):
+    if "\\" in name or any(segment == ".." or not NAME_RE.fullmatch(segment) for segment in name.split("/")):
         raise HTTPException(status_code=400, detail=f"Invalid program name: {name!r}")
     return name
+
+
+def normalize_language(language: str | None) -> str:
+    language = (language or "").strip().lower()
+    if not language:
+        return "python"
+    if language in LANGUAGES:
+        return language
+    if language in EXTENSION_LANGUAGES:
+        return EXTENSION_LANGUAGES[language]
+    raise HTTPException(status_code=400, detail=f"Unsupported language: {language!r}")
+
+
+def language_label(language: str) -> str:
+    return LANGUAGE_LABELS.get(language, language)
+
+
+def language_extension(language: str) -> str:
+    return LANGUAGES.get(language, "py")
+
+
+def target_extension(target: str) -> str | None:
+    leaf = target.rsplit("/", 1)[-1]
+    if "." not in leaf:
+        return None
+    return leaf.rsplit(".", 1)[1].lower()
+
+
+def target_language(target: str) -> str:
+    return EXTENSION_LANGUAGES.get(target_extension(target) or "", "python")
+
+
+def node_language(node: dict[str, Any] | None) -> str:
+    language = (node or {}).get("language")
+    return language if language in LANGUAGES else "python"
 
 
 def now_iso() -> str:
@@ -409,11 +486,13 @@ def workspace_path(name: str, suffix: str) -> Path:
 def graph_path(name: str) -> Path:
     if name == PROGRAM_NAME:
         return active_workspace() / "graph.json"
-    return active_workspace() / f"graph-{name}.json"
+    return active_workspace() / f"graph-{name.replace('/', '__')}.json"
 
 
 def write_file(name: str, suffix: str, text: str) -> None:
-    workspace_path(name, suffix).write_text(text, encoding="utf-8")
+    path = workspace_path(name, suffix)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
 
 
 def empty_graph() -> dict[str, Any]:
@@ -461,7 +540,7 @@ def read_graph(name: str) -> dict[str, Any]:
             python = graph["pythons"].get(context["python_hash"])
             if python is not None and "provenance" not in python:
                 human_text = graph["humans"].get(context.get("human_hash"), {}).get("text", "")
-                python["provenance"] = python_provenance_fallback(human_text, python.get("text", ""), name)
+                python["provenance"] = python_provenance_fallback(human_text, python.get("text", ""), name, node_language(python))
     return graph
 
 
@@ -790,7 +869,7 @@ def ensure_context(
     return hash_
 
 
-def ensure_python(graph: dict[str, Any], text: str, context_hash: str | None) -> str:
+def ensure_python(graph: dict[str, Any], text: str, context_hash: str | None, language: str = "python") -> str:
     if not context_hash:
         raise HTTPException(status_code=400, detail="Cannot save Python before a context exists")
 
@@ -802,12 +881,14 @@ def ensure_python(graph: dict[str, Any], text: str, context_hash: str | None) ->
             "hash": hash_,
             "text": text,
             "context_hash": context_hash,
+            "language": language,
             "created_at": timestamp,
             "updated_at": timestamp,
         }
     else:
         touch(pythons[hash_])
         pythons[hash_].setdefault("context_hash", context_hash)
+        pythons[hash_].setdefault("language", language)
 
     context_hashes = pythons[hash_].setdefault("context_hashes", [])
     if context_hash not in context_hashes:
@@ -979,7 +1060,11 @@ def active_context_role(graph: dict[str, Any]) -> str | None:
 
 
 def valid_split_target(target: str) -> bool:
-    return bool(target) and target.endswith(".py") and "/" not in target and "\\" not in target and ".." not in target
+    if not target or "\\" in target or target.startswith("/") or target.endswith("/"):
+        return False
+    if any(not segment or segment == ".." for segment in target.split("/")):
+        return False
+    return target_extension(target) in SPLIT_CODE_EXTENSIONS
 
 
 def split_unit_nodes(graph: dict[str, Any]) -> dict[str, tuple[str, dict[str, Any]]]:
@@ -1003,13 +1088,18 @@ def split_unit_files(graph: dict[str, Any]) -> dict[str, str]:
 
 def materialize_current(name: str, graph: dict[str, Any]) -> None:
     human, context, python = active_texts(graph)
+    _, _, python_hash = active_hashes(graph)
+    python_node = graph["pythons"].get(python_hash) if python_hash else None
+    extension = language_extension(node_language(python_node))
     write_file(name, "human", human)
     write_file(name, "context", context)
-    write_file(name, "py", python)
+    for stale in sorted(set(LANGUAGES.values()) - {extension}):
+        workspace_path(name, stale).unlink(missing_ok=True)
+    write_file(name, extension, python)
     write_file(name, "explain", explain_text(graph, name))
     role = active_context_role(graph)
     units = split_unit_files(graph) if role == "split" else None
-    materialize_repo_files(name, human, context, python, role, units)
+    materialize_repo_files(name, human, context, python, role, units, extension)
 
 
 def materialize_repo_files(
@@ -1019,6 +1109,7 @@ def materialize_repo_files(
     python: str,
     context_role: str | None = None,
     units: dict[str, str] | None = None,
+    extension: str = "py",
 ) -> None:
     if not human.strip() and not context.strip() and not python.strip():
         return
@@ -1026,18 +1117,27 @@ def materialize_repo_files(
     repo_project_dir = REPO_ROOT / "project"
     repo_human_dir.mkdir(parents=True, exist_ok=True)
     repo_project_dir.mkdir(parents=True, exist_ok=True)
-    (repo_human_dir / f"{name}.human").write_text(human, encoding="utf-8")
+    repo_human = repo_human_dir / f"{name}.human"
+    repo_human.parent.mkdir(parents=True, exist_ok=True)
+    repo_human.write_text(human, encoding="utf-8")
     repo_context = repo_human_dir / f"{name}.context"
     if context_role is None or context_role == "direct":
         repo_context.unlink(missing_ok=True)
     else:
         repo_context.write_text(context, encoding="utf-8")
     if context_role == "split" and units:
-        (repo_project_dir / f"{name}.py").unlink(missing_ok=True)
+        for stale in sorted(set(LANGUAGES.values())):
+            (repo_project_dir / f"{name}.{stale}").unlink(missing_ok=True)
         for target, text in units.items():
-            (repo_project_dir / target).write_text(text, encoding="utf-8")
+            destination = repo_project_dir / target
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(text, encoding="utf-8")
     else:
-        (repo_project_dir / f"{name}.py").write_text(python, encoding="utf-8")
+        for stale in sorted(set(LANGUAGES.values()) - {extension}):
+            (repo_project_dir / f"{name}.{stale}").unlink(missing_ok=True)
+        destination = repo_project_dir / f"{name}.{extension}"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(python, encoding="utf-8")
 
 
 def python_tree_response(graph: dict[str, Any], python: dict[str, Any], active_python: str | None) -> TreePythonResponse:
@@ -1124,10 +1224,28 @@ def provenance_response(entries: list[Any]) -> list[ContextProvenanceResponse]:
     ]
 
 
+def seeded_disk_texts(name: str) -> tuple[str, str] | None:
+    human_path = REPO_ROOT / "human" / f"{name}.human"
+    if not human_path.is_file():
+        return None
+    context_path = REPO_ROOT / "human" / f"{name}.context"
+    context = context_path.read_text(encoding="utf-8") if context_path.is_file() else ""
+    return human_path.read_text(encoding="utf-8"), context
+
+
 def files_response(name: str, graph: dict[str, Any]) -> FilesResponse:
     human_hash, context_hash, python_hash = active_hashes(graph)
     human, context, python = active_texts(graph)
     context_node = graph["contexts"].get(context_hash, {}) if context_hash else {}
+    seeded = seeded_disk_texts(name) if human_hash is None else None
+    if seeded is not None:
+        human, context = seeded
+    if context_hash:
+        context_role = context_node.get("role", "leaf")
+    elif seeded is not None and context.strip():
+        context_role = "leaf"
+    else:
+        context_role = None
     python_provenance = (
         graph["pythons"].get(python_hash, {}).get("provenance", [])
         if python_hash and context_node.get("role") == "direct"
@@ -1155,7 +1273,7 @@ def files_response(name: str, graph: dict[str, Any]) -> FilesResponse:
             hasContext=context_hash is not None,
             hasPython=python_hash is not None,
         ),
-        contextRole=context_node.get("role", "leaf") if context_hash else None,
+        contextRole=context_role,
         contextProvenance=provenance_response(context_node.get("provenance", [])),
         pythonProvenance=provenance_response(python_provenance),
         units=units,
@@ -1330,9 +1448,78 @@ Rules:
 """
 
 
-def human_to_context(human: str) -> str:
+def human_to_context_system(language: str) -> str:
+    if language == "python":
+        return HUMAN_TO_CONTEXT_SYSTEM
+    return HUMAN_TO_CONTEXT_SYSTEM.replace(
+        "can generate Python from it", f"can generate {language_label(language)} from it"
+    )
+
+
+def human_to_split_system(language: str) -> str:
+    if language == "python":
+        return HUMAN_TO_SPLIT_SYSTEM
+    extension = language_extension(language)
+    system = HUMAN_TO_SPLIT_SYSTEM.replace(
+        "- Example: serve.py — Bind to the host and port, accept connections, and dispatch each request to the handler.",
+        f"- Example: helpers.{extension} — Implement the shared helper unit that the other units build on.",
+    )
+    return system.replace(".py", f".{extension}").replace("Python", language_label(language))
+
+
+def human_to_code_system(language: str) -> str:
+    if language == "python":
+        return HUMAN_TO_PYTHON_SYSTEM
+    extension = language_extension(language)
+    label = language_label(language)
+    return f"""You are the direct .human -> .{extension} compiler stage for fran++ v0.0.5.
+
+Input: freeform human intent.
+Output: {label} source code only.
+
+Rules:
+- No prose.
+- No markdown fences.
+- Implement the intent faithfully with sensible defaults.
+- Keep the output a single self-contained .{extension} file.
+"""
+
+
+def context_to_code_system(language: str) -> str:
+    if language == "python":
+        return CONTEXT_TO_PYTHON_SYSTEM
+    extension = language_extension(language)
+    label = language_label(language)
+    return f"""You are the .context -> .{extension} compiler stage for fran++ v0.0.5.
+
+Input: free-text implementation context.
+Output: {label} source code only.
+
+Rules:
+- No prose.
+- No markdown fences.
+- Implement the context faithfully.
+- Keep the output a single self-contained .{extension} file.
+"""
+
+
+def code_provenance_system(language: str) -> str:
+    if language == "python":
+        return PYTHON_PROVENANCE_SYSTEM
+    return PYTHON_PROVENANCE_SYSTEM.replace(".py", f".{language_extension(language)}").replace(
+        "Python", language_label(language)
+    )
+
+
+def unit_reference_rule(language: str) -> str:
+    if language == "python":
+        return "When the description says this unit uses another unit, import that unit by its module name."
+    return "When the description says this unit uses another unit, reference it by its relative path."
+
+
+def human_to_context(human: str, language: str = "python") -> str:
     raw = call_bedrock(
-        HUMAN_TO_CONTEXT_SYSTEM,
+        human_to_context_system(language),
         f"Human intent:\n{human.strip()}\n\nReturn only the .context text.",
     )
     return strip_code_fences(raw) + "\n"
@@ -1359,26 +1546,26 @@ def update_context(previous_human: str, previous_context: str, new_human: str) -
     return strip_code_fences(raw) + "\n"
 
 
-def human_to_split(human: str) -> str:
+def human_to_split(human: str, language: str = "python") -> str:
     raw = call_bedrock(
-        HUMAN_TO_SPLIT_SYSTEM,
+        human_to_split_system(language),
         f"Human intent:\n{human.strip()}\n\nReturn only the split .context rows.",
     )
     return strip_code_fences(raw) + "\n"
 
 
-def context_to_python(context: str) -> str:
+def context_to_code(context: str, language: str = "python") -> str:
     raw = call_bedrock(
-        CONTEXT_TO_PYTHON_SYSTEM,
-        f"Context:\n{context.strip()}\n\nReturn only the Python source.",
+        context_to_code_system(language),
+        f"Context:\n{context.strip()}\n\nReturn only the {language_label(language)} source.",
     )
     return strip_code_fences(raw) + "\n"
 
 
-def human_to_python(human: str) -> str:
+def human_to_code(human: str, language: str = "python") -> str:
     raw = call_bedrock(
-        HUMAN_TO_PYTHON_SYSTEM,
-        f"Human intent:\n{human.strip()}\n\nReturn only the Python source.",
+        human_to_code_system(language),
+        f"Human intent:\n{human.strip()}\n\nReturn only the {language_label(language)} source.",
     )
     return strip_code_fences(raw) + "\n"
 
@@ -1400,7 +1587,10 @@ def decide_compile_route(human: str) -> Literal["direct", "context"]:
     return decide_word(COMPILE_TRIAGE_SYSTEM, human, {"direct", "context"}, "context")
 
 
-SPLIT_TARGET_RE = re.compile(r"^([\w.\-/]+\.(?:py|context))\s*(?:—|–|--|:)\s*(.*)$")
+SPLIT_TARGET_RE = re.compile(
+    r"^([\w.\-/]+\.(?:" + "|".join(SPLIT_TARGET_EXTENSIONS) + r"))\s*(?:—|–|--|:)\s*(.*)$"
+)
+SPLIT_TARGET_SUFFIX_RE = re.compile(r"\.(?:" + "|".join(SPLIT_TARGET_EXTENSIONS) + r")$")
 
 
 def parse_split_sections(text: str) -> list[dict[str, Any]]:
@@ -1455,7 +1645,7 @@ def split_section_sources(human: str, context: str) -> dict[str, str]:
 
     scored: list[tuple[int, float, float, int, float, int, str]] = []
     for target, header in headers:
-        name = re.sub(r"[_./]", " ", re.sub(r"\.(?:py|context)$", "", target)).strip()
+        name = re.sub(r"[_./]", " ", SPLIT_TARGET_SUFFIX_RE.sub("", target)).strip()
         name_tokens = phrase_tokens(name)
         header_tokens = phrase_tokens(header) | name_tokens
         for index, phrase in enumerate(phrases):
@@ -1562,21 +1752,21 @@ def direct_context_text(human_hash: str) -> str:
     return f"compiled directly from .human {human_hash[:12]}; no intermediate .context\n"
 
 
-def python_provenance_fallback(human: str, python: str, name: str) -> list[dict[str, Any]]:
+def python_provenance_fallback(human: str, python: str, name: str, language: str = "python") -> list[dict[str, Any]]:
     source = f'human phrase "{human.strip()}"'
     return [
-        {"line": index, "status": "added", "source": source, "text": line, "target": f"{name}.py"}
+        {"line": index, "status": "added", "source": source, "text": line, "target": f"{name}.{language_extension(language)}"}
         for index, line in enumerate(python.splitlines(), start=1)
         if line.strip()
     ]
 
 
-def python_provenance_from_llm(graph: dict[str, Any], human: str, python: str, name: str) -> list[dict[str, Any]] | None:
+def python_provenance_from_llm(graph: dict[str, Any], human: str, python: str, name: str, language: str = "python") -> list[dict[str, Any]] | None:
     lines = python.splitlines()
     numbered = "\n".join(f"{index}: {line}" for index, line in enumerate(lines, start=1))
     raw = call_bedrock(
-        PYTHON_PROVENANCE_SYSTEM,
-        f"Human intent:\n{human.strip()}\n\nNumbered Python:\n{numbered}\n\nReturn only the JSON array.",
+        code_provenance_system(language),
+        f"Human intent:\n{human.strip()}\n\nNumbered {language_label(language)}:\n{numbered}\n\nReturn only the JSON array.",
     )
     try:
         entries = json.loads(strip_code_fences(raw))
@@ -1612,7 +1802,7 @@ def python_provenance_from_llm(graph: dict[str, Any], human: str, python: str, n
                 "status": "added",
                 "source": f'human phrase "{snapped}"',
                 "text": text,
-                "target": f"{name}.py",
+                "target": f"{name}.{language_extension(language)}",
             }
         )
     if not provenance:
@@ -1621,17 +1811,17 @@ def python_provenance_from_llm(graph: dict[str, Any], human: str, python: str, n
     return provenance
 
 
-def python_provenance_for_direct(graph: dict[str, Any], human: str, python: str, name: str) -> list[dict[str, Any]]:
+def python_provenance_for_direct(graph: dict[str, Any], human: str, python: str, name: str, language: str = "python") -> list[dict[str, Any]]:
     if not python.strip():
         return []
     try:
-        mapped = python_provenance_from_llm(graph, human, python, name)
+        mapped = python_provenance_from_llm(graph, human, python, name, language)
     except HTTPException:
         mapped = None
-    return mapped or python_provenance_fallback(human, python, name)
+    return mapped or python_provenance_fallback(human, python, name, language)
 
 
-def resolve_adaptive_context(graph: dict[str, Any], req: HumanRequest) -> str:
+def resolve_adaptive_context(graph: dict[str, Any], req: HumanRequest, language: str = "python") -> str:
     previous_human_hash, previous_context_hash, _ = active_hashes(graph)
     previous_human = graph["humans"].get(previous_human_hash, {}).get("text", "") if previous_human_hash else ""
     previous_context_node = graph["contexts"].get(previous_context_hash) if previous_context_hash else None
@@ -1645,7 +1835,7 @@ def resolve_adaptive_context(graph: dict[str, Any], req: HumanRequest) -> str:
 
     shape = decide_context_shape(req.human)
     if shape == "split":
-        context = human_to_split(req.human)
+        context = human_to_split(req.human, language)
         provenance = split_provenance(req.human, context, split_section_sources_for_compile(req.human, context))
         return ensure_context(graph, context, human_hash, provenance=provenance, role="split")
 
@@ -1654,7 +1844,7 @@ def resolve_adaptive_context(graph: dict[str, Any], req: HumanRequest) -> str:
         provenance = context_provenance_from_update(previous_human, previous_context_node, req.human, context)
         return ensure_context(graph, context, human_hash, provenance=provenance, parent_context_hash=previous_context_hash, role="leaf")
 
-    context = human_to_context(req.human)
+    context = human_to_context(req.human, language)
     provenance = context_provenance_from_scratch(req.human, context)
     return ensure_context(graph, context, human_hash, provenance=provenance, role="leaf")
 
@@ -1664,23 +1854,24 @@ def compile_split_children(graph: dict[str, Any], context_hash: str) -> None:
     sections = parse_split_sections(context_node["text"])
     targets = [section["target"] for section in sections]
     for section in sections:
-        if not section["target"].endswith(".py"):
+        if section["target"].endswith(".context") or not valid_split_target(section["target"]):
             continue
+        section_language = target_language(section["target"])
         unit_context = "\n".join(
             [
                 f"Compile only the unit that targets {section['target']}.",
                 f"The full program is split into these units: {', '.join(targets)}.",
-                "When the description says this unit uses another unit, import that unit by its module name.",
+                unit_reference_rule(section_language),
                 "Unit description:",
                 *section["description"],
             ]
         )
-        python = context_to_python(unit_context)
-        python_hash = ensure_python(graph, python, context_hash)
-        graph["pythons"][python_hash]["target"] = section["target"]
+        code = context_to_code(unit_context, section_language)
+        code_hash = ensure_python(graph, code, context_hash, language=section_language)
+        graph["pythons"][code_hash]["target"] = section["target"]
 
 
-def complete_python(graph: dict[str, Any], context_hash: str, human: str, name: str, force: bool = False) -> None:
+def complete_python(graph: dict[str, Any], context_hash: str, human: str, name: str, force: bool = False, language: str = "python") -> None:
     context_node = graph["contexts"][context_hash]
     if context_node.get("python_hash") and not force:
         return
@@ -1688,11 +1879,11 @@ def complete_python(graph: dict[str, Any], context_hash: str, human: str, name: 
     if role == "split":
         compile_split_children(graph, context_hash)
     elif role == "direct":
-        python_text = human_to_python(human)
-        python_hash = ensure_python(graph, python_text, context_hash)
-        graph["pythons"][python_hash]["provenance"] = python_provenance_for_direct(graph, human, python_text, name)
+        code_text = human_to_code(human, language)
+        code_hash = ensure_python(graph, code_text, context_hash, language=language)
+        graph["pythons"][code_hash]["provenance"] = python_provenance_for_direct(graph, human, code_text, name, language)
     else:
-        ensure_python(graph, context_to_python(context_node["text"]), context_hash)
+        ensure_python(graph, context_to_code(context_node["text"], language), context_hash, language=language)
 
 
 @app.get("/")
@@ -1900,7 +2091,7 @@ def delete_project(req: ProjectSelectRequest):
 @app.post("/api/projects/wipe", response_model=ProjectsResponse)
 def wipe_projects():
     shutil.rmtree(WORKSPACE / "projects", ignore_errors=True)
-    for suffix in ["human", "context", "py", "explain"]:
+    for suffix in ["human", "context", "explain", *sorted(set(LANGUAGES.values()))]:
         for stale in WORKSPACE.glob(f"*.{suffix}"):
             stale.unlink(missing_ok=True)
     for stale in WORKSPACE.glob("graph*.json"):
@@ -1944,9 +2135,10 @@ def save_files(req: SaveRequest):
             touch(graph["humans"][human_hash])
 
     if req.python is not None:
-        _, context_hash, _ = active_hashes(graph)
+        _, context_hash, python_hash = active_hashes(graph)
         if req.python.strip():
-            ensure_python(graph, req.python, context_hash)
+            previous_python = graph["pythons"].get(python_hash) if python_hash else None
+            ensure_python(graph, req.python, context_hash, language=node_language(previous_python))
         elif context_hash:
             graph["contexts"][context_hash]["python_hash"] = None
             touch(graph["contexts"][context_hash])
@@ -1978,7 +2170,7 @@ def reword(req: RewordRequest):
     role = context.get("role", "leaf")
     if role == "direct":
         python = graph["pythons"][python_hash]
-        python["provenance"] = python_provenance_for_direct(graph, req.human, python["text"], name)
+        python["provenance"] = python_provenance_for_direct(graph, req.human, python["text"], name, node_language(python))
         context["provenance"] = [
             {
                 "line": 1,
@@ -2049,8 +2241,9 @@ def delete(req: DeleteRequest):
 @app.post("/api/human-to-context", response_model=FilesResponse)
 def human_to_context_endpoint(req: HumanRequest):
     name = normalize_name(req.name)
+    language = normalize_language(req.language)
     graph = read_graph(name)
-    resolve_adaptive_context(graph, req)
+    resolve_adaptive_context(graph, req, language)
     write_graph(name, graph)
     materialize_current(name, graph)
     return files_response(name, graph)
@@ -2059,13 +2252,14 @@ def human_to_context_endpoint(req: HumanRequest):
 @app.post("/api/human-to-split", response_model=FilesResponse)
 def human_to_split_endpoint(req: HumanRequest):
     name = normalize_name(req.name)
+    language = normalize_language(req.language)
     graph = read_graph(name)
     human_hash = ensure_human(graph, req.human)
     human = graph["humans"][human_hash]
     current_context = graph["contexts"].get(human.get("context_hash")) if human.get("context_hash") else None
 
     if not current_context or current_context.get("role") != "split" or req.force:
-        context = human_to_split(req.human)
+        context = human_to_split(req.human, language)
         provenance = split_provenance(req.human, context, split_section_sources_for_compile(req.human, context))
         ensure_context(graph, context, human_hash, provenance=provenance, role="split")
 
@@ -2077,6 +2271,7 @@ def human_to_split_endpoint(req: HumanRequest):
 @app.post("/api/context-to-python", response_model=FilesResponse)
 def context_to_python_endpoint(req: ContextRequest):
     name = normalize_name(req.name)
+    language = normalize_language(req.language)
     graph = read_graph(name)
     human_hash, previous_context_hash, _ = active_hashes(graph)
     previous_context_node = graph["contexts"].get(previous_context_hash) if previous_context_hash else None
@@ -2093,8 +2288,8 @@ def context_to_python_endpoint(req: ContextRequest):
     context = graph["contexts"][context_hash]
 
     if not context.get("python_hash") or req.force:
-        python = context_to_python(req.context)
-        ensure_python(graph, python, context_hash)
+        code = context_to_code(req.context, language)
+        ensure_python(graph, code, context_hash, language=language)
 
     write_graph(name, graph)
     materialize_current(name, graph)
@@ -2104,6 +2299,7 @@ def context_to_python_endpoint(req: ContextRequest):
 @app.post("/api/compile-all", response_model=FilesResponse)
 def compile_all(req: HumanRequest):
     name = normalize_name(req.name)
+    language = normalize_language(req.language)
     graph = read_graph(name)
     previous_human_hash, previous_context_hash, _ = active_hashes(graph)
     previous_human = graph["humans"].get(previous_human_hash, {}).get("text", "") if previous_human_hash else ""
@@ -2128,8 +2324,8 @@ def compile_all(req: HumanRequest):
 
     context_node = graph["contexts"][context_hash]
     if not context_node.get("python_hash") or req.force:
-        python = context_to_python(context)
-        ensure_python(graph, python, context_hash)
+        code = context_to_code(context, language)
+        ensure_python(graph, code, context_hash, language=language)
 
     write_graph(name, graph)
     materialize_current(name, graph)
@@ -2139,12 +2335,13 @@ def compile_all(req: HumanRequest):
 @app.post("/api/compile", response_model=FilesResponse)
 def compile_endpoint(req: HumanRequest):
     name = normalize_name(req.name)
+    language = normalize_language(req.language)
     graph = read_graph(name)
     cached = graph["humans"].get(content_hash(req.human))
 
     if cached and cached.get("context_hash") and not req.force:
         ensure_human(graph, req.human)
-        complete_python(graph, cached["context_hash"], req.human, name)
+        complete_python(graph, cached["context_hash"], req.human, name, language=language)
         write_graph(name, graph)
         materialize_current(name, graph)
         return files_response(name, graph)
@@ -2162,12 +2359,12 @@ def compile_endpoint(req: HumanRequest):
             }
         ]
         context_hash = ensure_context(graph, marker, human_hash, provenance=provenance, role="direct")
-        python_text = human_to_python(req.human)
-        python_hash = ensure_python(graph, python_text, context_hash)
-        graph["pythons"][python_hash]["provenance"] = python_provenance_for_direct(graph, req.human, python_text, name)
+        code_text = human_to_code(req.human, language)
+        code_hash = ensure_python(graph, code_text, context_hash, language=language)
+        graph["pythons"][code_hash]["provenance"] = python_provenance_for_direct(graph, req.human, code_text, name, language)
     else:
-        context_hash = resolve_adaptive_context(graph, req)
-        complete_python(graph, context_hash, req.human, name, force=req.force)
+        context_hash = resolve_adaptive_context(graph, req, language)
+        complete_python(graph, context_hash, req.human, name, force=req.force, language=language)
 
     write_graph(name, graph)
     materialize_current(name, graph)

@@ -1,0 +1,4 @@
+keep the whitelist of extensions a split section may target and the regexes recognizing a header line that names its file
+number the non blank lines of a context tagging each with the target file of the section it falls under
+a function that parses a split context into sections each opened by a header naming its target file and collecting the description lines beneath it
+a function that collects each target's first header line so every section is represented exactly once
