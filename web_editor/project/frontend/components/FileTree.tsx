@@ -28,7 +28,7 @@ type TreeCtx = {
   createError: string | null;
   onToggle: (path: string, open: boolean) => void;
   onSelect: (node: FileNode, parentPath: string) => void;
-  onOpen: (node: FileNode) => void;
+  onOpen: (node: FileNode, paired: boolean) => void;
   onContextMenu: (node: FileNode, parentPath: string, x: number, y: number) => void;
   onCreateSubmit: (name: string) => void;
   onCreateCancel: () => void;
@@ -37,6 +37,13 @@ type TreeCtx = {
 function extensionOf(name: string) {
   const dot = name.lastIndexOf(".");
   return dot > 0 ? name.slice(dot) : "";
+}
+
+function isActiveFile(node: FileNode, activeFile?: string) {
+  if (!activeFile) return false;
+  const path = node.path.replace(/\\/g, "/");
+  const target = activeFile.replace(/\\/g, "/");
+  return path === target || path.endsWith(`/${target}`);
 }
 
 function isGenerated(ext: string) {
@@ -110,18 +117,20 @@ function CreateRow({ indent, ctx }: { indent: number; ctx: TreeCtx }) {
 function FileRow({
   node,
   parentPath,
+  paired,
   indent,
   lane,
   ctx,
 }: {
   node: FileNode;
   parentPath: string;
+  paired: boolean;
   indent: number;
   lane?: ReactNode;
   ctx: TreeCtx;
 }) {
   const ext = extensionOf(node.name);
-  const active = ctx.activeFile === node.name;
+  const active = isActiveFile(node, ctx.activeFile);
   const selected = ctx.selectedPath === node.path;
   return (
     <div
@@ -130,7 +139,7 @@ function FileRow({
       title={node.path}
       onClick={() => {
         ctx.onSelect(node, parentPath);
-        ctx.onOpen(node);
+        ctx.onOpen(node, paired);
       }}
       onContextMenu={(event) => {
         event.preventDefault();
@@ -164,7 +173,7 @@ function HumanPairRow({
   ctx: TreeCtx;
 }) {
   const open = ctx.expanded[human.path] ?? true;
-  const active = ctx.activeFile === human.name;
+  const active = isActiveFile(human, ctx.activeFile);
   const selected = ctx.selectedPath === human.path;
   return (
     <>
@@ -174,7 +183,7 @@ function HumanPairRow({
         title={human.path}
         onClick={() => {
           ctx.onSelect(human, parentPath);
-          ctx.onOpen(human);
+          ctx.onOpen(human, true);
         }}
         onContextMenu={(event) => {
           event.preventDefault();
@@ -196,7 +205,7 @@ function HumanPairRow({
         <FileGlyph node={human} active={active} />
         <span className={`min-w-0 flex-1 truncate ${nameColor(".human", active)}`}>{human.name}</span>
       </div>
-      {open ? <FileRow node={context} parentPath={parentPath} indent={indent + 22} ctx={ctx} /> : null}
+      {open ? <FileRow node={context} parentPath={parentPath} paired indent={indent + 22} ctx={ctx} /> : null}
     </>
   );
 }
@@ -283,6 +292,13 @@ function renderNodes(nodes: FileNode[], parentPath: string, depth: number, ctx: 
       .map((node) => node.name)
   );
 
+  function pairedWithHuman(name: string) {
+    if (name.endsWith(".human")) return true;
+    if (name.endsWith(".context")) return names.has(`${name.slice(0, -".context".length)}.human`);
+    if (name.endsWith(".py")) return names.has(`${name.slice(0, -".py".length)}.human`);
+    return false;
+  }
+
   return nodes.map((node) => {
     if (node.type === "dir") {
       return <DirRow key={node.path} node={node} parentPath={parentPath} depth={depth} ctx={ctx} />;
@@ -304,7 +320,16 @@ function renderNodes(nodes: FileNode[], parentPath: string, depth: number, ctx: 
         );
       }
     }
-    return <FileRow key={node.path} node={node} parentPath={parentPath} indent={8 + depth * 16} ctx={ctx} />;
+    return (
+      <FileRow
+        key={node.path}
+        node={node}
+        parentPath={parentPath}
+        paired={pairedWithHuman(node.name)}
+        indent={8 + depth * 16}
+        ctx={ctx}
+      />
+    );
   });
 }
 
@@ -332,7 +357,7 @@ export function FileTree({
   createError: string | null;
   onToggle: (path: string, open: boolean) => void;
   onSelect: (node: FileNode, parentPath: string) => void;
-  onOpen: (node: FileNode) => void;
+  onOpen: (node: FileNode, paired: boolean) => void;
   onContextMenu: (node: FileNode, parentPath: string, x: number, y: number) => void;
   onCreateSubmit: (name: string) => void;
   onCreateCancel: () => void;

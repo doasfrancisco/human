@@ -1,0 +1,5 @@
+the root layout with the geist fonts and the window title
+the global stylesheet with the dark palette and the button pills
+the main editor page with its tabs, compile and reword actions, and ctrl provenance tracing
+the projects list for opening, creating, and deleting projects
+the explorer redirect that bounces its path query back home

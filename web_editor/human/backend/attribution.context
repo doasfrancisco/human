@@ -1,0 +1,7 @@
+attribution.py — Define the split-target constants: the whitelist of code extensions a section may compile to, the target list adding context, and compiled regexes matching a header line naming a file followed by an em dash, en dash, double hyphen, or colon, plus a suffix regex for target extensions.
+
+Provide numbered_context_lines walking a context and yielding each non-blank line as its 1-based document line number, raw text, and the target named by the most recent section header.
+
+Provide parse_split_sections grouping a split context into sections, each holding its header's target and the description lines collected beneath it starting with the header remainder.
+
+Provide split_section_headers returning the first header line per distinct target in order of appearance.

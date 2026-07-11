@@ -1,0 +1,9 @@
+package.json — The private package manifest named frontend at 0.1.0: scripts run the dev server on port 3002 plus build, start, and lint; dependencies are next 16.2.6, react and react-dom 19.2.4, the codemirror 6 packages (core, lang-python, language, state, view, and the lezer highlight tags), and @pierre/diffs at latest; dev dependencies bring tailwind 4 with its build plugin, lint tooling version 9 with the framework preset, and the version 5 compiler with node/react type packages.
+
+tsconfig.json — The tsconfig: strict compiler settings targeting ES2017 with dom and esnext libs, esnext modules resolved in bundler mode, react-jsx transform, allowJs, skipLibCheck, noEmit, esModuleInterop, resolveJsonModule, isolatedModules, incremental builds, the framework language-service plugin, a "@/*" path alias to the project root, includes covering ts/tsx/mts sources and the generated type declarations, and node_modules excluded.
+
+next.config.ts — The next.config placeholder: a typed NextConfig object with no options set, exported as default.
+
+postcss.config.mjs — The postcss setup: a plain object registering the tailwind postcss plugin as the only plugin, exported as default.
+
+eslint.config.mjs — The eslint rules as a flat config: defineConfig spreading the core-web-vitals and typescript presets from the framework config package, then globalIgnores re-declaring the default ignore globs (.next, out, build, and the generated env declaration file) so overriding them stays explicit.
