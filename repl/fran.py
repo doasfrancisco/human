@@ -9,6 +9,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 import boto3
@@ -104,15 +105,24 @@ class Node:
         return re.sub(r"^assert:\s*.+$", "", self.text, flags=re.M).strip()
 
 
-def lang_text() -> str:
+STAGE_SCOPES = {
+    "expand": ("lower",),
+    "contract": ("code",),
+    "code": ("code",),
+    "reduce": ("code", "reduce"),
+}
+
+
+def lang_text(stage: str) -> str:
     parts = []
-    for f in sorted(LANG.glob("*.human")):
-        parts.append(f"### lang/{f.stem}\n{f.read_text(encoding='utf-8').strip()}")
+    for scope in STAGE_SCOPES[stage]:
+        for f in sorted((LANG / scope).glob("*.human")):
+            parts.append(f"### lang/{scope}/{f.stem}\n{f.read_text(encoding='utf-8').strip()}")
     return "\n\n".join(parts)
 
 
-def lang_hash() -> str:
-    return hashlib.sha256(lang_text().encode()).hexdigest()[:16]
+def lang_hash(stage: str) -> str:
+    return hashlib.sha256(lang_text(stage).encode()).hexdigest()[:16]
 
 
 def owns(ancestor: str, path: str) -> bool:
@@ -133,7 +143,7 @@ def stage_hash(kind: str) -> str:
 
 
 def cache_file(kind: str, key_parts: list[str]) -> Path:
-    parts = [kind, MODEL_ID, lang_hash(), stage_hash(kind), *key_parts]
+    parts = [kind, MODEL_ID, lang_hash(kind), stage_hash(kind), *key_parts]
     key = hashlib.sha256("\x1f".join(parts).encode()).hexdigest()
     return CACHE / f"{key}.json"
 
@@ -222,7 +232,7 @@ def propose(node: Node) -> list[str]:
     anc = "\n".join(f"[level {a.level}] {a.intent()}" for a in node.ancestors()) or "(none, this is the root)"
     sib = "\n".join(f"- {s.intent()}" for s in node.siblings()) or "(none)"
     user = (
-        f"# The language\n{lang_text()}\n\n"
+        f"# The language\n{lang_text('expand')}\n\n"
         f"# Ancestors (why this node exists)\n{anc}\n\n"
         f"# Siblings (already settled, do not restate)\n{sib}\n\n"
         f"# Node to expand (level {node.level})\n{node.intent()}"
@@ -256,25 +266,51 @@ owns - it calls that name directly, as a module-level name that is already there
 Be short and prescriptive. This is a specification the units obey, not prose. Name exact
 identifiers, exact parameter names, exact return values, exact dict keys.
 
+You may also be given the assertions the finished program must satisfy. You are the only stage
+that ever sees them. They are the caller's observable expectations, so they bind the public
+interface: the exact names, the exact arguments, the exact return values, the exact dict keys,
+and the exact exception type raised on each failure. Where an assertion pins one of these, the
+contract must state it, because a unit that cannot see the assertion can only agree with it by
+luck.
+
+Never quote an assertion, and never mention that assertions exist. A unit that could read the
+assertion could satisfy it by special-casing the literal value in it, and that would pass the
+test while meaning nothing. Specify the interface; let the units decide how to meet it.
+
 Return {"contract": "<the contract, as plain text>"}."""
 
 
-def contract_key(root: Node) -> list[str]:
-    return [root.intent(), *[u.intent() for u in root.children()]]
+def assertions_of(root: Node, units: list[Node]) -> list[str]:
+    out = list(root.assertions())
+    for u in units:
+        for n in u.subtree():
+            out.extend(n.assertions())
+    return out
 
 
-def contract(root: Node) -> str:
-    units = root.children()
+def contract_key(root: Node, units: list[Node]) -> list[str]:
+    return [root.intent(), *[u.intent() for u in units], *assertions_of(root, units)]
+
+
+def contract_of(root: Node, units: list[Node]) -> str:
     if not units:
         return ""
     listing = "\n\n".join(f"## unit {i}\n{u.intent()}" for i, u in enumerate(units, 1))
+    asserts = assertions_of(root, units)
     user = (
-        f"# The language\n{lang_text()}\n\n"
+        f"# The language\n{lang_text('contract')}\n\n"
         f"# Program root\n{root.intent()}\n\n"
         f"# The units, in order\n{listing}"
     )
-    result, _ = cached("contract", contract_key(root), lambda: call_json(CONTRACT_SYSTEM, user))
+    if asserts:
+        listed = "\n".join(f"- {a}" for a in asserts)
+        user += f"\n\n# The assertions the finished program must satisfy\n{listed}"
+    result, _ = cached("contract", contract_key(root, units), lambda: call_json(CONTRACT_SYSTEM, user))
     return result.get("contract", "").strip()
+
+
+def contract(root: Node) -> str:
+    return contract_of(root, root.children())
 
 
 CODE_SYSTEM = """You are the code generation stage of fran, a language whose source is human text.
@@ -297,7 +333,7 @@ node that caused it. Blank lines may be omitted from attribution."""
 
 def codegen_serial(root_intent: str, serial: str, spec: str) -> tuple[dict, bool]:
     user = (
-        f"# The language\n{lang_text()}\n\n"
+        f"# The language\n{lang_text('code')}\n\n"
         f"# Program root\n{root_intent}\n\n"
         f"# The contract (every unit obeys this)\n{spec}\n\n"
         f"# The unit and its subtree\n{serial}"
@@ -312,15 +348,21 @@ def codegen(unit: Node) -> tuple[dict, bool]:
 
 REDUCE_SYSTEM = """You are the code generation stage of fran, a language whose source is human text.
 
-You have already emitted code for a unit. One node has now been removed from that unit's
-node set. You are not being asked to write the unit again. You are being asked for the
-smallest change to the baseline code that the new node set forces.
+One node has been removed from the program. You are not being asked to write the program
+again. You are being asked for the smallest change to the baseline code that the removal
+forces.
 
-Emit the code the new node set implies. Preserve every line the new set still implies,
-byte for byte. Change only what the removal forces you to change. Do not restyle, do not
-rename, do not resign a function, do not reorder, and do not rewrite anything you were not
-forced to touch. If the removed node caused no line, the code you return is the baseline
-code unchanged.
+The baseline is the code as it stood before the removal. It may be the whole program: every
+unit concatenated. You emit the code of exactly ONE unit - the one whose node set is given to
+you. Define only the names the contract assigns to that unit. Code in the baseline that belongs
+to another unit is context, not yours: never re-emit it and never copy it into your unit. If
+the contract now assigns you a name that another unit used to own, you own it, and you must
+write it yourself from your own node set.
+
+Emit the code your node set implies. Preserve every line your node set still implies, byte for
+byte. Change only what the removal forces you to change. Do not restyle, do not rename, do not
+resign a function, do not reorder, and do not rewrite anything you were not forced to touch.
+If the removal forces no change on your unit, return your unit's baseline code unchanged.
 
 Return {"code": "<python>"}."""
 
@@ -335,11 +377,11 @@ STAGE_PROMPTS = {
 
 def codegen_reduce(root_intent: str, serial: str, baseline: str, spec: str) -> tuple[dict, bool]:
     user = (
-        f"# The language\n{lang_text()}\n\n"
+        f"# The language\n{lang_text('reduce')}\n\n"
         f"# Program root\n{root_intent}\n\n"
         f"# The contract (every unit obeys this)\n{spec}\n\n"
-        f"# The baseline code (what the previous node set emitted)\n{baseline}\n\n"
-        f"# The new node set (one node was removed)\n{serial}"
+        f"# The baseline code (the program as it stood before the removal)\n{baseline}\n\n"
+        f"# The unit you emit, and its node set after the removal\n{serial}"
     )
     return cached(
         "reduce", [root_intent, serial, baseline, spec], lambda: call_json(REDUCE_SYSTEM, user, max_tokens=4096)
@@ -364,8 +406,26 @@ def attribution(result: dict, unit: Node) -> dict[int, str]:
     return {int(k): owner_path(v, unit) for k, v in raw.items() if str(k).isdigit()}
 
 
-def emitted(result: dict) -> list[str]:
-    return [l.strip() for l in result.get("code", "").splitlines() if l.strip()]
+def tally(code: str) -> Counter:
+    return Counter(l.rstrip() for l in code.splitlines() if l.strip())
+
+
+def verdict_of(owned: Counter, others: Counter, after: Counter) -> dict:
+    survived = (after - others) & owned
+    collateral = others - after
+    n_owned, n_survived = sum(owned.values()), sum(survived.values())
+    n_collateral = sum(collateral.values())
+    if not n_owned and not n_collateral:
+        v = "inert"
+    elif not n_owned:
+        v = "unattributed"
+    elif not n_survived:
+        v = "caused"
+    elif n_survived == n_owned:
+        v = "DECORATIVE"
+    else:
+        v = "partial"
+    return {"verdict": v, "owned": n_owned, "survived": n_survived, "collateral": n_collateral}
 
 
 def earned(verdict: str) -> bool:
@@ -398,70 +458,87 @@ def lower_earned(node: Node) -> tuple[int, list[Node]]:
     return len(cands), survivors
 
 
-def ablate(node: Node, probe: bool = False) -> dict | None:
-    unit = unit_of(node)
-    root = node.program
-    if probe and cache_probe("contract", contract_key(root)) is None:
-        return None
-    spec = contract(root)
+def ablate_unit(unit: Node, root: Node, spec: str, probe: bool) -> dict | None:
+    units = root.children()
+    codes = []
+    for u in units:
+        if probe and cache_probe("code", [root.intent(), serialize(u), spec]) is None:
+            return None
+        result, _ = codegen_serial(root.intent(), serialize(u), spec)
+        codes.append((u, result.get("code", "")))
+    baseline = "\n\n".join(c for _, c in codes)
+
+    owned, others = Counter(), Counter()
+    for u, c in codes:
+        (owned if u.path == unit.path else others).update(tally(c))
+
+    remaining = [u for u in units if u.path != unit.path]
+    after = Counter()
+    if remaining:
+        if probe and cache_probe("contract", contract_key(root, remaining)) is None:
+            return None
+        respec = contract_of(root, remaining)
+        for u in remaining:
+            serial = serialize(u)
+            if probe and cache_probe("reduce", [root.intent(), serial, baseline, respec]) is None:
+                return None
+            result, _ = codegen_reduce(root.intent(), serial, baseline, respec)
+            after.update(tally(result.get("code", "")))
+    return verdict_of(owned, others, after)
+
+
+def ablate_deep(node: Node, unit: Node, root: Node, spec: str, probe: bool) -> dict | None:
     if probe and cache_probe("code", [root.intent(), serialize(unit), spec]) is None:
         return None
     base, _ = codegen(unit)
     baseline = base.get("code", "")
-
-    if node.path == unit.path:
-        lines = emitted(base)
-        return {
-            "verdict": "caused" if lines else "inert",
-            "owned": len(lines),
-            "survived": 0,
-            "collateral": 0,
-            "code": "",
-        }
-
     attrib = attribution(base, unit)
-    owned, others = [], []
+
+    owned, others = Counter(), Counter()
     for i, line in enumerate(baseline.splitlines(), start=1):
         if not line.strip():
             continue
-        (owned if owns(node.path, attrib.get(i, unit.path)) else others).append(line.strip())
+        (owned if owns(node.path, attrib.get(i, unit.path)) else others)[line.rstrip()] += 1
 
     serial = serialize(unit, exclude=node.path)
     if probe and cache_probe("reduce", [root.intent(), serial, baseline, spec]) is None:
         return None
     after, _ = codegen_reduce(root.intent(), serial, baseline, spec)
-    after_lines = set(emitted(after))
+    return verdict_of(owned, others, tally(after.get("code", "")))
 
-    survived = [l for l in owned if l in after_lines]
-    collateral = [l for l in others if l not in after_lines]
-    if not owned and not collateral:
-        verdict = "inert"
-    elif not owned:
-        verdict = "unattributed"
-    elif not survived:
-        verdict = "caused"
-    elif len(survived) == len(owned):
-        verdict = "DECORATIVE"
-    else:
-        verdict = "partial"
-    return {
-        "verdict": verdict,
-        "owned": len(owned),
-        "survived": len(survived),
-        "collateral": len(collateral),
-        "code": after.get("code", ""),
-    }
+
+def ablate(node: Node, probe: bool = False) -> dict | None:
+    unit = unit_of(node)
+    root = node.program
+    if probe and cache_probe("contract", contract_key(root, root.children())) is None:
+        return None
+    spec = contract(root)
+    if node.path == unit.path:
+        return ablate_unit(unit, root, spec, probe)
+    return ablate_deep(node, unit, root, spec, probe)
 
 
 class Collision(Exception):
     pass
 
 
-def top_names(code: str) -> list[str]:
+class Malformed(Exception):
+    pass
+
+
+def parse_or_die(code: str, where: str, why: str) -> ast.Module:
     try:
-        tree = ast.parse(code)
-    except SyntaxError:
-        return []
+        return ast.parse(code)
+    except SyntaxError as exc:
+        src = (exc.text or "").rstrip()
+        raise Malformed(
+            f"{where} emitted python that does not parse: line {exc.lineno}: {exc.msg}\n"
+            f"    {src}\n"
+            f"  {why}"
+        ) from exc
+
+
+def top_names(tree: ast.Module) -> list[str]:
     names = []
     for stmt in tree.body:
         if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
@@ -473,11 +550,16 @@ def top_names(code: str) -> list[str]:
     return names
 
 
-def spurious_import(line: str, claimed: dict[str, str]) -> bool:
-    try:
-        stmt = ast.parse(line.strip()).body[0]
-    except (SyntaxError, IndexError):
-        return False
+def import_spans(tree: ast.Module) -> dict[int, ast.stmt]:
+    spans = {}
+    for stmt in tree.body:
+        if isinstance(stmt, (ast.Import, ast.ImportFrom)):
+            for i in range(stmt.lineno, (stmt.end_lineno or stmt.lineno) + 1):
+                spans[i] = stmt
+    return spans
+
+
+def spurious_import(stmt: ast.stmt, claimed: dict[str, str]) -> bool:
     if isinstance(stmt, ast.ImportFrom):
         return bool(stmt.names) and all((a.asname or a.name) in claimed for a in stmt.names)
     if isinstance(stmt, ast.Import):
@@ -495,21 +577,28 @@ def assemble(root: Node) -> tuple[str, list[str]]:
     for unit in units:
         result, _ = codegen(unit)
         code = result.get("code", "")
-        for name in top_names(code):
+        tree = parse_or_die(
+            code,
+            unit.path,
+            "a unit whose code does not parse claims no names, so it cannot collide with anything "
+            "and the one mechanical guarantee of the compiler switches itself off. fix the node or lower it again.",
+        )
+        for name in top_names(tree):
             if name in claimed and claimed[name] != unit.path:
                 raise Collision(
                     f"two nodes both define '{name}': {claimed[name]} and {unit.path}. "
                     f"code that two nodes claim cannot explain itself. fix the contract or the nodes."
                 )
             claimed[name] = unit.path
-        emitted_units.append((unit, code, result))
+        emitted_units.append((unit, code, result, tree))
 
-    for unit, code, result in emitted_units:
+    for unit, code, result, tree in emitted_units:
         attrib = attribution(result, unit)
+        spans = import_spans(tree)
         for i, line in enumerate(code.splitlines(), start=1):
             owner = attrib.get(i, unit.path)
-            if re.match(r"^(import |from \S+ import )", line):
-                if spurious_import(line, claimed):
+            if i in spans:
+                if spurious_import(spans[i], claimed):
                     continue
                 if line not in imports:
                     imports.append(line)
@@ -532,7 +621,14 @@ def assemble(root: Node) -> tuple[str, list[str]]:
         owners.pop(0)
     out_lines.extend(body)
     out_owners.extend(owners)
-    return "\n".join(out_lines).rstrip() + "\n", out_owners
+    code = "\n".join(out_lines).rstrip() + "\n"
+    parse_or_die(
+        code,
+        root.path,
+        "every unit parsed on its own, so this is the assembly, not the units: "
+        "hoisting the imports of one unit past another has produced a module that is not python.",
+    )
+    return code, out_owners
 
 
 def build_dir(root: Node) -> Path:
@@ -571,7 +667,7 @@ class Repl:
     def resolve(self, arg: str) -> Node | None:
         if arg.startswith("progs/") and Node(arg).file.exists():
             return Node(arg)
-        cands = [Node(f"progs/{f.stem}") for f in PROGS.glob("*.human")] if self.cursor is None else self.cursor.children()
+        cands = self.roots() if self.cursor is None else self.cursor.children()
         if arg.isdigit() and 1 <= int(arg) <= len(cands):
             return cands[int(arg) - 1]
         for c in cands:
@@ -583,7 +679,7 @@ class Repl:
 
     def roots(self) -> list[Node]:
         progs = [Node(f"progs/{f.stem}") for f in sorted(PROGS.glob("*.human"))]
-        return progs + [Node(f"lang/{f.stem}") for f in sorted(LANG.glob("*.human"))]
+        return progs + [Node(f"lang/{f.parent.name}/{f.stem}") for f in sorted(LANG.glob("*/*.human"))]
 
     def do_write(self, text: str):
         if self.cursor is None:
@@ -847,6 +943,12 @@ if __name__ == "__main__":
     if args and args[0] in ("build", "check", "lower"):
         r = Repl()
         r.cursor = Node(args[1]) if len(args) > 1 else None
-        {"build": r.do_build, "check": r.do_check, "lower": r.do_lower}[args[0]]("-r" if args[0] == "lower" else "")
+        try:
+            {"build": r.do_build, "check": r.do_check, "lower": r.do_lower}[args[0]](
+                "-r" if args[0] == "lower" else ""
+            )
+        except (Malformed, Collision) as exc:
+            print(f"compile failed: {exc}")
+            sys.exit(1)
     else:
         Repl().loop()

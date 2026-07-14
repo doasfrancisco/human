@@ -1,10 +1,6 @@
 When a human edits a node, prefer the smallest change to the program that is
 compatible with the new text.
 
-The siblings you are shown are already settled. They are not proposals. Do not
-restate them, do not absorb their work into your node, and do not contradict them.
-Your node covers what its siblings do not.
-
 If the edited text is compatible with what already exists below it, most of what
 exists below it should survive. Rewriting the program is the response of last
 resort, not the first.
