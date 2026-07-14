@@ -1,0 +1,1 @@
+On stats, return a dict with key 'hits' whose value is the hit counter for that code, raising ValueError if the code does not exist or has expired.

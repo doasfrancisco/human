@@ -1,0 +1,1 @@
+Store entries in an OrderedDict to track insertion and access order.

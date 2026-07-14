@@ -1,0 +1,12 @@
+[project]
+name = "fran"
+version = "0.2.0"
+description = "Three stages, one namespace, provenance measured by deletion."
+requires-python = ">=3.11"
+dependencies = [
+    "boto3>=1.35",
+    "python-dotenv>=1.0",
+]
+
+[tool.uv]
+package = false

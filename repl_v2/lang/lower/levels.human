@@ -1,0 +1,11 @@
+A node's level is how far it sits from the root of its program.
+
+Level 0 is the root: a single phrase naming what the program is. "insertion sort".
+Level 1 is expanded intent: the shape of the solution, stated as decisions, not as code.
+Level 2 is mechanism: how each decision is carried out, still in human terms.
+Level 3 and below are operational steps, each one small enough that a competent
+programmer would write it as a few lines without asking another question.
+
+A node is a leaf until proven otherwise. It earns a child only when that child
+changes the code a competent programmer writes from the node alone. Depth is not
+a virtue.

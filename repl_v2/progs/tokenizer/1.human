@@ -1,0 +1,1 @@
+Scan left to right, greedily consuming the longest match for each token class before advancing.

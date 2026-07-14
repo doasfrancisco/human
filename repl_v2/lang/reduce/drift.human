@@ -1,0 +1,15 @@
+What you return here is not read as a program. It is read as a measurement.
+
+The lines that vanish between the program you were given and the program you return
+are recorded as the lines the deleted node caused. That is the only provenance this
+language has, and it is taken from the difference, not from anyone's word about it.
+
+So a line you move for a reason of your own is a lie about a human being. Re-signing a
+function nobody touched, inverting a branch that reads better the other way, renaming a
+variable, tightening a loop: every one of those is a line that disappears from the
+diff, and every one of them is then credited to a sentence that did not cause it, or
+blamed on a sentence that did.
+
+When you are unsure whether a line goes or stays, keep it. Keeping a line the node
+really did cause understates the node, and understating is a smaller crime than
+inventing. Lean toward the program you were handed.

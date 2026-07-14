@@ -1,0 +1,1 @@
+Dispatch on the runtime type of value to produce the correct JSON representation.
