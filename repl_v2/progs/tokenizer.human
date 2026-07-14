@@ -1,0 +1,5 @@
+a tokenizer for arithmetic expressions, exposed as tokenize(text) returning a list of (kind, value) pairs where value is the exact substring and kind is number for a run of digits, name for a letter followed by letters or digits, op for one of + - * /, and paren for ( or ), with whitespace separating tokens and discarded, and any other character raising ValueError
+assert: tokenize('1 + 2') == [('number', '1'), ('op', '+'), ('number', '2')]
+assert: tokenize('foo12 * (bar + 30)') == [('name', 'foo12'), ('op', '*'), ('paren', '('), ('name', 'bar'), ('op', '+'), ('number', '30'), ('paren', ')')]
+assert: tokenize('') == [] and tokenize('12') == [('number', '12')]
+assert: raises(ValueError, tokenize, '2 $ 3')

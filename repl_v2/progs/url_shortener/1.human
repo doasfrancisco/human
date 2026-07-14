@@ -1,0 +1,1 @@
+Store each link as a record containing the original url, creation timestamp, ttl, and hit counter, keyed by its code in a single shared dict.

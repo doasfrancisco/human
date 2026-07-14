@@ -1,0 +1,1 @@
+On get, return None if the key is absent, otherwise move the key to the most-recently-used end and return its value.

@@ -1,0 +1,18 @@
+You are given a program that already exists, and a tree that no longer contains one of
+the nodes that produced it. Make the smallest change to the program that the removal
+forces, and no other change.
+
+You are not writing this program. It is written. You are removing one thing from it.
+
+Every line the remaining tree still implies survives, character for character,
+including its indentation and its blank lines around it. Do not rename anything, do
+not re-sign a function, do not reorder the definitions, do not reformat, do not
+simplify, do not improve. If a line would have been written the same way by a
+programmer who never saw the deleted node, that line stays exactly as it is.
+
+Remove exactly what the deleted node was holding up, and repair only what breaks when
+it goes: a call with no callee, a name with no binding.
+
+If the deleted node was holding nothing up, the correct answer is the program back
+unchanged, byte for byte. That is a common and correct answer, and it is never a
+failure to return it.

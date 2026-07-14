@@ -1,0 +1,5 @@
+a b-tree of minimum degree 3 over integer keys, exposed as a class BTree with insert(key), search(key) returning a bool, and keys() returning every key it holds in ascending order
+assert: (lambda t: ([t.insert(k) for k in range(50, 0, -1)], t.keys() == list(range(1, 51)))[1])(BTree())
+assert: (lambda t: ([t.insert(k) for k in [17, 3, 9, 1, 25, 8, 12, 4, 30, 2]], t.keys() == [1, 2, 3, 4, 8, 9, 12, 17, 25, 30])[1])(BTree())
+assert: (lambda t: ([t.insert(k) for k in [17, 3, 9, 1, 25, 8, 12, 4, 30, 2]], t.search(12) and not t.search(99))[1])(BTree())
+assert: BTree().keys() == [] and BTree().search(1) is False

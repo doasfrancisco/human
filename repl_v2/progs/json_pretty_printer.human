@@ -1,0 +1,5 @@
+pretty print a value built from dicts, lists, strings, integers, booleans and None as json text, exposed as pretty(value, indent=2) and written without calling json.dumps, indenting one level per depth, keeping dict keys in insertion order, printing an empty container as {} or [] on one line, and spelling the constants true, false and null the json way
+assert: pretty({'a': 1}) == '{\n  "a": 1\n}'
+assert: pretty([1, [2]]) == '[\n  1,\n  [\n    2\n  ]\n]'
+assert: pretty({}) == '{}' and pretty([]) == '[]'
+assert: pretty(True) == 'true' and pretty(None) == 'null' and pretty('hi') == '"hi"'

@@ -1,0 +1,1 @@
+Print a non-empty dict with each key-value pair on its own indented line, keys in insertion order, colon-space between key and value, and a trailing newline before the closing brace.

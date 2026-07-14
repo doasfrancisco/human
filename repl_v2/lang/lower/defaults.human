@@ -1,0 +1,12 @@
+A default earns a node when writing it down changes the code, and stays silent
+when it only names what would have been written anyway.
+
+Sorts ascend unless the text says otherwise.
+Functions return a new value rather than mutating their argument, unless the text
+says otherwise.
+Comparisons use the natural ordering of the elements.
+Empty input is valid input and yields the empty result.
+
+These are already assumed, so restating one as a node buys nothing. Write down the
+assumption that overrides them, because that one bends the code and the reader must
+be able to see it and delete it.

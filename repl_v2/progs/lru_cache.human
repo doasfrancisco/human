@@ -1,0 +1,4 @@
+a fixed capacity lru cache, exposed as a class LRU(capacity) with get(key) returning the stored value or None when the key is absent and put(key, value) storing it, where a put into a full cache evicts the least recently used entry and both get and put count as a use of their key
+assert: (lambda c: ([c.put('a', 1), c.put('b', 2), c.get('a'), c.put('c', 3)], c.get('b') is None and c.get('a') == 1 and c.get('c') == 3)[1])(LRU(2))
+assert: (lambda c: ([c.put('a', 1), c.put('b', 2), c.put('a', 9), c.put('c', 3)], c.get('b') is None and c.get('a') == 9)[1])(LRU(2))
+assert: LRU(2).get('missing') is None

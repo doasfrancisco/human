@@ -1,0 +1,5 @@
+an in-memory url shortener exposed as shorten(url, ttl, alias=None), resolve(code) and stats(code), where shorten returns the alias when one is given and a fresh random six character code when one is not, raises ValueError if that alias is already taken by a live link, resolve returns the url and raises ValueError once the link is older than its ttl in seconds, and stats returns a dict reporting the number of successful resolves under the key hits
+assert: shorten('https://a.example', 60, 'dup') == 'dup' and raises(ValueError, shorten, 'https://b.example', 60, 'dup')
+assert: shorten('https://c.example', 60, 'hot') == 'hot' and resolve('hot') == 'https://c.example' and resolve('hot') == 'https://c.example' and stats('hot')['hits'] == 2
+assert: shorten('https://d.example', 0.01, 'gone') == 'gone' and time.sleep(0.05) is None and raises(ValueError, resolve, 'gone')
+assert: len(shorten('https://f.example', 60)) == 6 and shorten('https://g.example', 60) != shorten('https://h.example', 60)

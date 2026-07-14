@@ -1,0 +1,5 @@
+sort a list of numbers into ascending order with insertion sort, exposed as sort(items) returning a new sorted list and leaving its argument untouched, and demonstrate it on an example list
+assert: sort([5, 1, 4, 2, 8]) == [1, 2, 4, 5, 8]
+assert: sort([]) == [] and sort([1]) == [1]
+assert: sort([2, 1, 2, 1]) == [1, 1, 2, 2]
+assert: (lambda xs: sort(xs) == [1, 2] and xs == [2, 1])([2, 1])
