@@ -1,0 +1,1 @@
+an in-memory url shortener that refuses a custom alias if it is already taken, expires links after a configurable ttl, and returns the number of times each link was followed

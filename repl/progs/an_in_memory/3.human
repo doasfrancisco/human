@@ -1,0 +1,3 @@
+on resolve, reject expired entries and increment the hit count of live ones
+assert: shorten('https://c.example', 60, 'hot') == 'hot' and resolve('hot') == 'https://c.example' and resolve('hot') == 'https://c.example' and get_stats('hot')['hits'] == 2
+assert: shorten('https://d.example', 0.01, 'gone') == 'gone' and time.sleep(0.05) is None and raises(ValueError, resolve, 'gone')

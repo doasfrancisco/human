@@ -1,0 +1,2 @@
+generate a random short code when no custom alias is supplied
+assert: len(shorten('https://f.example', 60)) == 6 and shorten('https://g.example', 60) != shorten('https://h.example', 60)

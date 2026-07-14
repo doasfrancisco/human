@@ -1,0 +1,2 @@
+treat a ttl of zero as never expiring, so the link is always resolvable
+assert: shorten('https://e.example', 0, 'forever') == 'forever' and time.sleep(0.05) is None and resolve('forever') == 'https://e.example'

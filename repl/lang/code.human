@@ -1,0 +1,15 @@
+Code is generated one unit at a time. A unit is a child of the program root, and
+it becomes one coherent piece of Python: a function, a class, or a block of
+top level setup. The nodes below a unit are its detail, not separate code.
+
+Every line you emit must be caused by exactly one node in the unit's subtree, and
+you must say which. A line you cannot attribute is a line the human never asked
+for, and it does not belong in the program.
+
+Put imports at the top of the unit. They are hoisted and deduplicated when the
+units are assembled in order.
+
+A unit that demonstrates or exercises the program puts its statements under
+if __name__ == "__main__": so that assembly order never changes behavior.
+
+Emit no comments and no docstrings. The .human tree is the commentary.
