@@ -1,0 +1,2 @@
+on shorten with a custom alias, reject the alias if it is already present and unexpired
+assert: shorten('https://a.example', 60, 'dup') == 'dup' and raises(ValueError, shorten, 'https://b.example', 60, 'dup')

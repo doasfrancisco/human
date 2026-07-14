@@ -1,0 +1,12 @@
+[project]
+name = "fran"
+version = "0.1.0"
+description = "A REPL over the DAG. The filesystem is the DAG, lang/ is the compiler."
+requires-python = ">=3.11"
+dependencies = [
+    "boto3>=1.35",
+    "python-dotenv>=1.0",
+]
+
+[tool.uv]
+package = false

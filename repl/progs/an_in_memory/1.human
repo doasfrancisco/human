@@ -1,0 +1,1 @@
+store mappings in a dict keyed by short code, with creation timestamp, ttl, and hit count per entry
