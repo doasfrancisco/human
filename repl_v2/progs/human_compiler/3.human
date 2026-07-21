@@ -1,0 +1,3 @@
+every model call goes to a single place, call(system, user), which is bedrock converse through boto3 at temperature zero with the region and the model id and the credentials taken from a .env beside the module,
+
+and call_json is the same call for the one stage that answers in json, retrying once with a sharper instruction before raising Malformed;

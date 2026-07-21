@@ -1,0 +1,1 @@
+build(root) compiles the tree, writes it to BUILD/<name>/main.py, throws away any provenance map beside it that no longer matches, and returns that path with the code, because the map does not exist until ablation has been paid for;

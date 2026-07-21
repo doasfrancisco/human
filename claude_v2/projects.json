@@ -1,0 +1,8 @@
+{
+  "projects": [
+    {
+      "name": "web",
+      "request": "a page where the hasse diagram of the sentences is the only navigation: click a node to see its sentence and only the code it owns, everything else folded away"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+@id: a7b2
+read the project list and each project's map and code as json from disk, then render exactly what the compiler emitted

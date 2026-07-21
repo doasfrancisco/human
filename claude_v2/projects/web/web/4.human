@@ -1,0 +1,2 @@
+@id: c1d8
+read the project list and each project's map and code from disk, normalise line endings, and render exactly what the compiler emitted

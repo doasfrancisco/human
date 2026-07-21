@@ -1,0 +1,94 @@
+{
+  "program": "web",
+  "request": "a page that renders a compiled human project, ideas linked to code",
+  "code_file": "index.html",
+  "map": [
+    {
+      "node": "web",
+      "id": "b0a7",
+      "level": 0,
+      "kind": "specified",
+      "text": "a page that renders one compiled human project side by side: the ideas on the left, the code on the right. click any idea on the left side and on the right side and it highlights the code. the web reads the compiler's json and decides nothing.",
+      "ranges": [
+        [0, 14879]
+      ]
+    },
+    {
+      "node": "web/1",
+      "id": "e2d4",
+      "level": 1,
+      "kind": "specified",
+      "text": "two linked panes and a click that traces between them: clicking an idea lights the code it owns; clicking code finds its idea and dims the rest",
+      "ranges": [
+        [7886, 8166],
+        [10389, 11412],
+        [12905, 13765]
+      ]
+    },
+    {
+      "node": "web/2",
+      "id": "5f31",
+      "level": 1,
+      "kind": "specified",
+      "text": "cut the code at every range boundary and colour each piece by the deepest idea that covers it, specified in teal and assumed in ochre",
+      "ranges": [
+        [11412, 12905]
+      ]
+    },
+    {
+      "node": "web/3",
+      "id": "9c68",
+      "level": 1,
+      "kind": "specified",
+      "text": "a depth toggle that reveals each idea's children as nested spans, and an assumed toggle that shows or hides the regions filled by convention",
+      "ranges": [
+        [7295, 7886],
+        [14132, 14759]
+      ]
+    },
+    {
+      "node": "web/4",
+      "id": "a7b2",
+      "level": 1,
+      "kind": "specified",
+      "text": "read the project list and each project's map and code as json from disk, then render exactly what the compiler emitted",
+      "ranges": [
+        [8819, 10389]
+      ]
+    },
+    {
+      "node": "web/5",
+      "id": "d3f9",
+      "level": 1,
+      "kind": "specified",
+      "text": "if a node is clicked, the web keeps it pinned and the highlight on the right keeps showing.",
+      "ranges": [
+        [13765, 13831],
+        [12989, 13149],
+        [9566, 9583]
+      ]
+    },
+    {
+      "node": "web",
+      "id": "b0a7",
+      "level": 0,
+      "kind": "assumed",
+      "text": "",
+      "why": "the html document scaffold — doctype, charset, viewport, title. plumbing the idea implies but nobody described",
+      "ranges": [
+        [0, 166]
+      ]
+    },
+    {
+      "node": "lang/convention",
+      "id": "0000",
+      "level": 0,
+      "kind": "assumed",
+      "text": "",
+      "why": "the entire light and dark theme, colours, spacing and layout. a look chosen by convention, not asked for",
+      "ranges": [
+        [166, 6990]
+      ]
+    }
+  ]
+}

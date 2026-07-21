@@ -4,7 +4,7 @@ import json
 import re
 import sys
 
-from engine import (BUILD, LANG, MODEL_ID, PROGS, ROOT, Malformed, Node, build, caused_by, lower,
+from human_compiler import (BUILD, LANG, MODEL_ID, PROGS, ROOT, Malformed, Node, build, caused_by, lower,
                     project, raises)
 
 TWIG = "\\_ "
@@ -118,7 +118,7 @@ class Repl:
         if root is None:
             return
         py, code = build(root)
-        ns = {"__name__": "fran_check", "__file__": str(py), "raises": raises}
+        ns = {"__name__": "human_check", "__file__": str(py), "raises": raises}
         exec(compile(code, str(py), "exec"), ns)
         asserted = [(n, a) for n in root.subtree() for a in n.assertions()]
         passed = 0
@@ -182,7 +182,7 @@ class Repl:
             self.chain(Node(p))
 
     def loop(self):
-        print(f"fran v2 - model {MODEL_ID} - type what you want to build, or 'help'")
+        print(f"human v2 - model {MODEL_ID} - type what you want to build, or 'help'")
         table = {"ls": self.do_ls, "cd": self.do_cd, "lower": self.do_lower, "build": self.do_build,
                  "check": self.do_check, "why": self.do_why, "help": lambda _: print(HELP)}
         while True:

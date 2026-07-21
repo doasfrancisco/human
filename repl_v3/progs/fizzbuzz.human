@@ -1,0 +1,5 @@
+@id: cd1ad3f3
+fizzbuzz(n) returns the list of strings for 1 through n, exposed as fizzbuzz(n): "Fizz" when the number is divisible by 3, "Buzz" when divisible by 5, "FizzBuzz" when divisible by both, and the number itself as a string otherwise, with n of zero or less yielding the empty list
+assert: fizzbuzz(5) == ['1', '2', 'Fizz', '4', 'Buzz']
+assert: fizzbuzz(15)[-1] == 'FizzBuzz'
+assert: fizzbuzz(0) == []

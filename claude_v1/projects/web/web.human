@@ -1,0 +1,4 @@
+@id: b0a7
+a page that renders one compiled human project side by side: the ideas on the left, the code on the right. click any idea on the left side and on the right side and it highlights the code
+
+the web reads the compiler's json and decides nothing.

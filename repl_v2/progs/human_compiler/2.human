@@ -1,0 +1,25 @@
+a node is a .human file and the filesystem is the whole dag, so progs/sort.human is a root, progs/sort/1.human is its child and the directory of the same name is the parent,
+
+but every one of those relations is read off the path string alone and never off what happens to exist on disk, because a node names a place whether or not anyone has written it yet: 
+
+Node('progs/sort/1/2') is constructed from that slash separated path, its file() is that path with .human under ROOT, 
+
+its name() is the last segment, 
+
+its level() is its depth below the root of its program so that a root is level 0, 
+
+its parent() is the path with the last segment removed or None once only the program is left, 
+
+its program() is the first two segments, 
+
+its ancestors() run root first, 
+
+its children() are the .human files in its directory ordered by their numeric names, 
+
+its subtree() is itself followed by each child's subtree, 
+
+its text() is the file stripped or empty when there is no file, 
+
+and its intent() and assertions() split that text into the human sentence and the executable claims,
+
+a claim being a line beginning 'assert:', which is cut out of the intent and therefore out of every prompt the model ever sees, so that a claim can only be tested and never taught to;

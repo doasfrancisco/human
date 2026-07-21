@@ -1,4 +1,4 @@
-# fran v2
+# human v2
 
 A REPL over the DAG. The filesystem is the DAG, `lang/` is the compiler, the cache is
 what makes it a compiler instead of a prompt pipeline — and **provenance is measured,
@@ -13,19 +13,20 @@ repl_v2/
   progs/       programs, in .human
   .cache/      content-addressed model calls
   build/       generated .py + the measured line->node map
-  fran.py      the engine
+  human_compiler.py  the compiler
+  repl.py            the repl that imports it
 ```
 
 ## Run it
 
 ```
-uv run fran.py                 # repl
-uv run fran.py lower progs/x   # one-shot, recursive
-uv run fran.py build progs/x   # compile to build/x/main.py
-uv run fran.py check progs/x   # run the assertions, then ablate every node
+uv run repl.py                 # repl
+uv run repl.py lower progs/x   # one-shot, recursive
+uv run repl.py build progs/x   # compile to build/x/main.py
+uv run repl.py check progs/x   # run the assertions, then ablate every node
 ```
 
-`fran` is a compiler. It compiles to `build/<name>/main.py` and stops. Running the
+`human` is a compiler. It compiles to `build/<name>/main.py` and stops. Running the
 program is your shell's job: `python build/x/main.py`.
 
 Credentials come from `repl_v2/.env`, the repo root `.env`, or
@@ -134,7 +135,7 @@ gate prunes the model's proposals and audits your decisions.
 ## Assertions are invisible to codegen
 
 A node line beginning `assert:` is a Python expression evaluated by `check` against the
-compiled module, imported with `__name__` set to `fran_check` so the `__main__` demo
+compiled module, imported with `__name__` set to `human_check` so the `__main__` demo
 block does not fire. **Codegen and reduce never see assertion lines.** They are stripped
 from every prompt.
 
@@ -177,7 +178,7 @@ not an assertion. Whether these hold is settled by the first real `check`, not h
 bug: asked for a whole program as an escaped JSON string plus a line map, the model gave
 up on the B-tree and returned prose, and the compiler crashed on the parse.
 
-Both stages run their output through `ast.parse`. On `SyntaxError`, fran calls again
+Both stages run their output through `ast.parse`. On `SyntaxError`, human calls again
 with the broken code and the exact error appended, and asks for a fix — up to two rounds,
 then a hard failure naming the program. A retry with an identical prompt at temperature 0
 is a wasted call; if you retry, the prompt must change. v1 retried byte-identical
@@ -207,7 +208,7 @@ changed the language using the language, and no Python was edited.
 
 The engine is meant to stay **under 250 lines of Python**. That is not an aesthetic. One
 model call emits about 300 lines, and a compiler bigger than the largest program it can
-emit can never compile itself. Every line saved is a line closer to `progs/fran.human`.
+emit can never compile itself. Every line saved is a line closer to `progs/human_compiler.human`.
 
 ## Where it stands
 

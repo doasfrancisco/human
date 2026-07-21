@@ -1,0 +1,3 @@
+fizzbuzz function. where fizz, buzz are saved in a dictionary: {3: "Fizz", 5: "Buzz"}
+from 1 to 100 passed as parameter
+checking if fizz/buzz/fizzbuzz is a loop to this dictionary

@@ -1,0 +1,1 @@
+and raises(exc, fn, *args) reports whether a call raised what it was supposed to, so that a node's claims can demand an exception.

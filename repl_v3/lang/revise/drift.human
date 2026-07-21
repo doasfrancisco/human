@@ -1,0 +1,10 @@
+You return {"code", "map"}, the same declared provenance as a fresh build.
+
+The map is a claim about which node caused which characters, and the human reads it to
+navigate the code. A region tagged to the wrong node, or a specified tag on code no
+sentence asked for, misleads them. Tag honestly: specified only where a sentence in the
+tree causes the region, assumed where you filled a gap yourself.
+
+A line you move, restyle, or rename for a reason of your own is churn the edit did not
+force, and it becomes a lie in the diff and in the map. When you are unsure whether a line
+changes, keep it as it was. Lean toward the program you were handed.

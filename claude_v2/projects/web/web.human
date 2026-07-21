@@ -1,0 +1,4 @@
+@id: 7c3e
+a page ruled by the hasse diagram of the sentences: the diagram and the chosen sentence sit on the left as the only navigation, the code sits on the right, and nothing speaks until a node is clicked. no headers, no toggles, no instructions. the page reads the compiler's json and decides nothing.
+
+note: v3 of the renderer. the panes-and-hover chrome is gone; the poset is the interface.

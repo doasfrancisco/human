@@ -58,7 +58,7 @@ class Node:
     def subtree(self) -> list["Node"]:
         return [self] + [d for c in self.children() for d in c.subtree()]
 
-EXPAND_SYSTEM = """You are the lowering stage of fran, a language whose source is human text.
+EXPAND_SYSTEM = """You are the lowering stage of human, a language whose source is human text.
 
 You are given the language, the ancestors that explain why this node exists, the children it
 already has, and the node to expand. Expand it one level toward code, obeying the language
@@ -67,7 +67,7 @@ exactly. Do not write code. Write the next level of human text.
 Return {"leaf": true} if expanding would only restate the node.
 Otherwise return {"children": ["...", "..."]}."""
 
-CODE_SYSTEM = """You are the code generation stage of fran, a language whose source is human text.
+CODE_SYSTEM = """You are the code generation stage of human, a language whose source is human text.
 
 You are given the language and the entire program: every node, indented by depth. Emit the whole
 program as ONE python module, in ONE answer. There is one namespace and you are its only author.
@@ -75,7 +75,7 @@ Standard library only.
 
 Return the module as a single fenced python block. No prose, no JSON."""
 
-REDUCE_SYSTEM = """You are the code generation stage of fran, a language whose source is human text.
+REDUCE_SYSTEM = """You are the code generation stage of human, a language whose source is human text.
 
 One node has been deleted. You are given the baseline code as it stood before the deletion, and the
 tree as it stands after it. Emit the program the remaining tree implies.

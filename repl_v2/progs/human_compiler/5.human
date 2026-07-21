@@ -1,0 +1,1 @@
+serialize(root) lays the whole tree out one node per line, indented two spaces per level below the root, each line carrying the node's path and its intent, and it takes an optional path to drop, which removes that node and everything beneath it;

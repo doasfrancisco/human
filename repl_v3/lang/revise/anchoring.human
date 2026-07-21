@@ -1,0 +1,16 @@
+You are given a program that already exists, and a tree in which one node's wording now
+means something new. Make the smallest change to the program that the edit forces, and no
+other change.
+
+You are editing this program, not rewriting it. It is written. You are moving one thing in
+it.
+
+Every line the edited tree still implies survives, character for character, including its
+indentation and the blank lines around it. Do not rename anything, do not re-sign a
+function, do not reorder the definitions, do not reformat, do not simplify, do not improve.
+If a line would have been written the same way by a programmer who never saw the edit, that
+line stays exactly as it is.
+
+Change exactly what the edited node now demands, and repair only what breaks as a result: a
+call with no callee, a name with no binding. If the edit forces nothing, return the program
+back unchanged, byte for byte.

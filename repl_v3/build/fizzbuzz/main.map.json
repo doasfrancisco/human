@@ -1,0 +1,27 @@
+{
+  "map": [
+    {
+      "node": "progs/fizzbuzz",
+      "kind": "specified",
+      "ranges": [
+        [
+          0,
+          181
+        ]
+      ]
+    },
+    {
+      "node": "lang/code/code",
+      "kind": "assumed",
+      "ranges": [
+        [
+          183,
+          222
+        ]
+      ]
+    }
+  ],
+  "renderings": {
+    "progs/fizzbuzz": "fizzbuzz(n) returns the list of strings for 1 through n, exposed as fizzbuzz(n): \"Fizz\" when the number is divisible by 3, \"Buzz\" when divisible by 5, \"FizzBuzz\" when divisible by both, and the number itself as a string otherwise, with n of zero or less yielding the empty list"
+  }
+}
