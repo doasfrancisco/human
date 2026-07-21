@@ -1,0 +1,8 @@
+{
+  "projects": [
+    {
+      "name": "web",
+      "request": "a page that renders a compiled human project, ideas linked to code"
+    }
+  ]
+}

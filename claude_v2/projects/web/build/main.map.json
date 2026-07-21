@@ -1,0 +1,277 @@
+{
+  "program": "web",
+  "request": "a page where the hasse diagram of the sentences is the only navigation: click a node to see its sentence and only the code it owns, everything else folded away",
+  "code_file": "index.html",
+  "nodes": [
+    {
+      "id": "7c3e",
+      "path": "web",
+      "level": 0,
+      "text": "a page ruled by the hasse diagram of the sentences: the diagram and the chosen sentence sit on the left as the only navigation, the code sits on the right, and nothing speaks until a node is clicked. no headers, no toggles, no instructions. the page reads the compiler's json and decides nothing."
+    },
+    {
+      "id": "4e91",
+      "path": "web/1",
+      "level": 1,
+      "text": "clicking a diagram node selects it: the node's sentence appears under the diagram, and the code narrows to what that node owns. clicking the selected node again, or the diagram background, clears the selection. hovering a node previews its lighting without selecting."
+    },
+    {
+      "id": "8d05",
+      "path": "web/2",
+      "level": 1,
+      "text": "cut the code at every range boundary and colour each piece by the deepest fragment that covers it, specified in teal and assumed in ochre"
+    },
+    {
+      "id": "2b6c",
+      "path": "web/3",
+      "level": 1,
+      "text": "while a node is selected, every span the node does not own collapses into a thin fold that counts the hidden lines, so all the code the node owns is visible at once without scrolling."
+    },
+    {
+      "id": "c1d8",
+      "path": "web/4",
+      "level": 1,
+      "text": "read the project list and each project's map and code from disk, normalise line endings, and render exactly what the compiler emitted"
+    },
+    {
+      "id": "66aa",
+      "path": "web/5",
+      "level": 1,
+      "text": "a span of code may be owned by several sentences at once: every span carries all of its owners, and lighting any owner also lights its co-owners wherever ownership is joint."
+    },
+    {
+      "id": "3d7f",
+      "path": "web/6",
+      "level": 1,
+      "text": "draw the sentences as a hasse diagram of range containment on the left: a sentence hangs below the one whose range most directly contains its own, covering edges only and never transitive ones, the root on top; a sentence nesting inside several parents gets an edge to each, which the folder tree cannot show"
+    },
+    {
+      "id": "9b2f",
+      "path": "web/7",
+      "level": 1,
+      "text": "the page keeps the ownership index: which spans a sentence owns, and which sentences own a span. every span listens, so hovering code lights every sentence that owns it in the diagram."
+    }
+  ],
+  "map": [
+    {
+      "nodes": [
+        "7c3e"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          0,
+          11431
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "7c3e"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          1975,
+          2228
+        ],
+        [
+          3690,
+          3708
+        ],
+        [
+          3847,
+          3875
+        ],
+        [
+          3971,
+          3980
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "4e91"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          2228,
+          2375
+        ],
+        [
+          3793,
+          3847
+        ],
+        [
+          4847,
+          5252
+        ],
+        [
+          5459,
+          6349
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "8d05"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          2375,
+          2941
+        ],
+        [
+          6349,
+          7673
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "2b6c"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          2941,
+          3146
+        ],
+        [
+          7673,
+          8055
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "c1d8"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          3875,
+          3971
+        ],
+        [
+          4103,
+          4847
+        ],
+        [
+          11326,
+          11399
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "9b2f"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          5252,
+          5459
+        ],
+        [
+          8055,
+          8342
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "66aa"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          6976,
+          7123
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "4e91",
+        "66aa"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          5528,
+          5693
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "3d7f"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          3146,
+          3659
+        ],
+        [
+          3708,
+          3793
+        ],
+        [
+          8342,
+          11326
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "7c3e"
+      ],
+      "kind": "assumed",
+      "why": "the html scaffold and the glue between blocks — doctype, head, tag seams, the script wrapper. plumbing the page implies but no sentence describes",
+      "ranges": [
+        [
+          0,
+          174
+        ],
+        [
+          3659,
+          3690
+        ],
+        [
+          3980,
+          4010
+        ],
+        [
+          11399,
+          11431
+        ]
+      ]
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "why": "the whole look — colours, spacing, light and dark theme. chosen by convention, nobody asked for it",
+      "ranges": [
+        [
+          174,
+          1975
+        ]
+      ]
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "why": "html escaping glue so code renders as text, demanded by the medium not by a sentence",
+      "ranges": [
+        [
+          4010,
+          4103
+        ]
+      ]
+    }
+  ]
+}

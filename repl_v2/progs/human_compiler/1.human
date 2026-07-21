@@ -1,0 +1,25 @@
+the compiler for a language whose source is human text, written as a module named human_compiler that a separate repl imports whole, so it exposes:
+
+- ROOT (the directory the module sits in),
+- LANG
+- PROGS
+- CACHE and BUILD beneath it
+- MODEL_ID,
+- the exception Malformed,
+- the class Node,
+
+and the functions: 
+- lang_text, 
+- cached, 
+- call, 
+- call_json, 
+- serialize, 
+- generate, 
+- tally, 
+- caused_by, 
+- project, 
+- propose, 
+- lower, 
+- build and raises, 
+
+and nothing else;

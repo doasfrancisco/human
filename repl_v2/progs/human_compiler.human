@@ -1,0 +1,9 @@
+a compiler for a language whose source is human text, built as a module named human_compiler that a separate repl imports whole;
+
+assert: Node('progs/sort/1/2').parent().path == 'progs/sort/1' and Node('progs/sort').parent() is None and Node('progs/sort/1/2').program().path == 'progs/sort' and Node('progs/sort/1/2').level() == 2 and Node('progs/sort').level() == 0 and Node('progs/sort/1').name() == '1'
+assert: tally('a = 1\n\n  b = 2\n  b = 2\ntrail  \n') == {'a = 1': 1, '  b = 2': 2, 'trail': 1}
+assert: (tally('keep\ngone\n') - tally('keep\n')) == {'gone': 1}
+assert: project('x = 1\ny = 2\n', {'progs/p/1': tally('x = 1\n')}) == ({'1': ['progs/p/1'], '2': []}, {})
+assert: project('x = 1\nx = 1\n', {'progs/p/1': tally('x = 1\n')}) == ({'1': [], '2': []}, {'1': ['progs/p/1'], '2': ['progs/p/1']})
+assert: (lambda seen: cached('code', ['probe'], lambda: seen.append(1) or {'n': len(seen)}) == cached('code', ['probe'], lambda: seen.append(1) or {'n': len(seen)}))([])
+assert: raises(ValueError, lambda: (_ for _ in ()).throw(ValueError())) and not raises(ValueError, lambda: None)

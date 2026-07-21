@@ -1,0 +1,2 @@
+@id: 8d05
+cut the code at every range boundary and colour each piece by the deepest fragment that covers it, specified in teal and assumed in ochre

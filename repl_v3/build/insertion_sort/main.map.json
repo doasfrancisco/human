@@ -1,0 +1,56 @@
+{
+  "map": [
+    {
+      "node": "progs/insertion_sort",
+      "kind": "specified",
+      "ranges": [
+        [
+          0,
+          11
+        ],
+        [
+          0,
+          174
+        ]
+      ]
+    },
+    {
+      "node": "progs/insertion_sort/1",
+      "kind": "specified",
+      "ranges": [
+        [
+          27,
+          155
+        ]
+      ]
+    },
+    {
+      "node": "progs/insertion_sort",
+      "kind": "assumed",
+      "ranges": [
+        [
+          15,
+          26
+        ],
+        [
+          148,
+          155
+        ]
+      ]
+    },
+    {
+      "node": "lang/code/code",
+      "kind": "assumed",
+      "ranges": [
+        [
+          156,
+          196
+        ]
+      ]
+    }
+  ],
+  "renderings": {
+    "progs/insertion_sort": "insertion sort\nit's a function. parameters are 1 3 2",
+    "progs/insertion_sort/1": "iterate over each element from index 1 onward, inserting it into its correct position among the already-sorted elements to its left"
+  }
+}
