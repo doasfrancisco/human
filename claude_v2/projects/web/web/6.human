@@ -1,2 +1,2 @@
 @id: 3d7f
-draw the sentences as a hasse diagram of range containment on the left: a sentence hangs below the one whose range most directly contains its own, covering edges only and never transitive ones, the root on top; a sentence nesting inside several parents gets an edge to each, which the folder tree cannot show
+draw the sentences as a layered graph of range containment on the left, covering edges only and never transitive ones, the root on top: a sentence hangs below every parent whose range most tightly contains one of its own, several parents allowed, which the folder tree cannot show

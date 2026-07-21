@@ -7,7 +7,7 @@
       "id": "7c3e",
       "path": "web",
       "level": 0,
-      "text": "a page ruled by the hasse diagram of the sentences: the diagram and the chosen sentence sit on the left as the only navigation, the code sits on the right, and nothing speaks until a node is clicked. no headers, no toggles, no instructions. the page reads the compiler's json and decides nothing."
+      "text": "a page ruled by the diagram of the sentences: the diagram and the chosen sentence sit on the left as the only navigation, the code sits on the right, and nothing speaks until a node is clicked. no toggles, no instructions; the only chrome is the project bar top left and the file name above the code. the page reads the compiler's json and decides nothing."
     },
     {
       "id": "4e91",
@@ -19,7 +19,7 @@
       "id": "8d05",
       "path": "web/2",
       "level": 1,
-      "text": "cut the code at every range boundary and colour each piece by the deepest fragment that covers it, specified in teal and assumed in ochre"
+      "text": "cut the code at every range boundary and colour each piece by the deepest fragment that covers it, specified in teal and assumed in ochre; the code carries its real line numbers, and the file's name sits above it"
     },
     {
       "id": "2b6c",
@@ -43,13 +43,31 @@
       "id": "3d7f",
       "path": "web/6",
       "level": 1,
-      "text": "draw the sentences as a hasse diagram of range containment on the left: a sentence hangs below the one whose range most directly contains its own, covering edges only and never transitive ones, the root on top; a sentence nesting inside several parents gets an edge to each, which the folder tree cannot show"
+      "text": "draw the sentences as a layered graph of range containment on the left, covering edges only and never transitive ones, the root on top: a sentence hangs below every parent whose range most tightly contains one of its own, several parents allowed, which the folder tree cannot show"
     },
     {
       "id": "9b2f",
       "path": "web/7",
       "level": 1,
       "text": "the page keeps the ownership index: which spans a sentence owns, and which sentences own a span. every span listens, so hovering code lights every sentence that owns it in the diagram."
+    },
+    {
+      "id": "e7a3",
+      "path": "web/8",
+      "level": 1,
+      "text": "every assumed fragment is a node of its own in the diagram, hanging under whatever contains it and drawn in ochre; its text is the why it carries, and clicking it shows only the code it owns."
+    },
+    {
+      "id": "5f18",
+      "path": "web/9",
+      "level": 1,
+      "text": "the top left names the project behind a left caret; the caret opens the projects view, a plain list of every project and its request, and choosing one opens its page."
+    },
+    {
+      "id": "b3c9",
+      "path": "web/8/1",
+      "level": 2,
+      "text": "the page treats a synthetic node like a sentence: the pane shows its why in ochre, and the diagram lists, layers, and draws it beside the real ones"
     }
   ],
   "map": [
@@ -61,7 +79,7 @@
       "ranges": [
         [
           0,
-          11431
+          15590
         ]
       ]
     },
@@ -76,16 +94,16 @@
           2228
         ],
         [
-          3690,
-          3708
+          4943,
+          4961
         ],
         [
-          3847,
-          3875
+          5205,
+          5233
         ],
         [
-          3971,
-          3980
+          5354,
+          5363
         ]
       ]
     },
@@ -100,16 +118,16 @@
           2375
         ],
         [
-          3793,
-          3847
+          5151,
+          5205
         ],
         [
-          4847,
-          5252
+          7957,
+          8412
         ],
         [
-          5459,
-          6349
+          8619,
+          9509
         ]
       ]
     },
@@ -124,8 +142,16 @@
           2941
         ],
         [
-          6349,
-          7673
+          3146,
+          3440
+        ],
+        [
+          6847,
+          7144
+        ],
+        [
+          9509,
+          11597
         ]
       ]
     },
@@ -138,10 +164,19 @@
         [
           2941,
           3146
-        ],
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "2b6c",
+        "8d05"
+      ],
+      "kind": "specified",
+      "ranges": [
         [
-          7673,
-          8055
+          11597,
+          12075
         ]
       ]
     },
@@ -152,16 +187,47 @@
       "kind": "specified",
       "ranges": [
         [
-          3875,
-          3971
+          5521,
+          5555
         ],
         [
-          4103,
-          4847
+          5610,
+          5774
         ],
         [
-          11326,
-          11399
+          5833,
+          6572
+        ],
+        [
+          15485,
+          15558
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "c1d8",
+        "8d05"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          5233,
+          5354
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "8d05",
+        "e7a3",
+        "5f18"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          5555,
+          5610
         ]
       ]
     },
@@ -172,12 +238,12 @@
       "kind": "specified",
       "ranges": [
         [
-          5252,
-          5459
+          8412,
+          8619
         ],
         [
-          8055,
-          8342
+          12075,
+          12362
         ]
       ]
     },
@@ -188,8 +254,8 @@
       "kind": "specified",
       "ranges": [
         [
-          6976,
-          7123
+          10136,
+          10374
         ]
       ]
     },
@@ -201,8 +267,8 @@
       "kind": "specified",
       "ranges": [
         [
-          5528,
-          5693
+          8688,
+          8853
         ]
       ]
     },
@@ -213,16 +279,93 @@
       "kind": "specified",
       "ranges": [
         [
-          3146,
-          3659
+          3440,
+          3953
         ],
         [
-          3708,
-          3793
+          5066,
+          5151
         ],
         [
-          8342,
-          11326
+          12362,
+          15485
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "e7a3"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          3953,
+          4250
+        ],
+        [
+          6572,
+          6847
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "5f18"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          4250,
+          4912
+        ],
+        [
+          4961,
+          5066
+        ],
+        [
+          5363,
+          5398
+        ],
+        [
+          5774,
+          5833
+        ],
+        [
+          7144,
+          7957
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "b3c9"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          8264,
+          8314
+        ],
+        [
+          12485,
+          12572
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "3d7f",
+        "b3c9"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          13982,
+          14060
+        ],
+        [
+          14824,
+          15115
         ]
       ]
     },
@@ -238,16 +381,16 @@
           174
         ],
         [
-          3659,
-          3690
+          4912,
+          4943
         ],
         [
-          3980,
-          4010
+          5398,
+          5428
         ],
         [
-          11399,
-          11431
+          15558,
+          15590
         ]
       ]
     },
@@ -268,8 +411,8 @@
       "why": "html escaping glue so code renders as text, demanded by the medium not by a sentence",
       "ranges": [
         [
-          4010,
-          4103
+          5428,
+          5521
         ]
       ]
     }

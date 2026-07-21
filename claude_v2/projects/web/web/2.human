@@ -1,2 +1,2 @@
 @id: 8d05
-cut the code at every range boundary and colour each piece by the deepest fragment that covers it, specified in teal and assumed in ochre
+cut the code at every range boundary and colour each piece by the deepest fragment that covers it, specified in teal and assumed in ochre; the code carries its real line numbers, and the file's name sits above it
