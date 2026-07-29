@@ -1,0 +1,20 @@
+root: "web server"
+I1: create a web server  <- "web server"
+I2: use Python standard library http.server module  (compiler)
+I3: listen on localhost  (compiler)
+I4: use port 8080  (compiler)
+I5: respond to GET requests with a simple message  (compiler)
+I6: run the server forever until interrupted  (compiler)
+from http.server import HTTPServer, BaseHTTPRequestHandler  <- I2
+class Handler(BaseHTTPRequestHandler):  <- I2, I5
+    def do_GET(self):  <- I5
+        self.send_response(200)  <- I5
+        self.send_header('Content-Type', 'text/plain')  <- I5
+        self.end_headers()  <- I5
+        self.wfile.write(b'Hello, World!')  <- I5
+server = HTTPServer(('localhost', 8080), Handler)  <- I2, I3, I4
+print('Serving on http://localhost:8080')  <- I3, I4
+try:  <- I6
+    server.serve_forever()  <- I6
+except KeyboardInterrupt:  <- I6
+    server.server_close()  <- I6

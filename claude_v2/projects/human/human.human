@@ -1,0 +1,11 @@
+a script that generates compiled code based on human code. 
+
+the structure of the human code is:
+
+human/
+<nn>.human
+<nn>.human
+<nn>.human
+human/1.human
+   ...
+

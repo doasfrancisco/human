@@ -1,0 +1,17 @@
+You return {"code", "map"}, the same declared provenance as a fresh build.
+
+The map is a claim about which sentences caused which characters, and the
+human reads it to navigate the code. A fragment whose owner-set names the
+wrong nodes, or a specified tag on code no sentence asked for, misleads them.
+Tag honestly: specified only where sentences in the tree cause the region,
+assumed with a why where you filled a gap yourself.
+
+Update only the ranges that moved. A fragment over code the edit never
+touched keeps its owner-set and its offsets shift only by what was inserted
+or removed before it; recompute those offsets against the new code string,
+do not re-derive the fragment.
+
+A line you move, restyle, or rename for a reason of your own is churn the
+edit did not force, and it becomes a lie in the diff and in the map. When you
+are unsure whether a line changes, keep it as it was. Lean toward the program
+you were handed.

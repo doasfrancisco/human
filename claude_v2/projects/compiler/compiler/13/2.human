@@ -1,0 +1,9 @@
+@id: 7f52
+the LLM examines one candidate pair at a time.
+
+do not ask if the two concepts are the same.
+the LLM says yes too often.
+
+ask for one example where the two concepts cause different results.
+an example means different.
+no example means same.

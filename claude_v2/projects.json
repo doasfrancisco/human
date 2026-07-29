@@ -2,7 +2,11 @@
   "projects": [
     {
       "name": "web",
-      "request": "a page where the hasse diagram of the sentences is the only navigation: click a node to see its sentence and only the code it owns, everything else folded away"
+      "human_code": "a page where the hasse diagram of the sentences is the only navigation: click a node to see its sentence and only the code it owns, everything else folded away"
+    },
+    {
+      "name": "compiler",
+      "human_code": "the instruction sheet itself, compiled: every character of CLAUDE.md mapped to the sentence that causes it"
     }
   ]
 }

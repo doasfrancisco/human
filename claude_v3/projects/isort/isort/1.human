@@ -1,0 +1,2 @@
+@id: ae4d
+sort the list in-place, shifting elements right to open a slot for each insertion

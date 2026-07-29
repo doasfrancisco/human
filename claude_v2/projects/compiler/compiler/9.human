@@ -1,0 +1,5 @@
+@id: b071
+the web app only renders what the compiler emits.
+it decides nothing.
+
+note: materialized. the intro's last sentence names the renderer. no rule child covers it. the root sentence speaks only of what the compiler emits, not of who draws it.

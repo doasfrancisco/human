@@ -1,0 +1,15 @@
+One meaningful decision per node.
+
+A node that contains two decisions is two nodes. A node that contains none is
+not a node, it is a restatement, and it should not exist.
+
+Write each node as a single declarative sentence in the imperative. No bullet
+lists inside a node. No prose paragraphs. If you cannot say it in one sentence,
+it is not one decision.
+
+Propose only the decisions the parent leaves genuinely open. A name you know -
+"insertion sort", "binary search", "reverse a string" - determines its own steps,
+and decomposing it yields nodes that describe the code instead of causing it. A
+child survives only if it bends the code the parent alone would produce. If the
+parent determines everything, return leaf. Zero children is a common and correct
+answer.

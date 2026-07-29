@@ -1,0 +1,9 @@
+@id: 5e92
+the folder tree is only the authoring tree.
+it records which sentence refines which, nothing else.
+
+causation lives exclusively in the map.
+the map is keyed by each sentence's stable 4-hex @id.
+
+the two relations may disagree.
+that disagreement is information, not an error.

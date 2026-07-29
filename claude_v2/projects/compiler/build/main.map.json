@@ -1,0 +1,343 @@
+{
+  "program": "compiler",
+  "human_code": "the instruction sheet itself, compiled: every character of CLAUDE.md mapped to the sentence that causes it",
+  "code_file": "CLAUDE.md.human",
+  "nodes": [
+    {
+      "id": "a2f7",
+      "path": "compiler",
+      "level": 0,
+      "text": "the instruction sheet turns claude into the compiler.\n\nhuman code arrives in prose.\nthe compiler emits the sentences, the code, the map, and the registry.\nthe map connects every sentence to the characters it caused."
+    },
+    {
+      "id": "d4b1",
+      "path": "compiler/1",
+      "level": 1,
+      "text": "one folder holds a program.\n\neach file's name is a short word that describes the node plus a 3 digit combination\nchild appear only when lowering adds real meaning.\nbuild/ holds the \"compiled\" code file, its map, and the concept registry file.\n\nprojects.json then registers the project's name and human code."
+    },
+    {
+      "id": "5e92",
+      "path": "compiler/2",
+      "level": 1,
+      "text": "the folder tree is only the authoring tree.\nit records which sentence refines which, nothing else.\n\ncausation lives exclusively in the map.\nthe map is keyed by each sentence's stable 4-hex @id.\n\nthe two relations may disagree.\nthat disagreement is information, not an error."
+    },
+    {
+      "id": "c8a3",
+      "path": "compiler/3",
+      "level": 1,
+      "text": "the map is one json file.\nit holds program, human_code, code_file, the node list, and the fragments.\n\neach fragment carries an owner-set of node ids over character ranges.\nseveral ids mean joint causation.\n\nan empty owner-set on an assumed fragment means pure convention.\na why then stands in for user prose."
+    },
+    {
+      "id": "1f60",
+      "path": "compiler/4",
+      "level": 1,
+      "text": "any two ranges must nest or be disjoint.\na contribution that would straddle another fragment's range is emitted as several split ranges instead.\n\ncontainment is then a valid poset.\nthe deepest cover of a character is therefore well defined."
+    },
+    {
+      "id": "7b2e",
+      "path": "compiler/5",
+      "level": 1,
+      "text": "a node's range is completely tiled by deeper fragments.\ncode no child sentence causes is attributed to the sentence that forces it, or owned up to in an assumed fragment with a why.\n\na gap is a compile error.\ncoverage is verified by computation before the map is emitted."
+    },
+    {
+      "id": "9d47",
+      "path": "compiler/6",
+      "level": 1,
+      "text": "the tightest container ranges a node's code hangs under must form an antichain.\na node straddling a parent and that parent's ancestor is split at its true depth, or the missing parent sentence is written.\n\nlevels are never declared.\nthey fall out of containment."
+    },
+    {
+      "id": "3ca5",
+      "path": "compiler/7",
+      "level": 1,
+      "text": "reword - the words change, the meaning does not.\nupdate the .human file and the map text. touch nothing else.\n\nrevise - the meaning changes.\na revise reads the registry first.\nrewrite only the code that the change forces. keep all untouched code byte for byte. move only the ranges that moved.\na changed concept recompiles every node that points to it."
+    },
+    {
+      "id": "6e18",
+      "path": "compiler/8",
+      "level": 1,
+      "text": "offsets index the LF-normalized code string exactly.\noffsets are computed, never guessed.\nrange edges snap to token or line boundaries.\n\nthe assert: lines are the only ground truth.\nnever ship a map describing code that fails its asserts."
+    },
+    {
+      "id": "b071",
+      "path": "compiler/9",
+      "level": 1,
+      "text": "the web app only renders what the compiler emits.\nit decides nothing."
+    },
+    {
+      "id": "f3d9",
+      "path": "compiler/10",
+      "level": 1,
+      "text": "the v1 rules carry forward at the close of the sheet.\nwhat bound the compiler before still binds.\none list gathers them."
+    },
+    {
+      "id": "2a84",
+      "path": "compiler/11",
+      "level": 1,
+      "text": "a specified fragment traces to the user's words.\nan assumed fragment fills a gap by convention."
+    },
+    {
+      "id": "84c6",
+      "path": "compiler/12",
+      "level": 1,
+      "text": "a note: line in a .human file is for the human only.\nit is never compiled.\nit never causes any range."
+    },
+    {
+      "id": "e5a1",
+      "path": "compiler/13",
+      "level": 1,
+      "text": "the compiler keeps a concept registry.\neach concept gets one id.\neach node points to the ids of its concepts.\n\nthe registry file is readable and diffable.\n\nwhen a concept changes, every node that points to it recompiles."
+    },
+    {
+      "id": "b9c4",
+      "path": "compiler/13/1",
+      "level": 2,
+      "text": "the LLM reads one node and lists its concepts.\neach concept carries a name, a type, and a signature.\nthe list is rebuilt only when the node changes.\n\nthe compiler then finds candidate pairs without the LLM.\nnear names, near embeddings, or equal signatures make a pair.\npairs with different types are removed."
+    },
+    {
+      "id": "7f52",
+      "path": "compiler/13/2",
+      "level": 2,
+      "text": "the LLM examines one candidate pair at a time.\n\ndo not ask if the two concepts are the same.\nthe LLM says yes too often.\n\nask for one example where the two concepts cause different results.\nan example means different.\nno example means same."
+    },
+    {
+      "id": "d61e",
+      "path": "compiler/13/3",
+      "level": 2,
+      "text": "the compiler writes the decision and the example in the registry.\n\nthe match is tested by ablation.\nchange the concept, recompile, and the code of each connected node must change.\na match that moves no code goes back to examination.\n\nmatches are never chained.\na matching b and b matching c does not make a match c.\neach new concept is compared with all members of the group."
+    }
+  ],
+  "map": [
+    {
+      "nodes": [
+        "a2f7"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          0,
+          6165
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "a2f7"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          0,
+          290
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "b071"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          290,
+          363
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "d4b1"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          364,
+          958
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "5e92"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          959,
+          1343
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "c8a3"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          1344,
+          2544
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "1f60"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          2545,
+          2925
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "7b2e"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          2926,
+          3485
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "9d47"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          3486,
+          4168
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "e5a1"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          4169,
+          5323
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "e5a1"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          4169,
+          4413
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "b9c4"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          4413,
+          4701
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "7f52"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          4701,
+          4942
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "d61e"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          4942,
+          5323
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "f3d9"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          5323,
+          6165
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "6e18"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          5349,
+          5480
+        ],
+        [
+          6016,
+          6165
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "2a84"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          5480,
+          5559
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "84c6"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          5559,
+          5664
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "3ca5"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          5664,
+          6016
+        ]
+      ]
+    }
+  ]
+}

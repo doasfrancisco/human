@@ -1,0 +1,2 @@
+@id: 4e91
+clicking a diagram node selects it: the node's sentence appears under the diagram, and the code narrows to what that node owns. clicking the selected node again, or the diagram background, clears the selection. hovering a node previews its lighting without selecting.

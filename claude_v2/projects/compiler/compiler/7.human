@@ -1,0 +1,8 @@
+@id: 3ca5
+reword - the words change, the meaning does not.
+update the .human file and the map text. touch nothing else.
+
+revise - the meaning changes.
+a revise reads the registry first.
+rewrite only the code that the change forces. keep all untouched code byte for byte. move only the ranges that moved.
+a changed concept recompiles every node that points to it.

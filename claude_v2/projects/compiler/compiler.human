@@ -1,0 +1,8 @@
+@id: a2f7
+the instruction sheet turns claude into the compiler.
+
+human code arrives in prose.
+the compiler emits the sentences, the code, the map, and the registry.
+the map connects every sentence to the characters it caused.
+
+note: the direction is map-over-existing-text. build/CLAUDE.md is the spec itself, byte for byte, LF-normalized. nothing was regenerated or reworded. the spec that makes claude the compiler is here a compiled artifact of the language.

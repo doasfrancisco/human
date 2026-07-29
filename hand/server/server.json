@@ -1,0 +1,29 @@
+{
+  "root": "web server",
+  "ideas": [
+    {"id": "I1", "text": "create a web server", "anchor": "web server", "origin": "user"},
+    {"id": "I2", "text": "use Python standard library HTTP server", "origin": "compiler"},
+    {"id": "I3", "text": "listen on localhost", "origin": "compiler"},
+    {"id": "I4", "text": "use port 8000", "origin": "compiler"},
+    {"id": "I5", "text": "respond to GET requests with 200 OK", "origin": "compiler"},
+    {"id": "I6", "text": "serve a plain text response body", "origin": "compiler"},
+    {"id": "I7", "text": "run the server until interrupted", "origin": "compiler"}
+  ],
+  "code": [
+    {"line": "from http.server import HTTPServer, BaseHTTPRequestHandler", "sources": ["I2"]},
+    {"line": "", "sources": []},
+    {"line": "class Handler(BaseHTTPRequestHandler):", "sources": ["I2", "I5"]},
+    {"line": "    def do_GET(self):", "sources": ["I5"]},
+    {"line": "        self.send_response(200)", "sources": ["I5"]},
+    {"line": "        self.send_header('Content-Type', 'text/plain')", "sources": ["I6"]},
+    {"line": "        self.end_headers()", "sources": ["I6"]},
+    {"line": "        self.wfile.write(b'Hello, World!')", "sources": ["I6"]},
+    {"line": "", "sources": []},
+    {"line": "server = HTTPServer(('localhost', 8000), Handler)", "sources": ["I2", "I3", "I4"]},
+    {"line": "print('Serving on http://localhost:8000')", "sources": ["I3", "I4"]},
+    {"line": "try:", "sources": ["I7"]},
+    {"line": "    server.serve_forever()", "sources": ["I7"]},
+    {"line": "except KeyboardInterrupt:", "sources": ["I7"]},
+    {"line": "    server.server_close()", "sources": ["I7"]}
+  ]
+}

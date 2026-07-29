@@ -1,0 +1,6 @@
+@id: 84c6
+a note: line in a .human file is for the human only.
+it is never compiled.
+it never causes any range.
+
+note: materialized. no mandated rule child covers the note: bullet. left unowned it would have been a coverage gap. it is a rule, not a convention.

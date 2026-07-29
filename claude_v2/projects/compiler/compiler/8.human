@@ -1,0 +1,7 @@
+@id: 6e18
+offsets index the LF-normalized code string exactly.
+offsets are computed, never guessed.
+range edges snap to token or line boundaries.
+
+the assert: lines are the only ground truth.
+never ship a map describing code that fails its asserts.
