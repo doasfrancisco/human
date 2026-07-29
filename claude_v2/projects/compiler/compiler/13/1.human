@@ -1,0 +1,8 @@
+@id: b9c4
+the LLM reads one node and lists its concepts.
+each concept carries a name, a type, and a signature.
+the list is rebuilt only when the node changes.
+
+the compiler then finds candidate pairs without the LLM.
+near names, near embeddings, or equal signatures make a pair.
+pairs with different types are removed.

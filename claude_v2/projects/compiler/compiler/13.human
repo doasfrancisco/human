@@ -1,0 +1,8 @@
+@id: e5a1
+the compiler keeps a concept registry.
+each concept gets one id.
+each node points to the ids of its concepts.
+
+the registry file is readable and diffable.
+
+when a concept changes, every node that points to it recompiles.

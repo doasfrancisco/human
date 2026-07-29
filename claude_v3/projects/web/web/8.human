@@ -1,0 +1,2 @@
+@id: e7a3
+every assumed fragment is a node of its own in the diagram, hanging under whatever contains it and drawn in ochre; its text is the why it carries, and clicking it shows only the code it owns.

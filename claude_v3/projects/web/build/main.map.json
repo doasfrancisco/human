@@ -1,0 +1,405 @@
+{
+  "program": "web",
+  "request": "a page where the hasse diagram of the sentences is the only navigation: click a node to see its sentence and only the code it owns, everything else folded away",
+  "code_file": "index.html",
+  "nodes": [
+    {
+      "id": "7c3e",
+      "path": "web",
+      "level": 0,
+      "text": "a page ruled by the diagram of the sentences: the diagram and the chosen sentence sit on the left as the only navigation, the code sits on the right, and nothing speaks until a node is clicked. no toggles, no instructions; the only chrome is the project bar top left and the file name above the code. the page reads the compiler's json and decides nothing."
+    },
+    {
+      "id": "4e91",
+      "path": "web/1",
+      "level": 1,
+      "text": "clicking a diagram node selects it: the node's sentence appears under the diagram, and the code narrows to what that node owns. clicking the selected node again, or the diagram background, clears the selection. hovering a node previews its lighting without selecting."
+    },
+    {
+      "id": "8d05",
+      "path": "web/2",
+      "level": 1,
+      "text": "cut the code at every range boundary and colour each piece by the deepest fragment that covers it, specified in teal and assumed in ochre; the code carries its real line numbers, and the file's name sits above it"
+    },
+    {
+      "id": "2b6c",
+      "path": "web/3",
+      "level": 1,
+      "text": "while a node is selected, every span the node does not own collapses into a thin fold that counts the hidden lines, so all the code the node owns is visible at once without scrolling."
+    },
+    {
+      "id": "c1d8",
+      "path": "web/4",
+      "level": 1,
+      "text": "read the project list and each project's map and code from disk, normalise line endings, and render exactly what the compiler emitted"
+    },
+    {
+      "id": "66aa",
+      "path": "web/5",
+      "level": 1,
+      "text": "a span of code may be owned by several sentences at once: every span carries all of its owners, and lighting any owner also lights its co-owners wherever ownership is joint."
+    },
+    {
+      "id": "3d7f",
+      "path": "web/6",
+      "level": 1,
+      "text": "draw the sentences as a layered graph of range containment on the left, covering edges only and never transitive ones, the root on top: a sentence hangs below every parent whose range most tightly contains one of its own, several parents allowed, which the folder tree cannot show"
+    },
+    {
+      "id": "9b2f",
+      "path": "web/7",
+      "level": 1,
+      "text": "the page keeps the ownership index: which spans a sentence owns, and which sentences own a span. every span listens, so hovering code lights every sentence that owns it in the diagram."
+    },
+    {
+      "id": "e7a3",
+      "path": "web/8",
+      "level": 1,
+      "text": "every assumed fragment is a node of its own in the diagram, hanging under whatever contains it and drawn in ochre; its text is the why it carries, and clicking it shows only the code it owns."
+    },
+    {
+      "id": "b3c9",
+      "path": "web/8/1",
+      "level": 2,
+      "text": "the page treats a synthetic node like a sentence: the pane shows its why in ochre, and the diagram lists, layers, and draws it beside the real ones"
+    },
+    {
+      "id": "5f18",
+      "path": "web/9",
+      "level": 1,
+      "text": "the top left names the project behind a left caret; the caret opens the projects view, a plain list of every project and its request, and choosing one opens its page."
+    }
+  ],
+  "map": [
+    {
+      "nodes": [
+        "7c3e"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          0,
+          21159
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "c1d8"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          4485,
+          4752
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "5f18"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          4752,
+          5048
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "3d7f"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          5048,
+          5980
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "8d05"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          5980,
+          6839
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "4e91"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          6839,
+          7552
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "2b6c"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          7552,
+          8380
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "66aa"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          8380,
+          8620
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "9b2f"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          8620,
+          8950
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "e7a3"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          8950,
+          9350
+        ]
+      ]
+    },
+    {
+      "nodes": [
+        "b3c9"
+      ],
+      "kind": "specified",
+      "ranges": [
+        [
+          9350,
+          9700
+        ]
+      ]
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          0,
+          87
+        ]
+      ],
+      "why": "HTML boilerplate, head, style, body structure"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          87,
+          700
+        ]
+      ],
+      "why": "CSS reset and base styles"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          700,
+          1400
+        ]
+      ],
+      "why": "Layout styles for app, topbar, main, left, right panels"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          1400,
+          1900
+        ]
+      ],
+      "why": "Diagram SVG and sentence pane styles"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          1900,
+          2400
+        ]
+      ],
+      "why": "Code block and line styles"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          2400,
+          2900
+        ]
+      ],
+      "why": "Fold row styles and span colouring styles"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          2900,
+          3300
+        ]
+      ],
+      "why": "Projects overlay and node-circle styles"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          3300,
+          3600
+        ]
+      ],
+      "why": "Closing style and head, opening body and app markup"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          3600,
+          3800
+        ]
+      ],
+      "why": "Topbar markup with project label and caret"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          3800,
+          4100
+        ]
+      ],
+      "why": "Main layout markup with left panel, diagram-wrap, svg, sentence-pane"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          4100,
+          4300
+        ]
+      ],
+      "why": "Right panel markup with file-label and code-wrap"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          4300,
+          4485
+        ]
+      ],
+      "why": "Projects overlay markup"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          4485,
+          4510
+        ]
+      ],
+      "why": "Script opening and global state variables"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          4510,
+          4752
+        ]
+      ],
+      "why": "DOM element references"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          5048,
+          5200
+        ]
+      ],
+      "why": "renderPage orchestration function"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          5200,
+          5500
+        ]
+      ],
+      "why": "buildSpans helper function"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          5500,
+          5700
+        ]
+      ],
+      "why": "buildOwnershipIndex helper"
+    },
+    {
+      "nodes": [],
+      "kind": "assumed",
+      "ranges": [
+        [
+          9700,
+          21159
+        ]
+      ],
+      "why": "esc utility and loadProjectList error handler and script close"
+    }
+  ]
+}

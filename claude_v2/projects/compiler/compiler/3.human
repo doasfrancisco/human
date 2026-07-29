@@ -1,0 +1,9 @@
+@id: c8a3
+the map is one json file.
+it holds program, human_code, code_file, the node list, and the fragments.
+
+each fragment carries an owner-set of node ids over character ranges.
+several ids mean joint causation.
+
+an empty owner-set on an assumed fragment means pure convention.
+a why then stands in for user prose.

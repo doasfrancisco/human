@@ -1,2 +1,6 @@
 @id: 9b2f
-the page keeps the ownership index: which spans a sentence owns, and which sentences own a span. every span listens, so hovering code lights every sentence that owns it in the diagram.
+the ownership index lives in the page.
+it answers which spans a sentence owns, and which sentences own a span.
+
+every span listens.
+hovering code lights every owning sentence in the diagram.

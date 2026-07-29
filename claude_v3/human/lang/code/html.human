@@ -1,0 +1,11 @@
+The program is one self-contained HTML file. All CSS lives in style elements
+and all JavaScript in script elements inside the same file; nothing is linked
+in from anywhere. The page makes no external requests of any kind - no CDN
+scripts, no remote stylesheets, no web fonts, no remote images, no calls to
+hosts elsewhere.
+
+The file is served as a static file next to the data it fetches, so any fetch
+it performs uses a relative path to a sibling file and nothing else.
+
+Emit no comments, in the markup, the CSS, or the JavaScript. The .human tree
+is the commentary.

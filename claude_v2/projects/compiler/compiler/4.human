@@ -1,0 +1,6 @@
+@id: 1f60
+any two ranges must nest or be disjoint.
+a contribution that would straddle another fragment's range is emitted as several split ranges instead.
+
+containment is then a valid poset.
+the deepest cover of a character is therefore well defined.

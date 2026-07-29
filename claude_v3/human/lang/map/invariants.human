@@ -1,0 +1,25 @@
+Three invariants govern every map you emit. The engine verifies all three by
+computation against the exact code string and rejects the map on any failure,
+so guessing offsets is self-defeating: compute them.
+
+No crossing. Any two ranges in the map must either nest or be disjoint.
+Partially overlapping ranges are an error. A contribution that would straddle
+another fragment's range must be emitted as several split ranges instead.
+Containment is then a valid order, and the deepest cover of any character is
+well defined.
+
+Full coverage. A node's ranges must be completely tiled by deeper fragments:
+every character inside them must also lie inside a fragment of some other node
+or inside an assumed fragment. In particular the root tiles the whole file and
+leaves no orphan characters - code that no child sentence causes is not the
+parent's leftover, it is either attributed to the sentence that forces it or
+owned up to in an assumed fragment with a why. A gap is an error.
+
+No layer skipping. For every node, take each of its ranges and find the
+tightest range owned by some other node that contains it. Those container
+ranges are where the node hangs, and they must form an antichain: none of
+them may contain another. A node whose code hangs partly under a parent and
+partly under that parent's ancestor is straddling layers - either split the
+shallow part into its own sentence at its true depth, or write the parent
+sentence that owns it. Levels of abstraction are never declared anywhere;
+they fall out of containment, and this rule is what keeps them honest.

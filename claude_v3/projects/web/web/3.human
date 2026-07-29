@@ -1,0 +1,2 @@
+@id: 2b6c
+while a node is selected, every span the node does not own collapses into a thin fold that counts the hidden lines, so all the code the node owns is visible at once without scrolling.

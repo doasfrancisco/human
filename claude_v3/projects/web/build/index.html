@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>human</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #0e0e0e; color: #d4d4d4; font-family: 'Courier New', monospace; font-size: 13px; }
+#app { display: flex; flex-direction: column; height: 100%; }
+#topbar { display: flex; align-items: center; padding: 6px 12px; background: #161616; border-bottom: 1px solid #2a2a2a; gap: 8px; flex-shrink: 0; }
+#project-label { color: #888; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 4px; }
+#project-label:hover { color: #d4d4d4; }
+#project-name { color: #d4d4d4; font-weight: bold; }
+#main { display: flex; flex: 1; overflow: hidden; }
+#left { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid #2a2a2a; overflow: hidden; }
+#diagram-wrap { flex: 1; overflow: auto; position: relative; }
+#diagram-svg { display: block; }
+#sentence-pane { padding: 10px 12px; border-top: 1px solid #2a2a2a; min-height: 48px; max-height: 120px; overflow-y: auto; font-size: 12px; line-height: 1.5; color: #aaa; flex-shrink: 0; }
+#sentence-pane.assumed { color: #c8a84b; }
+#sentence-pane.specified { color: #4ec9b0; }
+#right { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#file-label { padding: 6px 14px; font-size: 11px; color: #666; border-bottom: 1px solid #1e1e1e; flex-shrink: 0; background: #111; }
+#code-wrap { flex: 1; overflow: auto; padding: 0; }
+#code-block { display: table; width: 100%; border-collapse: collapse; }
+.code-line { display: table-row; }
+.line-num { display: table-cell; padding: 1px 10px 1px 10px; color: #444; text-align: right; user-select: none; width: 1%; white-space: nowrap; border-right: 1px solid #1e1e1e; vertical-align: top; }
+.line-content { display: table-cell; padding: 1px 0 1px 10px; white-space: pre; vertical-align: top; }
+.fold-row { display: table-row; cursor: pointer; }
+.fold-row:hover .fold-cell { background: #1e1e1e; }
+.fold-num { display: table-cell; padding: 1px 10px; color: #333; text-align: right; border-right: 1px solid #1e1e1e; }
+.fold-cell { display: table-cell; padding: 1px 0 1px 10px; color: #444; font-style: italic; }
+span.sp { border-radius: 2px; }
+span.sp.specified { background: rgba(78,201,176,0.13); color: #4ec9b0; }
+span.sp.assumed { background: rgba(200,168,75,0.13); color: #c8a84b; }
+span.sp.hl { filter: brightness(1.7); outline: 1px solid currentColor; }
+#projects-overlay { display: none; position: fixed; inset: 0; background: #0e0e0e; z-index: 100; flex-direction: column; }
+#projects-overlay.open { display: flex; }
+#projects-header { padding: 12px 16px; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; gap: 10px; }
+#projects-back { cursor: pointer; color: #888; }
+#projects-back:hover { color: #d4d4d4; }
+#projects-list { flex: 1; overflow-y: auto; padding: 12px; }
+.project-item { padding: 10px 12px; border: 1px solid #2a2a2a; border-radius: 4px; margin-bottom: 8px; cursor: pointer; }
+.project-item:hover { border-color: #444; background: #161616; }
+.project-item-name { color: #d4d4d4; font-weight: bold; margin-bottom: 4px; }
+.project-item-req { color: #888; font-size: 12px; }
+.node-circle { cursor: pointer; }
+.node-circle:hover { filter: brightness(1.4); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <span id="project-label"><span id="caret">&#8249;</span> <span id="project-name">—</span></span>
+  </div>
+  <div id="main">
+    <div id="left">
+      <div id="diagram-wrap">
+        <svg id="diagram-svg"></svg>
+      </div>
+      <div id="sentence-pane">click a node</div>
+    </div>
+    <div id="right">
+      <div id="file-label">—</div>
+      <div id="code-wrap"><div id="code-block"></div></div>
+    </div>
+  </div>
+</div>
+<div id="projects-overlay">
+  <div id="projects-header">
+    <span id="projects-back">&#8250; back</span>
+    <span style="color:#888;font-size:12px;">projects</span>
+  </div>
+  <div id="projects-list"></div>
+</div>
+<script>
+(function(){
+
+let projectList = [];
+let currentProject = null;
+let selectedNode = null;
+let hoveredNode = null;
+
+const projectLabel = document.getElementById('project-label');
+const projectName = document.getElementById('project-name');
+const diagramSvg = document.getElementById('diagram-svg');
+const sentencePane = document.getElementById('sentence-pane');
+const fileLabel = document.getElementById('file-label');
+const codeBlock = document.getElementById('code-block');
+const projectsOverlay = document.getElementById('projects-overlay');
+const projectsList = document.getElementById('projects-list');
+const projectsBack = document.getElementById('projects-back');
+
+projectLabel.addEventListener('click', openProjectsView);
+projectsBack.addEventListener('click', closeProjectsView);
+
+function openProjectsView() {
+  projectsOverlay.classList.add('open');
+}
+function closeProjectsView() {
+  projectsOverlay.classList.remove('open');
+}
+
+async function loadProjectList() {
+  const r = await fetch('projects.json');
+  projectList = await r.json();
+  renderProjectsList();
+  if (projectList.length > 0) {
+    await loadProject(projectList[0]);
+  }
+}
+
+function renderProjectsList() {
+  projectsList.innerHTML = '';
+  for (const p of projectList) {
+    const div = document.createElement('div');
+    div.className = 'project-item';
+    div.innerHTML = '<div class="project-item-name">' + esc(p.name) + '</div><div class="project-item-req">' + esc(p.request || '') + '</div>';
+    div.addEventListener('click', () => { closeProjectsView(); loadProject(p); });
+    projectsList.appendChild(div);
+  }
+}
+
+async function loadProject(p) {
+  currentProject = p;
+  projectName.textContent = p.name;
+  const mapR = await fetch(p.map);
+  const mapData = await mapR.json();
+  const codeR = await fetch(p.code);
+  let codeText = await codeR.text();
+  codeText = codeText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  fileLabel.textContent = p.code;
+  renderPage(mapData, codeText);
+}
+
+function renderPage(mapData, codeText) {
+  selectedNode = null;
+  hoveredNode = null;
+
+  const fragments = mapData.map || [];
+
+  const nodeMap = {};
+  for (const f of fragments) {
+    for (const id of f.nodes) {
+      if (!nodeMap[id]) nodeMap[id] = { id, kind: f.kind, why: f.why || '', ranges: [] };
+      for (const rng of f.ranges) {
+        nodeMap[id].ranges.push(rng);
+      }
+    }
+  }
+
+  const spanList = buildSpans(fragments, codeText);
+
+  const ownershipIndex = buildOwnershipIndex(spanList);
+
+  const { nodes: graphNodes, edges: graphEdges, rootId } = buildGraph(fragments, codeText);
+
+  renderDiagram(graphNodes, graphEdges, rootId, nodeMap);
+  renderCode(codeText, spanList, ownershipIndex);
+
+  sentencePane.textContent = 'click a node';
+  sentencePane.className = '';
+}
+
+function buildSpans(fragments, code) {
+  const boundaries = new Set([0, code.length]);
+  for (const f of fragments) {
+    for (const [s, e] of f.ranges) {
+      boundaries.add(s);
+      boundaries.add(e);
+    }
+  }
+  const sorted = Array.from(boundaries).sort((a, b) => a - b);
+
+  const spans = [];
+  for (let i = 0; i + 1 < sorted.length; i++) {
+    const s = sorted[i], e = sorted[i + 1];
+    if (s === e) continue;
+    const mid = (s + e) / 2;
+    let deepest = null;
+    let deepestLen = Infinity;
+    for (const f of fragments) {
+      for (const [fs, fe] of f.ranges) {
+        if (fs <= s && e <= fe) {
+          const len = fe - fs;
+          if (len < deepestLen) {
+            deepestLen = len;
+            deepest = f;
+          }
+        }
+      }
+    }
+    spans.push({ start: s, end: e, text: code.slice(s, e), fragment: deepest });
+  }
+  return spans;
+}
+
+function buildOwnershipIndex(spanList) {
+  const spanOwners = [];
+  for (const sp of spanList) {
+    const owners = sp.fragment ? sp.fragment.nodes.slice() : [];
+    spanOwners.push(owners);
+  }
+  return spanOwners;
+}
+
+function buildGraph(fragments, code) {
+  const allNodes = [];
+  const nodeById = {};
+
+  for (const f of fragments) {
+    const id = f.nodes.length === 1 ? f.nodes[0] : (f.nodes.length === 0 ? '__assumed_' + allNodes.length : f.nodes.join('_'));
+    if (!nodeById[id]) {
+      const node = {
+        id,
+        kind: f.kind,
+        why: f.why || '',
+        label: f.kind === 'assumed' ? (f.why || 'assumed') : f.nodes.join(', '),
+        ranges: [],
+        nodeIds: f.nodes.slice()
+      };
+      nodeById[id] = node;
+      allNodes.push(node);
+    }
+    for (const rng of f.ranges) {
+      nodeById[id].ranges.push(rng);
+    }
+  }
+
+  const mergedNodes = [];
+  const mergedById = {};
+  for (const f of fragments) {
+    const key = f.nodes.slice().sort().join('|') + '|' + f.kind + '|' + (f.why || '');
+    if (!mergedById[key]) {
+      const id = f.kind === 'assumed' ? ('__asm_' + mergedNodes.length) : f.nodes.slice().sort().join('_');
+      const node = {
+        id,
+        kind: f.kind,
+        why: f.why || '',
+        label: f.kind === 'assumed' ? (f.why || 'assumed') : f.nodes.join(', '),
+        ranges: [],
+        nodeIds: f.nodes.slice()
+      };
+      mergedById[key] = node;
+      mergedNodes.push(node);
+    }
+    for (const rng of f.ranges) {
+      mergedById[key].ranges.push(rng);
+    }
+  }
+
+  const nodes = mergedNodes;
+
+  function rangeContains(outer, inner) {
+    return outer[0] <= inner[0] && inner[1] <= outer[1];
+  }
+  function nodeContains(a, b) {
+    return b.ranges.every(rb => a.ranges.some(ra => rangeContains(ra, rb)));
+  }
+  function strictlyContains(a, b) {
+    return nodeContains(a, b) && !nodeContains(b, a);
+  }
+
+  const edges = [];
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = 0; j < nodes.length; j++) {
+      if (i === j) continue;
+      if (!strictlyContains(nodes[i], nodes[j])) continue;
+      let isCovering = true;
+      for (let k = 0; k < nodes.length; k++) {
+        if (k === i || k === j) continue;
+        if (strictlyContains(nodes[i], nodes[k]) && strictlyContains(nodes[k], nodes[j])) {
+          isCovering = false;
+          break;
+        }
+      }
+      if (isCovering) {
+        edges.push({ from: nodes[i].id, to: nodes[j].id });
+      }
+    }
+  }
+
+  let rootId = null;
+  const hasParent = new Set(edges.map(e => e.to));
+  for (const n of nodes) {
+    if (!hasParent.has(n.id)) {
+      rootId = n.id;
+      break;
+    }
+  }
+
+  return { nodes, edges, rootId };
+}
+
+function renderDiagram(nodes, edges, rootId, nodeMap) {
+  const nodeById = {};
+  for (const n of nodes) nodeById[n.id] = n;
+
+  const children = {};
+  const parents = {};
+  for (const n of nodes) { children[n.id] = []; parents[n.id] = []; }
+  for (const e of edges) {
+    children[e.from].push(e.to);
+    parents[e.to].push(e.from);
+  }
+
+  const layers = {};
+  const visited = new Set();
+  function assignLayer(id, layer) {
+    if (!layers[id] || layers[id] < layer) layers[id] = layer;
+    for (const c of children[id]) assignLayer(c, layer + 1);
+  }
+  if (rootId) assignLayer(rootId, 0);
+  for (const n of nodes) if (layers[n.id] === undefined) layers[n.id] = 0;
+
+  const maxLayer = Math.max(...Object.values(layers));
+  const layerGroups = {};
+  for (let i = 0; i <= maxLayer; i++) layerGroups[i] = [];
+  for (const n of nodes) layerGroups[layers[n.id]].push(n.id);
+
+  const nodeW = 120, nodeH = 28, hGap = 18, vGap = 44;
+  const positions = {};
+
+  for (let l = 0; l <= maxLayer; l++) {
+    const group = layerGroups[l];
+    const totalW = group.length * nodeW + (group.length - 1) * hGap;
+    let x = 10;
+    for (let i = 0; i < group.length; i++) {
+      positions[group[i]] = { x: x + i * (nodeW + hGap), y: l * (nodeH + vGap) + 10 };
+    }
+  }
+
+  const svgW = Math.max(...Object.values(positions).map(p => p.x + nodeW)) + 10;
+  const svgH = Math.max(...Object.values(positions).map(p => p.y + nodeH)) + 20;
+
+  diagramSvg.setAttribute('width', svgW);
+  diagramSvg.setAttribute('height', svgH);
+  diagramSvg.innerHTML = '';
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  diagramSvg.appendChild(defs);
+
+  const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bgRect.setAttribute('width', svgW);
+  bgRect.setAttribute('height', svgH);
+  bgRect.setAttribute('fill', 'transparent');
+  bgRect.addEventListener('click', () => { clearSelection(); });
+  diagramSvg.appendChild(bgRect);
+
+  for (const e of edges) {
+    const fp = positions[e.from];
+    const tp = positions[e.to];
+    if (!fp || !tp) continue;
+    const x1 = fp.x + nodeW / 2, y1 = fp.y + nodeH;
+    const x2 = tp.x + nodeW / 2, y2 = tp.y;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    line.setAttribute('stroke', '#333');
+    line.setAttribute('stroke-width', '1');
+    diagramSvg.appendChild(line);
+  }
+
+  for (const n of nodes) {
+    const pos = positions[n.id];
+    if (!pos) continue;
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('transform', 'translate(' + pos.x + ',' + pos.y + ')');
+    g.setAttribute('class', 'node-circle');
+    g.dataset.nodeId = n.id;
+
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('width', nodeW);
+    rect.setAttribute('height', nodeH);
+    rect.setAttribute('rx', 4);
+    rect.setAttribute('fill', n.kind === 'assumed' ? '#2a2000' : '#0d2a27');
+    rect.setAttribute('stroke', n.kind === 'assumed' ? '#c8a84b' : '#4ec9b0');
+    rect.setAttribute('stroke-width', '1');
+    rect.setAttribute('class', 'node-rect');
+    rect.dataset.nodeId = n.id;
+    g.appendChild(rect);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', nodeW / 2);
+    text.setAttribute('y', nodeH / 2 + 4);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('fill', n.kind === 'assumed' ? '#c8a84b' : '#4ec9b0');
+    text.setAttribute('font-size', '10');
+    text.setAttribute('font-family', 'Courier New, monospace');
+    text.setAttribute('pointer-events', 'none');
+    const labelText = n.kind === 'assumed' ? (n.why.length > 16 ? n.why.slice(0, 14) + '…' : n.why) : n.nodeIds.join(', ');
+    text.textContent = labelText;
+    g.appendChild(text);
+
+    g.addEventListener('mouseenter', () => { hoveredNode = n.id; applyHighlight(); });
+    g.addEventListener('mouseleave', () => { hoveredNode = null; applyHighlight(); });
+    g.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (selectedNode === n.id) {
+        clearSelection();
+      } else {
+        selectNode(n.id, n);
+      }
+    });
+
+    diagramSvg.appendChild(g);
+  }
+
+  window._diagramNodes = nodes;
+  window._diagramNodeById = {};
+  for (const n of nodes) window._diagramNodeById[n.id] = n;
+}
+
+function clearSelection() {
+  selectedNode = null;
+  sentencePane.textContent = 'click a node';
+  sentencePane.className = '';
+  applyHighlight();
+  renderCodeView();
+}
+
+function selectNode(id, n) {
+  selectedNode = id;
+  if (n.kind === 'assumed') {
+    sentencePane.textContent = n.why || 'assumed';
+    sentencePane.className = 'assumed';
+  } else {
+    sentencePane.textContent = n.nodeIds.join(', ');
+    sentencePane.className = 'specified';
+  }
+  applyHighlight();
+  renderCodeView();
+}
+
+function applyHighlight() {
+  const activeId = hoveredNode || selectedNode;
+  const svgNodes = diagramSvg.querySelectorAll('[data-node-id]');
+  for (const el of svgNodes) {
+    const nid = el.dataset.nodeId;
+    if (!nid) continue;
+    const n = window._diagramNodeById && window._diagramNodeById[nid];
+    if (!n) continue;
+    const isActive = activeId && isCoOwner(activeId, nid);
+    const rect = el.tagName === 'rect' ? el : el.querySelector('rect');
+    if (rect) {
+      rect.setAttribute('stroke-width', isActive ? '2' : '1');
+      rect.setAttribute('fill', isActive
+        ? (n.kind === 'assumed' ? '#3a3000' : '#0d3a35')
+        : (n.kind === 'assumed' ? '#2a2000' : '#0d2a27'));
+    }
+  }
+
+  const spans = document.querySelectorAll('span.sp');
+  for (const sp of spans) {
+    const owners = sp.dataset.owners ? sp.dataset.owners.split(',') : [];
+    const isActive = activeId && owners.some(o => isCoOwner(activeId, o));
+    if (isActive) sp.classList.add('hl');
+    else sp.classList.remove('hl');
+  }
+}
+
+function isCoOwner(activeId, targetId) {
+  if (activeId === targetId) return true;
+  const an = window._diagramNodeById && window._diagramNodeById[activeId];
+  const tn = window._diagramNodeById && window._diagramNodeById[targetId];
+  if (!an || !tn) return false;
+  const aIds = new Set(an.nodeIds);
+  const tIds = new Set(tn.nodeIds);
+  for (const id of aIds) if (tIds.has(id)) return true;
+  return false;
+}
+
+let _currentSpanList = [];
+let _currentCode = '';
+
+function renderCode(code, spanList, ownershipIndex) {
+  _currentCode = code;
+  _currentSpanList = spanList;
+  renderCodeView();
+}
+
+function renderCodeView() {
+  const code = _currentCode;
+  const spanList = _currentSpanList;
+  if (!code && !spanList.length) return;
+
+  const lines = code.split('\n');
+  const totalLines = lines.length;
+
+  let selectedRanges = null;
+  if (selectedNode !== null && window._diagramNodeById) {
+    const n = window._diagramNodeById[selectedNode];
+    if (n) selectedRanges = n.ranges;
+  }
+
+  const lineOwned = new Array(totalLines).fill(false);
+  if (selectedRanges) {
+    let charPos = 0;
+    for (let li = 0; li < lines.length; li++) {
+      const lineStart = charPos;
+      const lineEnd = charPos + lines[li].length;
+      for (const [rs, re] of selectedRanges) {
+        if (rs < lineEnd && re > lineStart) {
+          lineOwned[li] = true;
+          break;
+        }
+      }
+      charPos += lines[li].length + 1;
+    }
+  }
+
+  const lineSpans = buildLineSpans(code, spanList, lines);
+
+  codeBlock.innerHTML = '';
+
+  let i = 0;
+  while (i < totalLines) {
+    if (selectedRanges && !lineOwned[i]) {
+      let j = i;
+      while (j < totalLines && !lineOwned[j]) j++;
+      const foldCount = j - i;
+      const foldRow = document.createElement('div');
+      foldRow.className = 'fold-row';
+      const foldNum = document.createElement('div');
+      foldNum.className = 'fold-num';
+      foldNum.textContent = '…';
+      const foldCell = document.createElement('div');
+      foldCell.className = 'fold-cell';
+      foldCell.textContent = foldCount + ' line' + (foldCount === 1 ? '' : 's') + ' hidden';
+      foldRow.appendChild(foldNum);
+      foldRow.appendChild(foldCell);
+      foldRow.addEventListener('click', () => {
+        clearSelection();
+      });
+      codeBlock.appendChild(foldRow);
+      i = j;
+    } else {
+      const row = document.createElement('div');
+      row.className = 'code-line';
+      const numCell = document.createElement('div');
+      numCell.className = 'line-num';
+      numCell.textContent = i + 1;
+      const contentCell = document.createElement('div');
+      contentCell.className = 'line-content';
+      const spansForLine = lineSpans[i] || [];
+      for (const seg of spansForLine) {
+        if (seg.fragment) {
+          const sp = document.createElement('span');
+          sp.className = 'sp ' + seg.fragment.kind;
+          sp.dataset.owners = seg.fragment.nodes.join(',');
+          sp.textContent = seg.text;
+          sp.addEventListener('mouseenter', () => {
+            const owners = sp.dataset.owners ? sp.dataset.owners.split(',') : [];
+            if (owners.length > 0) {
+              hoveredNode = findDiagramNodeForOwners(owners);
+              applyHighlight();
+            }
+          });
+          sp.addEventListener('mouseleave', () => {
+            hoveredNode = null;
+            applyHighlight();
+          });
+          contentCell.appendChild(sp);
+        } else {
+          contentCell.appendChild(document.createTextNode(seg.text));
+        }
+      }
+      row.appendChild(numCell);
+      row.appendChild(contentCell);
+      codeBlock.appendChild(row);
+      i++;
+    }
+  }
+}
+
+function findDiagramNodeForOwners(owners) {
+  if (!window._diagramNodes) return null;
+  const ownerSet = new Set(owners);
+  for (const n of window._diagramNodes) {
+    if (n.nodeIds.some(id => ownerSet.has(id))) return n.id;
+  }
+  return null;
+}
+
+function buildLineSpans(code, spanList, lines) {
+  const lineSpans = [];
+  let charPos = 0;
+  for (let li = 0; li < lines.length; li++) {
+    const lineStart = charPos;
+    const lineEnd = charPos + lines[li].length;
+    const segs = [];
+    for (const sp of spanList) {
+      if (sp.end <= lineStart || sp.start >= lineEnd) continue;
+      const s = Math.max(sp.start, lineStart);
+      const e = Math.min(sp.end, lineEnd);
+      segs.push({ start: s, end: e, text: code.slice(s, e), fragment: sp.fragment });
+    }
+    segs.sort((a, b) => a.start - b.start);
+    lineSpans.push(segs);
+    charPos += lines[li].length + 1;
+  }
+  return lineSpans;
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadProjectList().catch(err => {
+  projectName.textContent = 'error';
+  sentencePane.textContent = String(err);
+});
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+The whole program is one file, emitted in one piece. Rules that depend on the
+target language arrive on their own sheet; everything here holds for every
+target.
+
+You do not return a bare block. You return one JSON object, and nothing else:
+
+{"code": "<the whole file, as one JSON string>",
+ "map": [{"nodes": ["<id>", ...],
+          "kind": "specified" | "assumed",
+          "why": "<only when kind is assumed>",
+          "ranges": [[start, end], ...],
+          "quote": "<string, {head, tail}, or a list of these - one per range>"}, ...]}
+
+The map declares which sentences caused which characters of the code. Each
+entry is a fragment. A range [start, end] is a pair of character offsets into
+the LF-normalized code string, and code[start:end] is a region the fragment
+covers - compute the offsets against the exact string you emit, never estimate
+them.
+
+Every fragment carries quote, proof of where its ranges sit in the code. For
+a range of at most 120 characters, quote is the exact substring the range
+covers, copied character for character. For a longer range, quote is an
+object with head and tail: the first 60 and the last 60 characters of the
+covered slice, copied exactly. One quote entry per range, in range order; a
+fragment with a single range carries the entry bare instead of in a list.
+The root whole-file fragment carries no quote. Copy every quote from the
+code you just wrote, never retype it. The compiler verifies every quote
+against the code: a wrong quote that still pins one exact position is
+relocated, anything else is rejected.
+
+A range must be readable when rendered alone: at least a whole token or
+expression, snapped to sensible boundaries - a full line, a full condition, a
+full call. A sentence about stability of duplicates owns the whole comparison
+or the whole while line, never a single character. A one-character range can
+pass every invariant while rendering as noise; this rule is what closes the
+gap between a coherent map and a true one.
+
+nodes is the fragment's owner-set, a list of node ids. Reference nodes by
+their stable id, never by path. Usually the owner-set is a singleton. Several
+ids mean joint causation: sentences that only together force that span, where
+no one of them alone would have. An empty owner-set is allowed only on an
+assumed fragment and means pure convention - nobody asked for that code, in
+whole or in part.
+
+kind is specified when the region traces to a sentence a human wrote. kind is
+assumed when you filled a gap by convention no sentence closed. Every assumed
+fragment carries why, a short account of the gap it fills; a specified
+fragment carries no why at all. Tag honestly: a specified tag on code no
+sentence caused, or an invented region left untagged, misleads the human who
+reads the map to navigate the program.
+
+Cover all the code. Every character you emit belongs inside some fragment.
+
+The tree is the specification. Every node is a decision a human made on
+purpose, so code that ignores a node answers a program nobody wrote. But
+underspecification never blocks a build: choose the conventional default,
+write the code, and tag the region assumed with a why so the human can find
+it and override it. Refusing to build for lack of detail is never correct.

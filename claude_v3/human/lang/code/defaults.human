@@ -1,0 +1,5 @@
+Sorts ascend unless the text says otherwise.
+Operations produce a new value rather than mutating what they were given, unless
+the text says otherwise.
+Comparisons use the natural ordering of the elements.
+Empty input is valid input and yields the empty result.

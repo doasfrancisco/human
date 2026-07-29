@@ -29,7 +29,7 @@
   #right{flex:1 1 0;min-width:0;}
   #sent{padding:13px 18px;}
   #sent .id{font-family:var(--mono);font-size:11px;color:var(--spec);margin-bottom:5px;}
-  #sent .txt{font-size:15px;}
+  #sent .txt{font-size:15px;white-space:pre-line;}
   #codewrap{padding:16px;overflow-x:auto;}
   pre.code{margin:0;font-family:var(--mono);font-size:13px;line-height:1.62;white-space:pre;tab-size:4;color:var(--ink);}
   .sc{border-radius:3px;transition:background .12s;}
@@ -133,7 +133,7 @@
     el.hidden=false;
     var html="";
     projs.forEach(function(p,i){
-      html+='<div class="pcard" data-i="'+i+'"><div class="pname">'+esc(p.name)+'</div><div class="preq">'+esc(p.request||"")+'</div></div>';
+      html+='<div class="pcard" data-i="'+i+'"><div class="pname">'+esc(p.name)+'</div><div class="preq">'+esc(p.human_code||"")+'</div></div>';
     });
     el.innerHTML=html;
     Array.prototype.forEach.call(el.querySelectorAll(".pcard"),function(c){

@@ -1,73 +1,73 @@
 {
   "program": "web",
-  "request": "a page where the hasse diagram of the sentences is the only navigation: click a node to see its sentence and only the code it owns, everything else folded away",
+  "human_code": "a page where the hasse diagram of the sentences is the only navigation: click a node to see its sentence and only the code it owns, everything else folded away",
   "code_file": "index.html",
   "nodes": [
     {
       "id": "7c3e",
       "path": "web",
       "level": 0,
-      "text": "a page ruled by the diagram of the sentences: the diagram and the chosen sentence sit on the left as the only navigation, the code sits on the right, and nothing speaks until a node is clicked. no toggles, no instructions; the only chrome is the project bar top left and the file name above the code. the page reads the compiler's json and decides nothing."
+      "text": "the diagram of the sentences rules the page.\nthe diagram and the chosen sentence sit on the left.\nthey are the only navigation.\nthe code sits on the right.\nnothing speaks until a node is clicked.\n\ntoggles and instructions do not exist.\nthe chrome is only the project bar top left and the file name above the code.\n\nthe compiler's json is all the page reads.\nthe page decides nothing."
     },
     {
       "id": "4e91",
       "path": "web/1",
       "level": 1,
-      "text": "clicking a diagram node selects it: the node's sentence appears under the diagram, and the code narrows to what that node owns. clicking the selected node again, or the diagram background, clears the selection. hovering a node previews its lighting without selecting."
+      "text": "a click on a diagram node selects it.\nthe node's sentence appears under the diagram.\nthe pane shows the sentence with its line breaks kept as written.\nthe code narrows to what the node owns.\n\na second click on the selected node clears the selection.\na click on the diagram background clears it too.\n\na hover on a node previews its lighting without selecting."
     },
     {
       "id": "8d05",
       "path": "web/2",
       "level": 1,
-      "text": "cut the code at every range boundary and colour each piece by the deepest fragment that covers it, specified in teal and assumed in ochre; the code carries its real line numbers, and the file's name sits above it"
+      "text": "the code is cut at every range boundary.\neach piece takes the colour of the deepest fragment that covers it.\nspecified is teal. assumed is ochre.\n\nthe code carries its real line numbers.\nthe file's name sits above it."
     },
     {
       "id": "2b6c",
       "path": "web/3",
       "level": 1,
-      "text": "while a node is selected, every span the node does not own collapses into a thin fold that counts the hidden lines, so all the code the node owns is visible at once without scrolling."
+      "text": "selection folds the rest of the code away.\nevery span the selected node does not own collapses into a thin fold.\nthe fold counts the hidden lines.\n\nall the code the node owns is visible at once, without scrolling."
     },
     {
       "id": "c1d8",
       "path": "web/4",
       "level": 1,
-      "text": "read the project list and each project's map and code from disk, normalise line endings, and render exactly what the compiler emitted"
+      "text": "disk is the only source.\nthe page reads the project list, each project's map, and each project's code from it.\n\nline endings are normalised.\nwhat the compiler emitted is rendered exactly."
     },
     {
       "id": "66aa",
       "path": "web/5",
       "level": 1,
-      "text": "a span of code may be owned by several sentences at once: every span carries all of its owners, and lighting any owner also lights its co-owners wherever ownership is joint."
+      "text": "joint ownership is allowed.\na span of code may be owned by several sentences at once.\nevery span carries all of its owners.\n\nlighting one owner lights its co-owners wherever ownership is joint."
     },
     {
       "id": "3d7f",
       "path": "web/6",
       "level": 1,
-      "text": "draw the sentences as a layered graph of range containment on the left, covering edges only and never transitive ones, the root on top: a sentence hangs below every parent whose range most tightly contains one of its own, several parents allowed, which the folder tree cannot show"
+      "text": "the sentences are drawn as a layered graph of range containment, on the left.\ncovering edges only; transitive edges never.\nthe root sits on top.\n\na sentence hangs below every parent whose range most tightly contains one of its own.\nseveral parents are allowed.\nthe folder tree cannot show that."
     },
     {
       "id": "9b2f",
       "path": "web/7",
       "level": 1,
-      "text": "the page keeps the ownership index: which spans a sentence owns, and which sentences own a span. every span listens, so hovering code lights every sentence that owns it in the diagram."
+      "text": "the ownership index lives in the page.\nit answers which spans a sentence owns, and which sentences own a span.\n\nevery span listens.\nhovering code lights every owning sentence in the diagram."
     },
     {
       "id": "e7a3",
       "path": "web/8",
       "level": 1,
-      "text": "every assumed fragment is a node of its own in the diagram, hanging under whatever contains it and drawn in ochre; its text is the why it carries, and clicking it shows only the code it owns."
+      "text": "assumed fragments get nodes of their own in the diagram.\neach hangs under whatever contains it.\neach is drawn in ochre.\n\nits text is the why it carries.\nclicking it shows only the code it owns."
     },
     {
       "id": "5f18",
       "path": "web/9",
       "level": 1,
-      "text": "the top left names the project behind a left caret; the caret opens the projects view, a plain list of every project and its request, and choosing one opens its page."
+      "text": "the project name sits top left, behind a left caret.\nthe caret opens the projects view.\n\nthat view is a plain list of every project and its human_code.\nchoosing a project opens its page."
     },
     {
       "id": "b3c9",
       "path": "web/8/1",
       "level": 2,
-      "text": "the page treats a synthetic node like a sentence: the pane shows its why in ochre, and the diagram lists, layers, and draws it beside the real ones"
+      "text": "a synthetic node is treated like a sentence.\nthe pane shows its why in ochre.\nthe diagram lists it, layers it, and draws it beside the real ones."
     }
   ],
   "map": [
@@ -79,7 +79,7 @@
       "ranges": [
         [
           0,
-          15590
+          15614
         ]
       ]
     },
@@ -94,16 +94,16 @@
           2228
         ],
         [
-          4943,
-          4961
+          4964,
+          4982
         ],
         [
-          5205,
-          5233
+          5226,
+          5254
         ],
         [
-          5354,
-          5363
+          5375,
+          5384
         ]
       ]
     },
@@ -115,19 +115,19 @@
       "ranges": [
         [
           2228,
-          2375
+          2396
         ],
         [
-          5151,
-          5205
+          5172,
+          5226
         ],
         [
-          7957,
-          8412
+          7981,
+          8436
         ],
         [
-          8619,
-          9509
+          8643,
+          9533
         ]
       ]
     },
@@ -138,20 +138,20 @@
       "kind": "specified",
       "ranges": [
         [
-          2375,
-          2941
+          2396,
+          2962
         ],
         [
-          3146,
-          3440
+          3167,
+          3461
         ],
         [
-          6847,
-          7144
+          6868,
+          7165
         ],
         [
-          9509,
-          11597
+          9533,
+          11621
         ]
       ]
     },
@@ -162,8 +162,8 @@
       "kind": "specified",
       "ranges": [
         [
-          2941,
-          3146
+          2962,
+          3167
         ]
       ]
     },
@@ -175,8 +175,8 @@
       "kind": "specified",
       "ranges": [
         [
-          11597,
-          12075
+          11621,
+          12099
         ]
       ]
     },
@@ -187,20 +187,20 @@
       "kind": "specified",
       "ranges": [
         [
-          5521,
-          5555
+          5542,
+          5576
         ],
         [
-          5610,
-          5774
+          5631,
+          5795
         ],
         [
-          5833,
-          6572
+          5854,
+          6593
         ],
         [
-          15485,
-          15558
+          15509,
+          15582
         ]
       ]
     },
@@ -212,8 +212,8 @@
       "kind": "specified",
       "ranges": [
         [
-          5233,
-          5354
+          5254,
+          5375
         ]
       ]
     },
@@ -226,8 +226,8 @@
       "kind": "specified",
       "ranges": [
         [
-          5555,
-          5610
+          5576,
+          5631
         ]
       ]
     },
@@ -238,12 +238,12 @@
       "kind": "specified",
       "ranges": [
         [
-          8412,
-          8619
+          8436,
+          8643
         ],
         [
-          12075,
-          12362
+          12099,
+          12386
         ]
       ]
     },
@@ -254,8 +254,8 @@
       "kind": "specified",
       "ranges": [
         [
-          10136,
-          10374
+          10160,
+          10398
         ]
       ]
     },
@@ -267,8 +267,8 @@
       "kind": "specified",
       "ranges": [
         [
-          8688,
-          8853
+          8712,
+          8877
         ]
       ]
     },
@@ -279,16 +279,16 @@
       "kind": "specified",
       "ranges": [
         [
-          3440,
-          3953
+          3461,
+          3974
         ],
         [
-          5066,
-          5151
+          5087,
+          5172
         ],
         [
-          12362,
-          15485
+          12386,
+          15509
         ]
       ]
     },
@@ -299,12 +299,12 @@
       "kind": "specified",
       "ranges": [
         [
-          3953,
-          4250
+          3974,
+          4271
         ],
         [
-          6572,
-          6847
+          6593,
+          6868
         ]
       ]
     },
@@ -315,24 +315,24 @@
       "kind": "specified",
       "ranges": [
         [
-          4250,
-          4912
+          4271,
+          4933
         ],
         [
-          4961,
-          5066
+          4982,
+          5087
         ],
         [
-          5363,
-          5398
+          5384,
+          5419
         ],
         [
-          5774,
-          5833
+          5795,
+          5854
         ],
         [
-          7144,
-          7957
+          7165,
+          7981
         ]
       ]
     },
@@ -343,12 +343,12 @@
       "kind": "specified",
       "ranges": [
         [
-          8264,
-          8314
+          8288,
+          8338
         ],
         [
-          12485,
-          12572
+          12509,
+          12596
         ]
       ]
     },
@@ -360,12 +360,12 @@
       "kind": "specified",
       "ranges": [
         [
-          13982,
-          14060
+          14006,
+          14084
         ],
         [
-          14824,
-          15115
+          14848,
+          15139
         ]
       ]
     },
@@ -381,16 +381,16 @@
           174
         ],
         [
-          4912,
-          4943
+          4933,
+          4964
         ],
         [
-          5398,
-          5428
+          5419,
+          5449
         ],
         [
-          15558,
-          15590
+          15582,
+          15614
         ]
       ]
     },
@@ -411,8 +411,8 @@
       "why": "html escaping glue so code renders as text, demanded by the medium not by a sentence",
       "ranges": [
         [
-          5428,
-          5521
+          5449,
+          5542
         ]
       ]
     }

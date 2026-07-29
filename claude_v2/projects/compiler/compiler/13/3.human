@@ -1,0 +1,10 @@
+@id: d61e
+the compiler writes the decision and the example in the registry.
+
+the match is tested by ablation.
+change the concept, recompile, and the code of each connected node must change.
+a match that moves no code goes back to examination.
+
+matches are never chained.
+a matching b and b matching c does not make a match c.
+each new concept is compared with all members of the group.
