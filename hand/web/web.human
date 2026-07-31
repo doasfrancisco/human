@@ -1,0 +1,25 @@
+a single html page with no external libraries for reading compiled projects. 
+
+it sits next to the project folders. projects.json is an object with one key, projects, the list of project names. it reads projects.json and shows one card per project.
+
+each project folder holds two json files. ideas.json holds an object with one key, ideas, the list of ideas. code.json holds an object with one key, code, the list of code lines.
+
+every idea and every code line has an id, a text and a source, the ids of the ideas that caused it. 
+
+the root idea I0 has no source. I0 does not show in the lists. clicking a project card opens it.
+
+the ideas sit on the left, one row per idea with its id and its text.
+
+the code sits on the right with line numbers, one row per code line. 
+
+ideas and code lines are one graph through the source arrays. 
+
+clicking a node selects it and highlights its flow. the selected node shows a strong color. the other nodes in the flow show a lighter color. the highlight colors are light and soft. the ids and the line numbers stay easy to read on every highlight color.
+
+the flow is the node, its sources followed up the chain to I0, and every idea and code line that reaches the node through its source chain. the descendants of the sources are not part of the flow. only the clicked node gives descendants.
+
+rows outside the flow collapse into one row of three dots with the count of hidden rows. 
+
+clicking the selected node again or clicking empty space clears the selection and shows every row again. 
+
+hovering a node colors its flow but does not collapse the rows and does not move the rows. only a click collapses the rows. the page keeps the same look in light and dark mode.

@@ -1,0 +1,21 @@
+{
+  "ideas": [
+    {"id": "I0", "text": "insertion sort for 32 2 1 in ascending order"},
+    {"id": "I1", "text": "insertion sort", "source": ["I0"]},
+    {"id": "I2", "text": "32 2 1", "source": ["I0"]},
+    {"id": "I3", "text": "ascending order", "source": ["I0"]},
+    {"id": "I4", "text": "input array is [32, 2, 1]", "source": ["I2"]},
+    {"id": "I5", "text": "array has 3 elements", "source": ["I4"]},
+    {"id": "I6", "text": "outer loop starts at index 1 and goes to last index inclusive", "source": ["I1", "I5"]},
+    {"id": "I7", "text": "pick current element as key at each outer loop iteration", "source": ["I1", "I6"]},
+    {"id": "I8", "text": "inner loop walks left from key position comparing elements", "source": ["I1", "I7"]},
+    {"id": "I9", "text": "shift element right if it is greater than key", "source": ["I8", "I3"]},
+    {"id": "I10", "text": "inner loop stops when element is not greater than key or left boundary is reached", "source": ["I8", "I9"]},
+    {"id": "I11", "text": "insert key at the position where inner loop stopped", "source": ["I7", "I10"]},
+    {"id": "I12", "text": "repeat outer loop for all remaining positions until array end", "source": ["I6", "I11"]},
+    {"id": "I13", "text": "output the sorted array", "source": ["I12", "I3"]},
+    {"id": "I14", "text": "iteration 1: key=2, compare with 32, shift 32 right, insert 2 at index 0, array becomes [2, 32, 1]", "source": ["I6", "I7", "I8", "I9", "I11", "I4"]},
+    {"id": "I15", "text": "iteration 2: key=1, compare with 32, shift 32 right, compare with 2, shift 2 right, insert 1 at index 0, array becomes [1, 2, 32]", "source": ["I6", "I7", "I8", "I9", "I11", "I14"]},
+    {"id": "I16", "text": "final sorted array is [1, 2, 32]", "source": ["I15", "I13"]}
+  ]
+}

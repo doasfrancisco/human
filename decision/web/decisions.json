@@ -1,0 +1,21 @@
+{
+  "decisions": [
+    {"id": "D0", "text": "a page that loads decisions.json and code.json from its own folder, decisions.json is an object with a decisions list and code.json is an object with a code list, each code line has a source list naming the ids of the decisions that caused it, the page shows two columns, the decisions on the left and the code lines on the right, no graphs, compiler decisions in ochre, and clicking a decision highlights it and the code lines whose source contains it"},
+    {"id": "D1", "text": "data source: loads decisions.json and code.json from its own folder, not from a remote URL", "chosen": "loads decisions.json and code.json from its own folder", "by": "human", "source": ["D0"]},
+    {"id": "D2", "text": "decisions.json shape: an object with a decisions list, not a flat array", "chosen": "an object with a decisions list", "by": "human", "source": ["D0"]},
+    {"id": "D3", "text": "code.json shape: an object with a code list, not a flat array", "chosen": "an object with a code list", "by": "human", "source": ["D0"]},
+    {"id": "D4", "text": "code line structure: each code line has a source list naming the ids of the decisions that caused it, not a plain string", "chosen": "each code line has a source list naming the ids of the decisions that caused it", "by": "human", "source": ["D0"]},
+    {"id": "D5", "text": "layout: two columns, not one column or more than two", "chosen": "two columns", "by": "human", "source": ["D0"]},
+    {"id": "D6", "text": "left column content: decisions on the left, not code on the left", "chosen": "decisions on the left", "by": "human", "source": ["D0", "D5"]},
+    {"id": "D7", "text": "right column content: code lines on the right, not decisions on the right", "chosen": "code lines on the right", "by": "human", "source": ["D0", "D5"]},
+    {"id": "D8", "text": "visualisation: no graphs, not a graph or diagram view", "chosen": "no graphs", "by": "human", "source": ["D0"]},
+    {"id": "D9", "text": "compiler decision color: ochre, not another highlight color", "chosen": "ochre", "by": "human", "source": ["D0"]},
+    {"id": "D10", "text": "interaction: clicking a decision highlights it and the code lines whose source contains it, not hovering or no interaction", "chosen": "clicking a decision highlights it and the code lines whose source contains it", "by": "human", "source": ["D0"]},
+    {"id": "D11", "text": "page technology: HTML/CSS/JS single file, not a framework like React or Vue", "chosen": "HTML/CSS/JS single file", "by": "compiler", "source": ["D1"]},
+    {"id": "D12", "text": "fetch method: fetch API with Promise.all, not XMLHttpRequest", "chosen": "fetch API with Promise.all", "by": "compiler", "source": ["D1", "D11"]},
+    {"id": "D13", "text": "highlight style: background color change on matched elements, not border or outline change", "chosen": "background color change on matched elements", "by": "compiler", "source": ["D10"]},
+    {"id": "D14", "text": "click toggle behavior: clicking a highlighted decision unhighlights it, not requiring a second click elsewhere", "chosen": "clicking a highlighted decision unhighlights it", "by": "compiler", "source": ["D10"]},
+    {"id": "D15", "text": "decision item color for compiler decisions: ochre background applied via a CSS class, not inline style", "chosen": "ochre background applied via a CSS class", "by": "compiler", "source": ["D9", "D11"]},
+    {"id": "D16", "text": "code line display: monospace font for code lines, not proportional font", "chosen": "monospace font for code lines", "by": "compiler", "source": ["D7", "D11"]}
+  ]
+}

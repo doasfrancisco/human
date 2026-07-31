@@ -1,0 +1,3 @@
+insertion sort for 32 2 1 in ascending order, exposed as insertion_sort(items) returning a new sorted list
+
+The function accepts any list of comparable items and returns a new list without modifying the original. The algorithm works by building a sorted sublist one element at a time, taking each element from the input and inserting it into its correct position among the previously sorted elements. The implementation language is Python.

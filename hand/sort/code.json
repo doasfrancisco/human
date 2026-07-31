@@ -1,0 +1,13 @@
+{
+  "code": [
+    {"id": "P1", "text": "arr = [32, 2, 1]", "source": ["I4"]},
+    {"id": "P2", "text": "for i in range(1, len(arr)):", "source": ["I6", "I5"]},
+    {"id": "P3", "text": "    key = arr[i]", "source": ["I7"]},
+    {"id": "P4", "text": "    j = i - 1", "source": ["I8"]},
+    {"id": "P5", "text": "    while j >= 0 and arr[j] > key:", "source": ["I8", "I9", "I10"]},
+    {"id": "P6", "text": "        arr[j + 1] = arr[j]", "source": ["I9"]},
+    {"id": "P7", "text": "        j -= 1", "source": ["I8", "I10"]},
+    {"id": "P8", "text": "    arr[j + 1] = key", "source": ["I11"]},
+    {"id": "P9", "text": "print(arr)", "source": ["I13", "I16"]}
+  ]
+}
