@@ -1,0 +1,18 @@
+{
+  "ideas": [
+    {"id": "I1", "text": "start sorting from second element", "source": ["C2"]},
+    {"id": "I2", "text": "hold current element as key", "source": ["C3"]},
+    {"id": "I3", "text": "begin comparing from element just before current", "source": ["C4"]},
+    {"id": "I4", "text": "stop shifting at smaller/equal element or list start", "source": ["C5"]},
+    {"id": "I5", "text": "shift each larger element one position right", "source": ["C6"]},
+    {"id": "I6", "text": "move comparison pointer leftward each step", "source": ["C7"]},
+    {"id": "I7", "text": "place key into its correct gap", "source": ["C8"]},
+    {"id": "I8", "text": "return sorted list in place", "source": ["C9"]},
+    {"id": "I9", "text": "sort in ascending order", "source": ["I4", "I5"]},
+    {"id": "I10", "text": "find correct position by scanning left and shifting larger elements right", "source": ["I3", "I4", "I5", "I6", "I7"]},
+    {"id": "I11", "text": "build sorted region one element at a time left to right", "source": ["I1", "I2", "I10"]},
+    {"id": "I12", "text": "define insertion sort function on a list", "source": ["C1", "I8", "I9", "I11"]},
+    {"id": "I13", "text": "demonstrate sort on specific unsorted list", "source": ["C10"]},
+    {"id": "I14", "text": "implement and run insertion sort", "source": ["I12", "I13"]}
+  ]
+}

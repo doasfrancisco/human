@@ -1,0 +1,26 @@
+{
+  "file": "decompile.py",
+  "imports": [
+    {"id": "T01", "text": "imports bring in the tools: text diffing, JSON, the environment, paths, the Bedrock client, and .env loading.", "lines": [[1, 9]]},
+    {"id": "T02", "text": "load_dotenv reads the credentials from the .env file next to the script.", "lines": [[11, 11]]}
+  ],
+  "prompts": [
+    {"id": "T03", "text": "IDEAS_PROMPT instructs the model to read numbered code lines and build a layered tree of ideas, bottom-up, until the top ideas alone describe the program.", "lines": [[13, 29]]},
+    {"id": "T04", "text": "OLD_RULES instructs the model to keep ids for ideas that are still true, drop ids that are no longer true, and give new ideas unused ids.", "lines": [[31, 38]]}
+  ],
+  "functions": [
+    {"id": "T05", "text": "ask sends a prompt to the Bedrock model and returns the JSON object from the reply text.", "lines": [[41, 54]]},
+    {"id": "T06", "text": "write_json writes a list of rows to a file as JSON, one row per line.", "lines": [[57, 59]]},
+    {"id": "T07", "text": "load reads a JSON file and returns one key's value, or returns nothing if the file does not exist.", "lines": [[62, 63]]},
+    {"id": "T08", "text": "snapshot copies the current code, ideas, and diff files into a new numbered folder inside a history folder.", "lines": [[66, 74]]},
+    {"id": "T09", "text": "check verifies the ideas: no duplicate id, no collision with a code id, every source exists, and every code line reaches at least one idea.", "lines": [[77, 87]]},
+    {"id": "T10", "text": "diff computes which ideas were added, removed, moved to different source lines, or reworded between the old and new versions.", "lines": [[90, 105]]},
+    {"id": "T11", "text": "main's first stage reads the source file and gives each non-blank line an id like C7.", "lines": [[108, 115]]},
+    {"id": "T12", "text": "main's second stage loads the previous code and ideas from disk so the model can reuse old idea ids.", "lines": [[117, 123]]},
+    {"id": "T13", "text": "main's third stage writes the new code lines to code.json.", "lines": [[124, 125]]},
+    {"id": "T14", "text": "main's fourth stage asks the model for ideas, checks the answer, and on a broken rule sends the answer and the error back for repair, up to three tries.", "lines": [[127, 142]]},
+    {"id": "T15", "text": "main's fifth stage writes a diff of idea changes when previous data exists, or removes a stale diff file when it does not.", "lines": [[144, 149]]},
+    {"id": "T16", "text": "main's sixth stage saves a snapshot of all output files and prints the version folder path.", "lines": [[151, 152]]},
+    {"id": "T17", "text": "main runs when the script is called directly.", "lines": [[155, 156]]}
+  ]
+}

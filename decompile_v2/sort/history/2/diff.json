@@ -1,0 +1,107 @@
+{
+  "added": [],
+  "removed": [],
+  "moved": [
+    {
+      "id": "I10",
+      "from": [
+        "I2",
+        "I3",
+        "I5",
+        "I6",
+        "I7"
+      ],
+      "to": [
+        "I3",
+        "I4",
+        "I5",
+        "I6",
+        "I7"
+      ]
+    },
+    {
+      "id": "I11",
+      "from": [
+        "I1",
+        "I10"
+      ],
+      "to": [
+        "I1",
+        "I10",
+        "I2"
+      ]
+    },
+    {
+      "id": "I9",
+      "from": [
+        "I4"
+      ],
+      "to": [
+        "I4",
+        "I5"
+      ]
+    }
+  ],
+  "reworded": [
+    {
+      "id": "I1",
+      "from": "start sorting from the second element",
+      "to": "start sorting from second element"
+    },
+    {
+      "id": "I10",
+      "from": "find the correct position for each element by scanning left and shifting larger elements right",
+      "to": "find correct position by scanning left and shifting larger elements right"
+    },
+    {
+      "id": "I11",
+      "from": "build a sorted region one element at a time from left to right",
+      "to": "build sorted region one element at a time left to right"
+    },
+    {
+      "id": "I12",
+      "from": "define a function that performs insertion sort on a list",
+      "to": "define insertion sort function on a list"
+    },
+    {
+      "id": "I13",
+      "from": "demonstrate the sort on a specific unsorted list",
+      "to": "demonstrate sort on specific unsorted list"
+    },
+    {
+      "id": "I2",
+      "from": "hold the current element aside before shifting",
+      "to": "hold current element as key"
+    },
+    {
+      "id": "I3",
+      "from": "begin comparing from the element just before the current position",
+      "to": "begin comparing from element just before current"
+    },
+    {
+      "id": "I4",
+      "from": "stop shifting when a smaller or equal element is found or the start is reached",
+      "to": "stop shifting at smaller/equal element or list start"
+    },
+    {
+      "id": "I5",
+      "from": "shift each larger element one position to the right",
+      "to": "shift each larger element one position right"
+    },
+    {
+      "id": "I6",
+      "from": "move the comparison pointer leftward each step",
+      "to": "move comparison pointer leftward each step"
+    },
+    {
+      "id": "I7",
+      "from": "place the held element into its correct gap",
+      "to": "place key into its correct gap"
+    },
+    {
+      "id": "I8",
+      "from": "return the sorted list in place",
+      "to": "return sorted list in place"
+    }
+  ]
+}

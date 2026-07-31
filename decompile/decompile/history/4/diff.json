@@ -1,0 +1,521 @@
+{
+  "added": [],
+  "removed": [],
+  "moved": [
+    {
+      "id": "I12",
+      "from": [
+        "C62",
+        "C63"
+      ],
+      "to": [
+        "C60",
+        "C61",
+        "C62",
+        "C63"
+      ]
+    },
+    {
+      "id": "I13",
+      "from": [
+        "C61",
+        "C64"
+      ],
+      "to": [
+        "C64"
+      ]
+    },
+    {
+      "id": "I16",
+      "from": [
+        "C60",
+        "I12",
+        "I13",
+        "I14",
+        "I15"
+      ],
+      "to": [
+        "I12",
+        "I13",
+        "I14",
+        "I15"
+      ]
+    },
+    {
+      "id": "I17",
+      "from": [
+        "C72",
+        "C73"
+      ],
+      "to": [
+        "C71",
+        "C72",
+        "C73"
+      ]
+    },
+    {
+      "id": "I19",
+      "from": [
+        "C79",
+        "C80",
+        "C81",
+        "C82",
+        "C83"
+      ],
+      "to": [
+        "C79",
+        "C80",
+        "C81",
+        "C82",
+        "C83",
+        "C84",
+        "C85",
+        "C86"
+      ]
+    },
+    {
+      "id": "I2",
+      "from": [
+        "C10",
+        "C11",
+        "C12",
+        "C13",
+        "C14",
+        "C15",
+        "C16",
+        "C17",
+        "C18",
+        "C19",
+        "C20"
+      ],
+      "to": [
+        "C10",
+        "C11",
+        "C12",
+        "C13",
+        "C14",
+        "C15",
+        "C16",
+        "C17",
+        "C18",
+        "C19",
+        "C20",
+        "C21"
+      ]
+    },
+    {
+      "id": "I20",
+      "from": [
+        "C71",
+        "I17",
+        "I18",
+        "I19"
+      ],
+      "to": [
+        "I17",
+        "I18",
+        "I19"
+      ]
+    },
+    {
+      "id": "I21",
+      "from": [
+        "C85",
+        "C86",
+        "C87",
+        "C88",
+        "C89",
+        "C90",
+        "C91"
+      ],
+      "to": [
+        "C88",
+        "C89",
+        "C90",
+        "C91",
+        "C92",
+        "C93",
+        "C94"
+      ]
+    },
+    {
+      "id": "I22",
+      "from": [
+        "C92",
+        "C93",
+        "C94"
+      ],
+      "to": [
+        "C95",
+        "C96",
+        "C97",
+        "I10"
+      ]
+    },
+    {
+      "id": "I23",
+      "from": [
+        "C95",
+        "C96",
+        "C97"
+      ],
+      "to": [
+        "C100",
+        "C98",
+        "C99",
+        "I3"
+      ]
+    },
+    {
+      "id": "I24",
+      "from": [
+        "C98",
+        "C99"
+      ],
+      "to": [
+        "C101",
+        "C102",
+        "I9"
+      ]
+    },
+    {
+      "id": "I25",
+      "from": [
+        "C102",
+        "C103",
+        "C104",
+        "C105",
+        "C106",
+        "C107",
+        "C108",
+        "C109",
+        "C110",
+        "C111",
+        "C112",
+        "C113"
+      ],
+      "to": [
+        "C105",
+        "C106",
+        "C107",
+        "C108",
+        "C109",
+        "C110",
+        "C111",
+        "C112",
+        "C113",
+        "C114",
+        "C115",
+        "C116",
+        "I16",
+        "I8"
+      ]
+    },
+    {
+      "id": "I26",
+      "from": [
+        "C100",
+        "C101"
+      ],
+      "to": [
+        "C103",
+        "C104",
+        "I2",
+        "I23",
+        "I4"
+      ]
+    },
+    {
+      "id": "I27",
+      "from": [
+        "C114",
+        "C115"
+      ],
+      "to": [
+        "C117",
+        "C118",
+        "I9"
+      ]
+    },
+    {
+      "id": "I28",
+      "from": [
+        "C116",
+        "C117",
+        "C118",
+        "C119",
+        "C120",
+        "C121"
+      ],
+      "to": [
+        "C119",
+        "C120",
+        "C121",
+        "C122",
+        "C123",
+        "C124",
+        "I20"
+      ]
+    },
+    {
+      "id": "I29",
+      "from": [
+        "C122",
+        "C123"
+      ],
+      "to": [
+        "C125",
+        "C126",
+        "I11"
+      ]
+    },
+    {
+      "id": "I3",
+      "from": [
+        "C22",
+        "C25",
+        "C26",
+        "C27",
+        "C28",
+        "C29",
+        "C31"
+      ],
+      "to": [
+        "C22",
+        "C25",
+        "C26",
+        "C27",
+        "C28",
+        "C29",
+        "C30",
+        "C31"
+      ]
+    },
+    {
+      "id": "I32",
+      "from": [
+        "C124",
+        "C125"
+      ],
+      "to": [
+        "C127",
+        "C128"
+      ]
+    },
+    {
+      "id": "I33",
+      "from": [
+        "C84",
+        "I21",
+        "I22",
+        "I23",
+        "I24",
+        "I25",
+        "I26",
+        "I27",
+        "I28",
+        "I29"
+      ],
+      "to": [
+        "C87",
+        "I21",
+        "I22",
+        "I23",
+        "I24",
+        "I25",
+        "I26",
+        "I27",
+        "I28",
+        "I29"
+      ]
+    },
+    {
+      "id": "I34",
+      "from": [
+        "I1",
+        "I10",
+        "I11",
+        "I16",
+        "I2",
+        "I20",
+        "I3",
+        "I30",
+        "I31",
+        "I32",
+        "I33",
+        "I4",
+        "I8",
+        "I9"
+      ],
+      "to": [
+        "I1",
+        "I30",
+        "I31",
+        "I32",
+        "I33"
+      ]
+    }
+  ],
+  "reworded": [
+    {
+      "id": "I1",
+      "from": "load environment variables from a sibling directory's env file",
+      "to": "load .env from script's parent directory"
+    },
+    {
+      "id": "I10",
+      "from": "load a named array from a JSON file, returning null if the file does not exist",
+      "to": "load named array from JSON file, returning null if absent"
+    },
+    {
+      "id": "I11",
+      "from": "save a numbered snapshot of the current output files into a history subdirectory",
+      "to": "copy current output files into a numbered subdirectory under history/"
+    },
+    {
+      "id": "I12",
+      "from": "verify no duplicate idea ids exist",
+      "to": "verify no duplicate idea ids"
+    },
+    {
+      "id": "I14",
+      "from": "verify every idea has a non-empty source referencing only known ids other than itself",
+      "to": "verify every idea has non-empty source referencing only known ids other than itself"
+    },
+    {
+      "id": "I15",
+      "from": "verify every code line is referenced by at least one idea",
+      "to": "verify every code line referenced by at least one idea"
+    },
+    {
+      "id": "I16",
+      "from": "validate the full set of ideas against the code for structural correctness",
+      "to": "validate ideas against code for structural correctness"
+    },
+    {
+      "id": "I17",
+      "from": "align old and new code lines using sequence matching to build a mapping of old code ids to new code ids",
+      "to": "align old and new code lines via SequenceMatcher to map old code ids to new"
+    },
+    {
+      "id": "I18",
+      "from": "find ideas whose id survived but whose source changed when mapped through the code alignment",
+      "to": "find ideas whose source changed when mapped through code alignment"
+    },
+    {
+      "id": "I19",
+      "from": "report which idea ids were added, removed, or had their source moved between versions",
+      "to": "report added, removed, source-moved, and reworded ideas between versions"
+    },
+    {
+      "id": "I2",
+      "from": "the decompiler prompt instructs the model to extract layered ideas from code lines, bottom-up, folding into top ideas",
+      "to": "prompt instructs model to extract layered ideas bottom-up, folding into top ideas"
+    },
+    {
+      "id": "I20",
+      "from": "compute a diff of ideas between versions by combining code alignment with idea comparison",
+      "to": "compute idea diff between versions combining code alignment and idea comparison"
+    },
+    {
+      "id": "I21",
+      "from": "read the input source file and convert non-blank lines into numbered code line objects",
+      "to": "read source file and assign numbered ids only to non-blank lines"
+    },
+    {
+      "id": "I23",
+      "from": "if prior ideas exist, inject them into the prompt as continuity rules",
+      "to": "if prior ideas exist, format them into continuity rules for the prompt"
+    },
+    {
+      "id": "I24",
+      "from": "save the current code lines to a JSON file",
+      "to": "save current code lines to code.json"
+    },
+    {
+      "id": "I25",
+      "from": "retry the model up to three times, appending the validation error to the prompt on each failure",
+      "to": "retry model up to three times, appending validation error to prompt on each failure"
+    },
+    {
+      "id": "I26",
+      "from": "build the prompt from the template, combining current code with any prior-idea continuity rules",
+      "to": "build prompt combining current code with any prior-idea continuity rules"
+    },
+    {
+      "id": "I27",
+      "from": "save the validated ideas to a JSON file",
+      "to": "save validated ideas to ideas.json"
+    },
+    {
+      "id": "I28",
+      "from": "if both old code and old ideas exist, compute and save the idea diff; otherwise delete any stale diff file",
+      "to": "if old code and ideas exist compute and save diff; otherwise delete stale diff.json"
+    },
+    {
+      "id": "I29",
+      "from": "save a versioned snapshot and report its path",
+      "to": "save versioned snapshot and print its relative path"
+    },
+    {
+      "id": "I3",
+      "from": "the prompt includes a placeholder for prior ideas and rules to preserve, update, or drop them across versions",
+      "to": "prompt placeholder for prior ideas with rules to preserve, reword, or drop them"
+    },
+    {
+      "id": "I30",
+      "from": "use standard library imports for diffing, JSON, filesystem, and process control",
+      "to": "standard library imports for diffing, JSON, filesystem, and process control"
+    },
+    {
+      "id": "I31",
+      "from": "use boto3 and botocore for AWS access, and dotenv for configuration",
+      "to": "boto3/botocore for AWS access, dotenv for configuration"
+    },
+    {
+      "id": "I32",
+      "from": "run main when executed as a script",
+      "to": "run main when executed as script"
+    },
+    {
+      "id": "I33",
+      "from": "orchestrate reading code, prompting the model with continuity, validating, saving, diffing, and snapshotting",
+      "to": "orchestrate reading code, prompting with continuity, validating, saving, diffing, and snapshotting"
+    },
+    {
+      "id": "I34",
+      "from": "use an LLM to extract a hierarchy of ideas from source code, tracking how those ideas evolve as the code changes",
+      "to": "use an LLM to extract a hierarchy of ideas from source code, tracking how ideas evolve as code changes"
+    },
+    {
+      "id": "I4",
+      "from": "the prompt requests a JSON object of ideas as its output format",
+      "to": "prompt requests a single JSON object of ideas as output"
+    },
+    {
+      "id": "I5",
+      "from": "call the model via AWS Bedrock using credentials and region from environment variables",
+      "to": "call Bedrock via boto3 using region and model id from environment, with explicit timeouts"
+    },
+    {
+      "id": "I6",
+      "from": "assert the model response was not cut off",
+      "to": "assert model response not cut off"
+    },
+    {
+      "id": "I7",
+      "from": "extract JSON from the model's raw text response by finding the outermost braces",
+      "to": "extract JSON from raw response by slicing outermost braces"
+    },
+    {
+      "id": "I8",
+      "from": "send a prompt to the model and return parsed JSON",
+      "to": "send prompt to model and return parsed JSON"
+    },
+    {
+      "id": "I9",
+      "from": "write a JSON file with a single named array, formatting each element on its own line",
+      "to": "write JSON file with a single named array, each element on its own line"
+    }
+  ]
+}

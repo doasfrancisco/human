@@ -1,0 +1,12 @@
+def insertion_sort(items):
+    result = list(items)
+    for i in range(1, len(result)):
+        key = result[i]
+        j = i - 1
+        while j >= 0 and result[j] > key:
+            result[j + 1] = result[j]
+            j -= 1
+        result[j + 1] = key
+    return result
+
+print(insertion_sort([32, 2, 1]))
