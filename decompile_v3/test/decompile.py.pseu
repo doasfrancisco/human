@@ -1,0 +1,36 @@
+GOAL: decompile.py turns one code file into map.json, a tree of simple-english texts over line ranges;
+
+DEPENDENCIES: none;
+
+STEPS:
+imports bring in ast, json, os, sys, pathlib, boto3, jedi and .env loading;
+load_dotenv() reads the credentials from the .env file next to the script;
+PROMPT instructs the model to merge adjacent cells into fewer groups, one STE text per group, under eleven grouping rules and six gold example texts;
+statements() lists every python statement as depth, start line and end line;
+cells_of() cuts the file into leaf spans from the AST, folds gap lines into the next span, and falls back to blank-line runs for files that are not python;
+merge() joins touching spans into one run;
+ask() sends one prompt to Bedrock and returns the JSON object found in the reply;
+check_pass() verifies one answer: the groups cover the cells in order, a first-pass group holds at most 15 non-blank lines, no group cuts a statement, and the group count goes down;
+lift() turns accepted groups into tree nodes and keeps a single compiled cell as it is;
+blocks_of() splits the file into function blocks and one script block;
+calls_of() lists the compiled names one block calls;
+layers_of() gives each block a height from the call graph, with cycles collapsed first;
+nodes_of() flattens the tree and number() stamps ids like F01 and F01.2;
+owner_of() maps every code line to its leaf node and links() adds name links between nodes with jedi;
+row_of(), write_node() and write_map() print cell rows and write map.json in a fixed layout;
+one_pass() runs one merge round: it asks the model, checks the answer with check_pass(), retries up to three times with a growing repair note, and stops with a report of every broken rule when all attempts fail;
+compile_block() repeats one_pass() on a block until one cell with one text is left;
+main() reads the file path from the command line, stops when the file is empty, and numbers the lines;
+main() builds the cells, the statement list, the blank-line set and the leaf-statement line set;
+main() builds the blocks, their call lists and their layer heights, and gives every cell a home block;
+for (each block, lowest layer first, then by first line) {
+  the context gathers the one-line texts of the called blocks that are compiled already;
+  compile_block() reduces the block cells to one root node;
+  the root node gets the block name, the layer, the call list and the line spans;
+}
+main() sorts the root nodes by first line and number() stamps ids like F01 and F01.2;
+owner_of() maps every code line to its leaf node and links() adds the jedi name links;
+write_map() writes map.json and main() prints the block, text and link counts;
+if (the script runs as a program) {
+  main() starts with the file path from the command line;
+}

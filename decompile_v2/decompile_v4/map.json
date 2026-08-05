@@ -1,0 +1,135 @@
+{
+  "file": "decompile.py",
+  "links": [
+    {"name": "PROMPT", "def": "F01.3", "used": ["F18.1"]},
+    {"name": "statements", "def": "F02.1", "used": ["F20.2"]},
+    {"name": "cells_of", "def": "F03.1", "used": ["F20.2"]},
+    {"name": "merge", "def": "F04", "used": ["F07.2", "F18.5"]},
+    {"name": "ask", "def": "F05.1", "used": ["F18.4"]},
+    {"name": "check_pass", "def": "F06.1", "used": ["F18.4"]},
+    {"name": "lift", "def": "F07.1", "used": ["F18.6"]},
+    {"name": "blocks_of", "def": "F08.1", "used": ["F20.3"]},
+    {"name": "calls_of", "def": "F09.1", "used": ["F20.3"]},
+    {"name": "layers_of", "def": "F10.1", "used": ["F20.3"]},
+    {"name": "nodes_of", "def": "F11", "used": ["F13.2", "F20.6"]},
+    {"name": "number", "def": "F12", "used": ["F20.6"]},
+    {"name": "owner_of", "def": "F13.1", "used": ["F20.6"]},
+    {"name": "links", "def": "F14.1", "used": ["F20.6"]},
+    {"name": "row_of", "def": "F15", "used": ["F18.1"]},
+    {"name": "write_node", "def": "F16.1", "used": ["F16.5", "F17.2"]},
+    {"name": "write_map", "def": "F17.1", "used": ["F20.6"]},
+    {"name": "one_pass", "def": "F18.1", "used": ["F19.2"]},
+    {"name": "compile_block", "def": "F19.1", "used": ["F20.5"]},
+    {"name": "main", "def": "F20.1", "used": ["F01.4"]}
+  ],
+  "map": [
+    {"id": "F01", "name": "script", "layer": 6, "calls": ["main"], "takes": "nothing", "gives": "nothing", "text": "script sets up the tools, the prompt, and runs main() when called directly.", "lines": [[1, 47], [483, 484]], "children": [
+      {"id": "F01.1", "layer": 1, "text": "imports bring in the tools: ast, json, os, re, sys, Path, boto3, jedi, botocore Config, and load_dotenv.", "lines": [[1, 6], [8, 11]]},
+      {"id": "F01.2", "layer": 1, "text": "load_dotenv() reads the credentials from the .env file next to the script.", "lines": [[13, 13]]},
+      {"id": "F01.3", "layer": 1, "text": "PROMPT instructs the model to merge cells into groups with one text each, following rules on coverage, size, voice, and format.", "lines": [[15, 47]]},
+      {"id": "F01.4", "layer": 1, "text": "main() runs when the script starts directly.", "lines": [[483, 484]]}
+    ]},
+    {"id": "F02", "name": "statements", "layer": 1, "calls": [], "takes": "a file path and its source text", "gives": "a list of (depth, start_line, end_line) tuples for every statement node", "text": "statements() walks the parsed AST of a .py file and returns the depth and line range of every statement node.", "lines": [[50, 64]], "children": [
+      {"id": "F02.1", "layer": 1, "text": "statements() returns an empty list if the file is not a .py file.", "lines": [[50, 52]]},
+      {"id": "F02.2", "layer": 1, "text": "statements() initializes rows to collect results.", "lines": [[53, 53]]},
+      {"id": "F02.3", "layer": 1, "text": "walk() recurses through AST nodes and appends depth, start line, and end line to rows for each statement node.", "lines": [[55, 61]]},
+      {"id": "F02.4", "layer": 1, "text": "statements() walks the parsed AST from the root and returns rows.", "lines": [[63, 64]]}
+    ]},
+    {"id": "F03", "name": "cells_of", "layer": 1, "calls": [], "takes": "a file path, source text, and numbered lines", "gives": "a sorted list of cells, each cell a dict with one lines key holding its span", "text": "cells_of() splits a source file into atomic span cells: for Python files it walks the AST with kids_of() and emit() to find statement boundaries and uncovered own lines, falls back to blank-line splitting for non-Python files, folds any uncovered extra runs into the nearest spans, and returns the sorted cell list.", "lines": [[67, 131]], "children": [
+      {"id": "F03.1", "layer": 1, "text": "cells_of() initializes spans and checks whether the file is a Python file.", "lines": [[67, 69]]},
+      {"id": "F03.2", "layer": 1, "text": "kids_of() collects the direct statement children of a node, recursing into non-statement nodes.", "lines": [[70, 77]]},
+      {"id": "F03.3", "layer": 1, "text": "emit() records the whole node as one span when it has no statement children.", "lines": [[79, 83]]},
+      {"id": "F03.4", "layer": 1, "text": "emit() builds the covered set and recurses into each child with emit().", "lines": [[84, 87]]},
+      {"id": "F03.5", "layer": 1, "text": "emit() scans the node's own lines, collects runs not covered by any child, and appends each run to spans.", "lines": [[88, 97]]},
+      {"id": "F03.6", "layer": 1, "text": "cells_of() walks every top-level node in the parsed source and calls emit() on it.", "lines": [[99, 100]]},
+      {"id": "F03.7", "layer": 1, "text": "cells_of() falls back to blank-line splitting when spans is empty, and returns the result as a list of line-range cells.", "lines": [[101, 112]]},
+      {"id": "F03.8", "layer": 1, "text": "cells_of() finds non-blank lines not covered by any span and collects them into extra runs.", "lines": [[113, 124]]},
+      {"id": "F03.9", "layer": 1, "text": "cells_of() merges each extra run into the nearest following span, or into the last span, and returns the sorted cell list.", "lines": [[125, 131]]}
+    ]},
+    {"id": "F04", "name": "merge", "layer": 1, "calls": [], "takes": "a list of [a, b] spans", "gives": "a sorted list of non-overlapping [a, b] spans", "text": "merge() joins overlapping or adjacent spans in sorted order into a flat list of non-overlapping ranges.", "lines": [[134, 141]]},
+    {"id": "F05", "name": "ask", "layer": 1, "calls": [], "takes": "a prompt string", "gives": "a parsed JSON object from the model reply", "text": "ask() sends a prompt to the Bedrock model and returns the first JSON object from the reply.", "lines": [[144, 157]], "children": [
+      {"id": "F05.1", "layer": 1, "text": "ask() creates a Bedrock client with the region and timeout from the environment.", "lines": [[144, 149]]},
+      {"id": "F05.2", "layer": 1, "text": "ask() sends the prompt to the model and waits for the response.", "lines": [[150, 154]]},
+      {"id": "F05.3", "layer": 1, "text": "ask() checks stopReason, extracts the text, and returns the first JSON object from the reply.", "lines": [[155, 157]]}
+    ]},
+    {"id": "F06", "name": "check_pass", "layer": 1, "calls": [], "takes": "a groups map, cells, stmts, blank lines, ess, and bad names", "gives": "the validated groups list", "text": "check_pass() validates a groups map: the list is non-empty and shorter than cells, each group is in order with valid bounds and text, no first-pass group exceeds 15 non-blank lines, and no group cuts a statement in ess.", "lines": [[160, 190]], "children": [
+      {"id": "F06.1", "layer": 1, "text": "check_pass() reads the groups list and checks that it is a non-empty list and shorter than cells.", "lines": [[160, 164]]},
+      {"id": "F06.2", "layer": 1, "text": "check_pass()'s order stage checks that each group starts at the right cell, ends in range, has non-empty text, and names only functions this block calls.", "lines": [[165, 171]]},
+      {"id": "F06.3", "layer": 1, "text": "check_pass()'s size stage collects the non-blank lines for the group and rejects any first-pass group that exceeds 15 lines.", "lines": [[172, 180]]},
+      {"id": "F06.4", "layer": 1, "text": "check_pass()'s statement stage checks that no group cuts a statement in ess: it holds all lines, only inner lines, or none.", "lines": [[181, 188]]},
+      {"id": "F06.5", "layer": 1, "text": "check_pass() checks that the last group ends at the last cell, then returns the validated groups list.", "lines": [[189, 190]]}
+    ]},
+    {"id": "F07", "name": "lift", "layer": 2, "calls": ["merge"], "takes": "a list of groups and the current cells and layer number", "gives": "a flat list of nodes, each with layer, text, and merged lines, with children added where the input cells already have texts", "text": "lift() converts a list of groups into a new layer of nodes: it passes through single cells that already have a text, and builds a merged node with layer, text, and merge()d lines for all other groups.", "lines": [[193, 205]], "children": [
+      {"id": "F07.1", "layer": 1, "text": "lift() sets up the output list.", "lines": [[193, 194]]},
+      {"id": "F07.2", "layer": 1, "text": "lift() loops over groups: for a single-cell group that already has a text it passes the cell through, otherwise it builds a new node with layer, text, and merge()d lines, attaches kids as children if any have a text, and appends the node to out.", "lines": [[195, 205]]}
+    ]},
+    {"id": "F08", "name": "blocks_of", "layer": 1, "calls": [], "takes": "a file path, source text, and numbered lines", "gives": "a sorted list of blocks, each with a name, line ranges, and AST node", "text": "blocks_of() splits a source file into named blocks: one entry per function or class definition plus one script entry for all top-level code outside them.", "lines": [[208, 237]], "children": [
+      {"id": "F08.1", "layer": 1, "text": "blocks_of() collects all function and class definitions from the AST into fns, each with its name, line range, and node.", "lines": [[208, 214]]},
+      {"id": "F08.2", "layer": 1, "text": "blocks_of() builds used from fns line ranges, then scans every line index to find free spans not covered by any function.", "lines": [[215, 224]]},
+      {"id": "F08.3", "layer": 1, "text": "blocks_of() trims leading and trailing blank lines from each free span and keeps the non-empty ones in out.", "lines": [[225, 232]]},
+      {"id": "F08.4", "layer": 1, "text": "blocks_of() combines fns with a script block for out, sorts all blocks by their first line, and returns them.", "lines": [[233, 237]]}
+    ]},
+    {"id": "F09", "name": "calls_of", "layer": 1, "calls": [], "takes": "a block dict, the AST body, and a set of function names", "gives": "a sorted list of function names this block calls", "text": "calls_of() finds all names from the known set that the block's top-level nodes reference, excluding the block itself, and returns them sorted.", "lines": [[240, 248]], "children": [
+      {"id": "F09.1", "layer": 1, "text": "calls_of() sets the node types to skip and picks the top-level nodes from block or body.", "lines": [[240, 242]]},
+      {"id": "F09.2", "layer": 1, "text": "calls_of() walks every top node and collects each ast.Name that is in names and is not the block itself, then returns them sorted.", "lines": [[243, 248]]}
+    ]},
+    {"id": "F10", "name": "layers_of", "layer": 1, "calls": [], "takes": "a list of blocks and a calls table by name", "gives": "a dict mapping each block name to its call-depth integer", "text": "layers_of() assigns a call-depth to every block: it runs Tarjan's algorithm to find SCCs, builds a DAG of edges between them, and returns the height of each block's SCC in that DAG.", "lines": [[251, 289]], "children": [
+      {"id": "F10.1", "layer": 1, "text": "layers_of() sets up the index, low-link, stack, and component tables for Tarjan's algorithm.", "lines": [[251, 253]]},
+      {"id": "F10.2", "layer": 1, "text": "strong() opens a new node: it records idx and low, increments k, and pushes v onto the stack.", "lines": [[255, 259]]},
+      {"id": "F10.3", "layer": 1, "text": "strong() walks the calls of v: it recurses into unvisited neighbors and updates low from idx or low[w].", "lines": [[260, 265]]},
+      {"id": "F10.4", "layer": 1, "text": "strong() closes a component: when low equals idx, it pops the stack into comp until it reaches v.", "lines": [[266, 272]]},
+      {"id": "F10.5", "layer": 1, "text": "layers_of() calls strong() on every block to fill comp.", "lines": [[274, 276]]},
+      {"id": "F10.6", "layer": 1, "text": "layers_of() builds edges between distinct SCC roots from the calls table.", "lines": [[277, 281]]},
+      {"id": "F10.7", "layer": 1, "text": "height() computes the call-depth of one SCC root by recursing through edges.", "lines": [[282, 282], [284, 287]]},
+      {"id": "F10.8", "layer": 1, "text": "layers_of() returns the call-depth of every block by name.", "lines": [[289, 289]]}
+    ]},
+    {"id": "F11", "name": "nodes_of", "layer": 1, "calls": [], "takes": "a tree of node dicts", "gives": "a flat list of every node in the tree", "text": "nodes_of() walks a tree of node dicts and returns every node in a flat list.", "lines": [[292, 302]]},
+    {"id": "F12", "name": "number", "layer": 1, "calls": [], "takes": "a list of top-level tree nodes", "gives": "each node and its children stamped with a unique id string", "text": "number() gives each top-level node an id like F01 and each child a dotted id like F01.1.", "lines": [[305, 317]]},
+    {"id": "F13", "name": "owner_of", "layer": 2, "calls": ["nodes_of"], "takes": "a tree of node dicts", "gives": "a dict that maps every line number to the id of its leaf node", "text": "owner_of() calls nodes_of() on the tree and returns a dict that maps every line number of every leaf node to that node's id.", "lines": [[320, 327]], "children": [
+      {"id": "F13.1", "layer": 1, "text": "owner_of() sets up an empty owner dict.", "lines": [[320, 321]]},
+      {"id": "F13.2", "layer": 1, "text": "owner_of() calls nodes_of() on the tree and maps every line number of every leaf node to that node's id.", "lines": [[322, 326]]},
+      {"id": "F13.3", "layer": 1, "text": "owner_of() returns the owner dict.", "lines": [[327, 327]]}
+    ]},
+    {"id": "F14", "name": "links", "layer": 1, "calls": [], "takes": "a file path and a line-to-id owner map", "gives": "a list of name, def-id, and used-id rows for every name defined and referenced in the file", "text": "links() finds every name defined in the .py file and returns a list of rows: each row has the name, its definition node id, and the sorted ids of all other nodes that use it.", "lines": [[330, 346]], "children": [
+      {"id": "F14.1", "layer": 1, "text": "links() returns an empty list when the file is not a .py file.", "lines": [[330, 332]]},
+      {"id": "F14.2", "layer": 1, "text": "links() sets up the Jedi script on the resolved path and opens an empty rows list.", "lines": [[333, 335]]},
+      {"id": "F14.3", "layer": 1, "text": "links() walks every name in the file, skips names that come from outside or have no owner, then records each name with its definition id, and the sorted ids of all other nodes that use it.", "lines": [[336, 345]]},
+      {"id": "F14.4", "layer": 1, "text": "links() returns the rows list.", "lines": [[346, 346]]}
+    ]},
+    {"id": "F15", "name": "row_of", "layer": 1, "calls": [], "takes": "a cell index, a cell dict, and the lines list", "gives": "a formatted string with the line range and the cell text or first source line", "text": "row_of() formats one cell as a numbered line range, with its text or its first source line.", "lines": [[349, 354]]},
+    {"id": "F16", "name": "write_node", "layer": 1, "calls": [], "takes": "a tree node and an indentation string", "gives": "a JSON string for the node with its id, fields, and nested children", "text": "write_node() serializes one node to a JSON string: the id, the block fields or layer field, the text and lines, and a recursive children array when the node has children.", "lines": [[357, 369]], "children": [
+      {"id": "F16.1", "layer": 1, "text": "write_node() starts the JSON string with the id field and the indentation prefix.", "lines": [[357, 358]]},
+      {"id": "F16.2", "layer": 1, "text": "write_node() adds the name, layer, calls, takes, and gives fields for block nodes, or only the layer field for child nodes.", "lines": [[359, 363]]},
+      {"id": "F16.3", "layer": 1, "text": "write_node() appends the text and lines fields to head.", "lines": [[364, 365]]},
+      {"id": "F16.4", "layer": 1, "text": "write_node() returns head closed with a brace when the node has no children.", "lines": [[366, 367]]},
+      {"id": "F16.5", "layer": 1, "text": "write_node() recurses into children with write_node() and returns head with the children array appended.", "lines": [[368, 369]]}
+    ]},
+    {"id": "F17", "name": "write_map", "layer": 2, "calls": ["write_node"], "takes": "a path and a map dict with file, links, and map keys", "gives": "a JSON file at path with the file name, links array, and indented map tree", "text": "write_map() writes the map to path as a JSON file: the file name, the links array, and the map tree built by write_node().", "lines": [[372, 377]], "children": [
+      {"id": "F17.1", "layer": 1, "text": "write_map() formats the links array and calls write_node() for each map entry into a tree string.", "lines": [[372, 374]]},
+      {"id": "F17.2", "layer": 1, "text": "write_map() writes the final JSON object to path: the file name, the links array, and the map tree.", "lines": [[375, 377]]}
+    ]},
+    {"id": "F18", "name": "one_pass", "layer": 3, "calls": ["ask", "check_pass", "lift", "merge", "row_of"], "takes": "cells, name, code, lines, stmts, blank, ess, layer, label, span, ctx, bad, stext, and a final flag", "gives": "a list with one node: either a final-pass root node with takes, gives, text, and lines, or a lifted layer of nodes", "text": "one_pass() sends the prompt to ask(), validates the reply with check_pass(), and returns either a final root node or a lift()ed layer; it retries up to 8 times and exits on repeated failure.", "lines": [[380, 416]], "children": [
+      {"id": "F18.1", "layer": 1, "text": "one_pass() builds the prompt: row_of() formats each cell, then PROMPT fills in the name, code, block label, span, ctx, cells, and stmts.", "lines": [[380, 382]]},
+      {"id": "F18.2", "layer": 1, "text": "one_pass() extends base with the final-pass instruction when final is true: one group, takes, gives, and text fields required.", "lines": [[383, 391]]},
+      {"id": "F18.3", "layer": 1, "text": "one_pass() initializes note, errs, and m before the retry loop.", "lines": [[392, 394]]},
+      {"id": "F18.4", "layer": 1, "text": "one_pass()'s retry loop calls ask() with base and note, then check_pass() validates the returned groups.", "lines": [[395, 398]]},
+      {"id": "F18.5", "layer": 1, "text": "one_pass()'s final-pass branch checks that exactly one group is returned, validates its takes and gives fields, builds the node with layer, text, takes, gives, and lines, attaches cells as children when there is more than one, and returns it.", "lines": [[399, 408]]},
+      {"id": "F18.6", "layer": 1, "text": "one_pass() calls lift() to convert groups into the next layer of nodes and returns the result.", "lines": [[409, 409]]},
+      {"id": "F18.7", "layer": 1, "text": "one_pass()'s error handler prints the retry count and label, appends the error to errs, and adds the last answer and all broken rules to note.", "lines": [[410, 415]]},
+      {"id": "F18.8", "layer": 1, "text": "one_pass() exits the process after 8 failed attempts.", "lines": [[416, 416]]}
+    ]},
+    {"id": "F19", "name": "compile_block", "layer": 4, "calls": ["one_pass"], "takes": "a block descriptor, its cells, and the file context", "gives": "one root node with text, takes, gives, layer, and lines", "text": "compile_block() drives one_pass() in a loop, raising the layer each time, until cells holds one finished root node, then returns it.", "lines": [[419, 434]], "children": [
+      {"id": "F19.1", "layer": 1, "text": "compile_block() filters bstmts to the block's lines, builds stext, label, and span, and sets layer to 0.", "lines": [[419, 427]]},
+      {"id": "F19.2", "layer": 1, "text": "compile_block() calls one_pass() in a loop, incrementing layer each time, until cells holds one node with a takes field.", "lines": [[428, 433]]},
+      {"id": "F19.3", "layer": 1, "text": "compile_block() returns the finished root node.", "lines": [[434, 434]]}
+    ]},
+    {"id": "F20", "name": "main", "layer": 5, "calls": ["blocks_of", "calls_of", "cells_of", "compile_block", "layers_of", "links", "nodes_of", "number", "owner_of", "statements", "write_map"], "takes": "a .py file path from the command line", "gives": "map.json next to the source file", "text": "main() turns one source file into map.json: a tree with one root text and its stages for every block, plus the links between names.", "lines": [[437, 480]], "children": [
+      {"id": "F20.1", "layer": 1, "text": "main()'s first stage reads the source file, splits it into numbered lines, and builds the code string.", "lines": [[437, 442]]},
+      {"id": "F20.2", "layer": 1, "text": "main()'s second stage calls cells_of(), statements(), and builds blank and ess: the set of essential non-blank lines.", "lines": [[443, 450]]},
+      {"id": "F20.3", "layer": 1, "text": "main()'s third stage calls blocks_of(), calls_of(), and layers_of() to map every block's name, calls, and call depth.", "lines": [[451, 455]]},
+      {"id": "F20.4", "layer": 1, "text": "main()'s fourth stage assigns each cell to its home block in parts.", "lines": [[456, 460]]},
+      {"id": "F20.5", "layer": 1, "text": "main()'s fifth stage loops over blocks in call-depth order, calls compile_block() for each, attaches name, layer, calls, and lines to root, and stores it in done.", "lines": [[461, 473]]},
+      {"id": "F20.6", "layer": 1, "text": "main()'s final stage calls number(), owner_of(), links(), and write_map() to write map.json, then prints the block, text, and link counts.", "lines": [[474, 480]]}
+    ]}
+  ]
+}

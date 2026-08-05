@@ -1,26 +1,125 @@
 {
-  "file": "decompile_v2.py",
-  "imports": [
-    {"id": "T01", "text": "imports bring in the tools: JSON, the environment, the system, paths, the Bedrock client, its config, and .env loading.", "lines": [[1, 8]]}
+  "file": "decompile.py",
+  "links": [
+    {"name": "PROMPT", "def": "T09", "used": ["T62"]},
+    {"name": "statements", "def": "T12", "used": ["T69"]},
+    {"name": "cells_of", "def": "T16", "used": ["T69"]},
+    {"name": "merge", "def": "T27", "used": ["T37"]},
+    {"name": "ask", "def": "T28", "used": ["T63"]},
+    {"name": "check_pass", "def": "T31", "used": ["T63"]},
+    {"name": "lift", "def": "T37", "used": ["T63"]},
+    {"name": "nodes_of", "def": "T41", "used": ["T43", "T74"]},
+    {"name": "number", "def": "T42", "used": ["T74"]},
+    {"name": "owner_of", "def": "T43", "used": ["T74"]},
+    {"name": "links", "def": "T47", "used": ["T74"]},
+    {"name": "row_of", "def": "T51", "used": ["T62"]},
+    {"name": "write_node", "def": "T53", "used": ["T54"]},
+    {"name": "write_map", "def": "T54", "used": ["T74"]},
+    {"name": "top_chunks", "def": "T58", "used": ["T73"]},
+    {"name": "one_pass", "def": "T62", "used": ["T73"]},
+    {"name": "main", "def": "T67", "used": ["T75"]}
   ],
-  "setup": [
-    {"id": "T02", "text": "load_dotenv reads the credentials from the .env file next to the script.", "lines": [[10, 10]]}
-  ],
-  "prompt": [
-    {"id": "T03", "text": "PROMPT instructs the model to split a numbered source file into sections and blocks, write one plain-English sentence per block, and return a single JSON object mapping each block to its line ranges.", "lines": [[12, 37]]}
-  ],
-  "functions": [
-    {"id": "T04", "text": "ask creates a Bedrock client, sends the prompt to the configured model, asserts the reply is complete, and returns the JSON object extracted from the raw text.", "lines": [[40, 53]]},
-    {"id": "T05", "text": "check verifies the map: no duplicate text id, every text has content and line ranges, every range is in bounds, no line belongs to two blocks, and every non-blank line belongs to at least one block.", "lines": [[56, 72]]},
-    {"id": "T06", "text": "write_map writes the map to a file as a formatted JSON object, with the file key first and each section key holding a pretty-printed array of text objects.", "lines": [[75, 82]]}
-  ],
-  "main": [
-    {"id": "T07", "text": "main's first stage reads the source file from the command-line argument and splits it into lines.", "lines": [[85, 88]]},
-    {"id": "T08", "text": "main's second stage builds the numbered code string and formats it into the base prompt.", "lines": [[89, 90]]},
-    {"id": "T09", "text": "main's third stage asks the model up to three times, checks each answer, and on a broken rule sends the answer and the error back for repair.", "lines": [[91, 103]]},
-    {"id": "T10", "text": "main's fourth stage writes the valid map to map.json next to the source file and prints the block count.", "lines": [[104, 106]]}
-  ],
-  "entry": [
-    {"id": "T11", "text": "entry point calls main when the script runs directly.", "lines": [[109, 110]]}
+  "map": [
+    {"id": "T01", "layer": 7, "text": "decompile.py parses source into cells, lifts them through layers via Bedrock, checks and numbers the tree, resolves cross-references with Jedi, and writes map.json.", "lines": [[1, 5], [7, 10], [12, 12], [14, 43], [46, 49], [51, 57], [59, 60], [63, 73], [75, 93], [95, 127], [130, 137], [140, 153], [156, 184], [187, 199], [202, 203], [205, 209], [211, 212], [215, 216], [218, 223], [225, 225], [228, 235], [238, 254], [257, 262], [265, 273], [276, 281], [284, 286], [288, 293], [295, 304], [307, 323], [326, 361], [364, 365]], "children": [
+      {"id": "T02", "layer": 6, "text": "imports, PROMPT, and the core functions parse source into cells, send prompts to Bedrock, validate groups, and build tree nodes.", "lines": [[1, 5], [7, 10], [12, 12], [14, 43], [46, 49], [51, 57], [59, 60], [63, 73], [75, 93], [95, 127], [130, 137], [140, 153], [156, 184], [187, 199]], "children": [
+        {"id": "T03", "layer": 5, "text": "imports, PROMPT, statements(), cells_of(), merge(), and ask() load tools, define the prompt, parse source into cells, and send prompts to Bedrock.", "lines": [[1, 5], [7, 10], [12, 12], [14, 43], [46, 49], [51, 57], [59, 60], [63, 73], [75, 93], [95, 127], [130, 137], [140, 153]], "children": [
+          {"id": "T04", "layer": 4, "text": "imports, PROMPT, statements(), and cells_of() load tools, define the prompt, and parse the source into statement ranges and cell spans.", "lines": [[1, 5], [7, 10], [12, 12], [14, 43], [46, 49], [51, 57], [59, 60], [63, 73], [75, 93], [95, 127]], "children": [
+            {"id": "T05", "layer": 3, "text": "imports and PROMPT load the tools and instruct the model on how to merge cells into labeled groups.", "lines": [[1, 5], [7, 10], [12, 12], [14, 43]], "children": [
+              {"id": "T06", "layer": 2, "text": "imports bring in the tools: ast, json, os, sys, pathlib, boto3, jedi, botocore Config, and dotenv, then load_dotenv() reads the credentials from the .env file next to the script.", "lines": [[1, 5], [7, 10], [12, 12]], "children": [
+                {"id": "T07", "layer": 1, "text": "imports bring in the tools: ast, json, os, sys, pathlib, boto3, jedi, botocore Config, and dotenv.", "lines": [[1, 5], [7, 10]]},
+                {"id": "T08", "layer": 1, "text": "load_dotenv() reads the credentials from the .env file next to the script.", "lines": [[12, 12]]}
+              ]},
+              {"id": "T09", "layer": 1, "text": "PROMPT instructs the model to merge code cells into labeled groups with one plain-English sentence each, following rules for size, coverage, and voice.", "lines": [[14, 43]]}
+            ]},
+            {"id": "T10", "layer": 3, "text": "statements() and cells_of() parse the source AST to produce statement ranges and cell spans.", "lines": [[46, 49], [51, 57], [59, 60], [63, 73], [75, 93], [95, 127]], "children": [
+              {"id": "T11", "layer": 2, "text": "statements() parses the source, walks the AST, and returns depth and line range for every statement node.", "lines": [[46, 49], [51, 57], [59, 60]], "children": [
+                {"id": "T12", "layer": 1, "text": "statements() returns early for non-Python files and initializes the rows list.", "lines": [[46, 49]]},
+                {"id": "T13", "layer": 1, "text": "statements()'s walk() recurses the AST and appends depth, start line, and end line for each statement node.", "lines": [[51, 57]]},
+                {"id": "T14", "layer": 1, "text": "statements() calls walk() on the parsed source and returns the rows.", "lines": [[59, 60]]}
+              ]},
+              {"id": "T15", "layer": 2, "text": "cells_of() splits the source into cell spans by walking the AST, then fills gaps and returns sorted cell dicts.", "lines": [[63, 73], [75, 93], [95, 127]], "children": [
+                {"id": "T16", "layer": 1, "text": "cells_of() sets up the spans list and checks the file suffix.", "lines": [[63, 64]]},
+                {"id": "T17", "layer": 1, "text": "cells_of()'s kids_of() collects direct statement children of an AST node, recursing into non-statement nodes.", "lines": [[65, 73]]},
+                {"id": "T18", "layer": 1, "text": "cells_of()'s emit() handles a leaf node by appending its line range to spans.", "lines": [[75, 79]]},
+                {"id": "T19", "layer": 1, "text": "cells_of()'s emit() builds covered and recurses into each child statement.", "lines": [[80, 83]]},
+                {"id": "T20", "layer": 1, "text": "cells_of()'s emit() collects the node's own non-covered lines into spans.", "lines": [[84, 93]]},
+                {"id": "T21", "layer": 1, "text": "cells_of() calls emit() on every top-level AST node in src.", "lines": [[95, 96]]},
+                {"id": "T22", "layer": 1, "text": "cells_of()'s fallback stage groups non-blank lines into spans when no AST spans were found, then returns them.", "lines": [[97, 108]]},
+                {"id": "T23", "layer": 1, "text": "cells_of() finds lines not covered by any span and collects them into extra.", "lines": [[109, 120]]},
+                {"id": "T24", "layer": 1, "text": "cells_of() merges each extra run into the nearest following span, or into the last span.", "lines": [[121, 126]]},
+                {"id": "T25", "layer": 1, "text": "cells_of() returns all spans sorted and wrapped as cell dicts.", "lines": [[127, 127]]}
+              ]}
+            ]}
+          ]},
+          {"id": "T26", "layer": 4, "text": "merge() and ask() combine overlapping spans and send the prompt to Bedrock, then return the parsed JSON reply.", "lines": [[130, 137], [140, 153]], "children": [
+            {"id": "T27", "layer": 1, "text": "merge() joins overlapping or adjacent line spans into a sorted, non-overlapping list.", "lines": [[130, 137]]},
+            {"id": "T28", "layer": 1, "text": "ask() sends the prompt to the Bedrock model and returns the parsed JSON from the reply.", "lines": [[140, 153]]}
+          ]}
+        ]},
+        {"id": "T29", "layer": 3, "text": "check_pass() and lift() validate the model's groups and build the next layer of tree nodes.", "lines": [[156, 184], [187, 199]], "children": [
+          {"id": "T30", "layer": 2, "text": "check_pass() checks that the groups list is valid: count went down, each group starts at the right cell, text is non-empty, size is at most 15 lines on a first pass, and no group cuts a statement.", "lines": [[156, 184]], "children": [
+            {"id": "T31", "layer": 1, "text": "check_pass() gets the groups list and checks that it is a non-empty list and that the count went down.", "lines": [[156, 160]]},
+            {"id": "T32", "layer": 1, "text": "check_pass()'s loop checks that each group starts at the right cell, ends in range, and has a non-empty text.", "lines": [[161, 165]]},
+            {"id": "T33", "layer": 1, "text": "check_pass()'s loop collects non-blank lines for the group and checks that the count is at most 15 on a first pass.", "lines": [[166, 173]]},
+            {"id": "T34", "layer": 1, "text": "check_pass()'s loop checks that no group cuts a statement across its boundary.", "lines": [[174, 181]]},
+            {"id": "T35", "layer": 1, "text": "check_pass()'s loop advances at to the next cell after the group.", "lines": [[182, 182]]},
+            {"id": "T36", "layer": 1, "text": "check_pass() asserts all cells are covered and returns the groups list.", "lines": [[183, 184]]}
+          ]},
+          {"id": "T37", "layer": 1, "text": "lift() turns a list of groups into tree nodes, keeps single-text cells as-is, and attaches children when kids already have text.", "lines": [[187, 199]]}
+        ]}
+      ]},
+      {"id": "T38", "layer": 6, "text": "tree utilities and main() walk nodes, assign ids, map lines to owners, find references, write map.json, and drive the lift loop.", "lines": [[202, 203], [205, 209], [211, 212], [215, 216], [218, 223], [225, 225], [228, 235], [238, 254], [257, 262], [265, 273], [276, 281], [284, 286], [288, 293], [295, 304], [307, 323], [326, 361], [364, 365]], "children": [
+        {"id": "T39", "layer": 5, "text": "nodes_of(), number(), owner_of(), links(), row_of(), write_node(), and write_map() walk the tree, assign ids, map lines to nodes, find name references, and write map.json.", "lines": [[202, 203], [205, 209], [211, 212], [215, 216], [218, 223], [225, 225], [228, 235], [238, 254], [257, 262], [265, 273], [276, 281]], "children": [
+          {"id": "T40", "layer": 3, "text": "nodes_of(), number(), and owner_of() walk the tree to list all nodes, assign T-prefixed ids, and map each line to its leaf id.", "lines": [[202, 203], [205, 209], [211, 212], [215, 216], [218, 223], [225, 225], [228, 235]], "children": [
+            {"id": "T41", "layer": 1, "text": "nodes_of() walks the tree and returns every node in order, including children.", "lines": [[202, 203], [205, 209], [211, 212]]},
+            {"id": "T42", "layer": 1, "text": "number() assigns a T-prefixed id to every node in the tree.", "lines": [[215, 216], [218, 223], [225, 225]]},
+            {"id": "T43", "layer": 1, "text": "owner_of() maps each line number to the id of the leaf node that covers it.", "lines": [[228, 235]]}
+          ]},
+          {"id": "T44", "layer": 4, "text": "links(), row_of(), write_node(), and write_map() find in-file name references, format cell strings, and write the file name, links, and map to map.json.", "lines": [[238, 254], [257, 262], [265, 273], [276, 281]], "children": [
+            {"id": "T45", "layer": 3, "text": "links() and row_of() find in-file name references with jedi and format each cell as a display string.", "lines": [[238, 254], [257, 262]], "children": [
+              {"id": "T46", "layer": 2, "text": "links() finds all in-file name references with jedi and returns each name with its def node and used nodes.", "lines": [[238, 254]], "children": [
+                {"id": "T47", "layer": 1, "text": "links() returns early if the file is not a .py file.", "lines": [[238, 240]]},
+                {"id": "T48", "layer": 1, "text": "links() resolves the path, builds a jedi Script, and prepares the output list.", "lines": [[241, 243]]},
+                {"id": "T49", "layer": 1, "text": "links() loops over names, skips external definitions and unmapped lines, finds all in-file references, and appends each name with its def node and used nodes.", "lines": [[244, 253]]},
+                {"id": "T50", "layer": 1, "text": "links() returns the finished rows list.", "lines": [[254, 254]]}
+              ]},
+              {"id": "T51", "layer": 1, "text": "row_of() builds a display string for a cell: its index, its line spans, and its text or first code line.", "lines": [[257, 262]]}
+            ]},
+            {"id": "T52", "layer": 3, "text": "write_node() and write_map() serialize the tree nodes and write the file name, links, and map to map.json.", "lines": [[265, 273], [276, 281]], "children": [
+              {"id": "T53", "layer": 1, "text": "write_node() formats one tree node as a JSON string, with indented children if it has any.", "lines": [[265, 273]]},
+              {"id": "T54", "layer": 1, "text": "write_map() writes the file name, links, and map tree to map.json as formatted JSON.", "lines": [[276, 281]]}
+            ]}
+          ]}
+        ]},
+        {"id": "T55", "layer": 4, "text": "top_chunks(), one_pass(), and main() split cells at big-statement boundaries, lift chunks up to 8 times, then number the tree and write map.json.", "lines": [[284, 286], [288, 293], [295, 304], [307, 323], [326, 361], [364, 365]], "children": [
+          {"id": "T56", "layer": 3, "text": "top_chunks() and one_pass() split cells at big-statement boundaries and ask the model up to 8 times to lift each chunk.", "lines": [[284, 286], [288, 293], [295, 304], [307, 323]], "children": [
+            {"id": "T57", "layer": 2, "text": "top_chunks() groups cells into chunks, splitting only at boundaries between big top-level statements.", "lines": [[284, 286], [288, 293], [295, 304]], "children": [
+              {"id": "T58", "layer": 1, "text": "top_chunks() builds the list of tops and marks which ones are big.", "lines": [[284, 286]]},
+              {"id": "T59", "layer": 1, "text": "top_of() finds the top-level statement that owns a cell.", "lines": [[288, 293]]},
+              {"id": "T60", "layer": 1, "text": "top_chunks() groups cells into chunks, splitting only at big top-level boundaries.", "lines": [[295, 304]]}
+            ]},
+            {"id": "T61", "layer": 2, "text": "one_pass() asks the model up to 8 times, checks each reply, returns the lifted groups on success, and exits on failure.", "lines": [[307, 323]], "children": [
+              {"id": "T62", "layer": 1, "text": "one_pass() sets up the prompt rows, the base prompt, and the retry state.", "lines": [[307, 311]]},
+              {"id": "T63", "layer": 1, "text": "one_pass() asks the model up to 8 times, checks each reply, and returns the lifted groups on success.", "lines": [[312, 322]]},
+              {"id": "T64", "layer": 1, "text": "one_pass() exits the program when all 8 attempts fail.", "lines": [[323, 323]]}
+            ]}
+          ]},
+          {"id": "T65", "layer": 3, "text": "main() reads the source, builds cells and statement data, runs one_pass() until one root remains, then numbers the tree and writes map.json.", "lines": [[326, 361], [364, 365]], "children": [
+            {"id": "T66", "layer": 2, "text": "main()'s first stage reads the source file, builds cells, stmts, blank, ess, and stext.", "lines": [[326, 343]], "children": [
+              {"id": "T67", "layer": 1, "text": "main() opens the input file, splits it into lines, and checks it is not empty.", "lines": [[326, 326]]},
+              {"id": "T68", "layer": 1, "text": "main() reads the source file, splits it into lines, checks it is not empty, and builds the numbered code string.", "lines": [[327, 331]]},
+              {"id": "T69", "layer": 1, "text": "main() builds cells, stmts, and the blank-line set from the source.", "lines": [[332, 334]]},
+              {"id": "T70", "layer": 1, "text": "main() builds ess: the set of non-blank lines that belong to leaf statements only.", "lines": [[335, 339]]},
+              {"id": "T71", "layer": 1, "text": "main() builds stext: the statement-range block that the prompt sends to the model.", "lines": [[340, 343]]}
+            ]},
+            {"id": "T72", "layer": 2, "text": "main()'s second stage runs one_pass() until one root cell remains, then numbers the tree and writes map.json.", "lines": [[344, 361]], "children": [
+              {"id": "T73", "layer": 1, "text": "main() runs one_pass() in a loop, splitting by top-level chunk on the first pass, until one root cell with a text remains.", "lines": [[344, 355]]},
+              {"id": "T74", "layer": 1, "text": "main() numbers the tree, finds cross-reference links, and writes map.json.", "lines": [[356, 361]]}
+            ]},
+            {"id": "T75", "layer": 1, "text": "main() runs when the script starts directly.", "lines": [[364, 365]]}
+          ]}
+        ]}
+      ]}
+    ]}
   ]
 }

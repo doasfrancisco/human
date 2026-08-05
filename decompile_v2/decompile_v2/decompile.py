@@ -1,7 +1,6 @@
 import ast
 import json
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -12,35 +11,32 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent / ".env")
 
-PROMPT = """You are a decompiler. You go up one layer of abstraction per call. The input is one code file, one line per number, and the cells of the current layer of one block of that file, in file order. Merge adjacent cells into fewer groups and give each group one text.
+PROMPT = """You are a decompiler. You go up one layer of abstraction per call. The input is one code file, one line per number, and the cells of the current layer in file order. Merge adjacent cells into fewer groups and give each group one text.
 
 File: {name}
 {code}
 
-You are compiling the block {block}, lines {span}. Ignore all other lines.
-
-{ctx}Cells of the current layer:
+Cells of the current layer:
 {cells}
 
 {stmts}Rules:
 1. The groups cover the cells in order: the first group starts at cell 1, every group is a contiguous run of cells, each group starts one after the end of the group before it, and the last group ends at cell {n}.
-2. Return fewer groups than cells. One group that holds all cells is legal when the block does one small thing. One group for one cell is legal when the block has only one cell.
+2. Return fewer groups than cells. Merge the cells that do one thing together.
 3. A group of one cell is legal when a cell does not belong with a neighbor. Its text may stay the old text.
 4. Every group gets one text: one simple sentence with one main verb that says what its lines do. It never copies a code line.
 5. Write the text in ASD-STE100 Simplified Technical English: short, active, plain words. No summary jargon.
 6. The first word of a text is the name the group defines or uses. A function name always gets parentheses, like ask() or check(). A constant name gets none. A stage of a function starts with that function's name. Never start a text with "The".
 7. A prompt or template string gets a text that says what it instructs, not how it is built.
-8. A group holds all of a statement or none of it. A header line or an else line may join the group on either side.
-9. On the first pass, a group is one step: at most 15 non-blank lines, unless the group is one single cell. A small block gets one group. A big block gets one group per stage, cut at its inner statement boundaries. Never group the lines before a loop or branch with only a part of it.
+8. A group holds all of a statement or none of it. Never put a part of one function with a part of the next function in one group. A header line or an else line may join the group on either side.
+9. On the first pass, a group is one step: at most 15 non-blank lines, unless the group is one single cell. A small function gets one group. A big function or block gets one group per stage, cut at its inner statement boundaries. Never group the lines before a block with only a part of the block.
 10. A text names the concrete things its lines touch: the names, the files, the keys, the counts. It never says only what kind of thing the code is.
-11. When the lines call a compiled function from the list above, the text names it with parentheses. It does not explain the inside of that function. It never names a function this block does not call.
 
 Texts from a good map, in the exact voice to use:
 "imports bring in the tools: JSON, the environment, paths, the Bedrock client, and .env loading."
 "load_dotenv() reads the credentials from the .env file next to the script."
 "write_json() writes a list of rows to a file as JSON, one row per line."
 "check() verifies the map: no duplicate id, no cut statement, no overlap, and full coverage."
-"main() turns one code file into map.json: a tree of texts over line ranges, plus the links between names."
+"main() reads the file, asks the model for the tree, checks it, and writes map.json."
 "main()'s first stage reads the source file and numbers its lines."
 
 Return one JSON object only, no code fences:
@@ -157,7 +153,7 @@ def ask(prompt):
     return json.loads(raw[raw.index("{"):raw.rindex("}") + 1])
 
 
-def check_pass(m, cells, stmts, blank, ess, bad):
+def check_pass(m, cells, stmts, blank, ess):
     groups = m.get("groups")
     assert isinstance(groups, list) and groups, "no groups"
     assert len(groups) < len(cells) or len(cells) == 1, "the group count must go down"
@@ -167,8 +163,6 @@ def check_pass(m, cells, stmts, blank, ess, bad):
         assert a == at, f"group {a}-{b}: it must start at cell {at}"
         assert a <= b <= len(cells), f"group {a}-{b}: bad end"
         assert isinstance(g.get("text"), str) and g["text"].strip(), f"group {a}-{b}: empty text"
-        for w in re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\(\)", g["text"]):
-            assert w not in bad, f"group {a}-{b}: the text names {w}(), but this block does not call {w}"
         got = set()
         for c in cells[a - 1:b]:
             for x, y in c["lines"]:
@@ -205,90 +199,6 @@ def lift(groups, cells, layer):
     return out
 
 
-def blocks_of(path, src, lines):
-    fns = []
-    if path.suffix == ".py":
-        for n in ast.parse(src).body:
-            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                a = min([n.lineno] + [d.lineno for d in n.decorator_list])
-                fns.append({"name": n.name, "lines": [[a, n.end_lineno]], "node": n})
-    used = {x for f in fns for a, b in f["lines"] for x in range(a, b + 1)}
-    spans = []
-    a = None
-    for i in range(1, len(lines) + 2):
-        free = i <= len(lines) and i not in used
-        if free and a is None:
-            a = i
-        if not free and a is not None:
-            spans.append([a, i - 1])
-            a = None
-    out = []
-    for a, b in spans:
-        while a <= b and not lines[a - 1].strip():
-            a += 1
-        while b >= a and not lines[b - 1].strip():
-            b -= 1
-        if a <= b:
-            out.append([a, b])
-    blocks = fns[:]
-    if out:
-        blocks.append({"name": "script", "lines": out, "node": None})
-    blocks.sort(key=lambda b: b["lines"][0][0])
-    return blocks
-
-
-def calls_of(block, body, names):
-    skip = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-    tops = [block["node"]] if block["node"] else [n for n in body if not isinstance(n, skip)]
-    out = set()
-    for t in tops:
-        for x in ast.walk(t):
-            if isinstance(x, ast.Name) and x.id in names and x.id != block["name"]:
-                out.add(x.id)
-    return sorted(out)
-
-
-def layers_of(blocks, calls):
-    idx, low, on, st, comp = {}, {}, set(), [], {}
-    k = [0]
-
-    def strong(v):
-        idx[v] = low[v] = k[0]
-        k[0] += 1
-        st.append(v)
-        on.add(v)
-        for w in calls[v]:
-            if w not in idx:
-                strong(w)
-                low[v] = min(low[v], low[w])
-            elif w in on:
-                low[v] = min(low[v], idx[w])
-        if low[v] == idx[v]:
-            while True:
-                w = st.pop()
-                on.discard(w)
-                comp[w] = v
-                if w == v:
-                    break
-
-    for b in blocks:
-        if b["name"] not in idx:
-            strong(b["name"])
-    edges = {}
-    for b in blocks:
-        for w in calls[b["name"]]:
-            if comp[w] != comp[b["name"]]:
-                edges.setdefault(comp[b["name"]], set()).add(comp[w])
-    h = {}
-
-    def height(c):
-        if c not in h:
-            h[c] = 1 + max((height(d) for d in edges.get(c, ())), default=0)
-        return h[c]
-
-    return {b["name"]: height(comp[b["name"]]) for b in blocks}
-
-
 def nodes_of(tree):
     out = []
 
@@ -303,18 +213,16 @@ def nodes_of(tree):
 
 
 def number(tree):
-    for i, t in enumerate(tree, 1):
-        t["id"] = f"F{i:02d}"
-        k = [0]
+    k = [0]
 
-        def walk(ns):
-            for c in ns:
-                k[0] += 1
-                c["id"] = f'{t["id"]}.{k[0]}'
-                if c.get("children"):
-                    walk(c["children"])
+    def walk(ns):
+        for t in ns:
+            k[0] += 1
+            t["id"] = f"T{k[0]:02d}"
+            if t.get("children"):
+                walk(t["children"])
 
-        walk(t.get("children") or [])
+    walk(tree)
 
 
 def owner_of(tree):
@@ -355,14 +263,10 @@ def row_of(i, c, lines):
 
 
 def write_node(t, ind):
-    head = f'{ind}{{"id": {json.dumps(t["id"])}, '
-    if "name" in t:
-        head += (f'"name": {json.dumps(t["name"])}, "layer": {t["layer"]}, "calls": {json.dumps(t["calls"])}, '
-                 f'"takes": {json.dumps(t["takes"], ensure_ascii=False)}, "gives": {json.dumps(t["gives"], ensure_ascii=False)}, ')
-    else:
-        head += f'"layer": {t["layer"]}, '
-    head += (f'"text": {json.dumps(t["text"], ensure_ascii=False)}, '
-             f'"lines": {json.dumps(t["lines"])}')
+    head = (f'{ind}{{"id": {json.dumps(t["id"])}, '
+            f'"layer": {t["layer"]}, '
+            f'"text": {json.dumps(t["text"], ensure_ascii=False)}, '
+            f'"lines": {json.dumps(t["lines"])}')
     if not t.get("children"):
         return head + "}"
     kids = ",\n".join(write_node(c, ind + "  ") for c in t["children"])
@@ -377,61 +281,46 @@ def write_map(path, m):
                     + ',\n  "map": [\n' + tree + '\n  ]\n}\n', encoding="utf-8")
 
 
-def one_pass(cells, name, code, lines, stext, stmts, blank, ess, layer, label, span, ctx, bad, final):
+def top_chunks(cells, stmts, blank):
+    tops = [(a, b) for d, a, b in stmts if d == 0]
+    big = {t for t in tops if len(set(range(t[0], t[1] + 1)) - blank) > 15}
+
+    def top_of(c):
+        x = c["lines"][0][0]
+        for t in tops:
+            if t[0] <= x <= t[1]:
+                return t
+        return (x, x)
+
+    out = []
+    prev = None
+    for c in cells:
+        t = top_of(c)
+        if out and (t == prev or (t not in big and prev not in big)):
+            out[-1].append(c)
+        else:
+            out.append([c])
+        prev = t
+    return out
+
+
+def one_pass(cells, name, code, lines, stext, stmts, blank, ess, layer):
     rows = "\n".join(row_of(i, c, lines) for i, c in enumerate(cells, 1))
-    base = PROMPT.format(name=name, code=code, block=label, span=span, ctx=ctx, cells=rows, n=len(cells), stmts=stext)
-    if final:
-        base += ("\n\nThis is the final pass. Return exactly one group that holds all cells. "
-                 "The cell texts in order are the execution flow of the block. "
-                 "The group's text states the effect of the whole block: what it takes, what it gives, and the shape of the result. "
-                 "It does not repeat the calls: the cell texts hold them. "
-                 'The group also gets "takes" and "gives": short noun phrases that name the input and the output.\n'
-                 'Example: {"groups": [{"cells": [1, 6], "takes": "a .py file path from the command line", '
-                 '"gives": "map.json next to the source file", '
-                 '"text": "main() turns one source file into map.json: a tree with one root text and its stages for every block, plus the links between names."}]}')
+    base = PROMPT.format(name=name, code=code, cells=rows, n=len(cells), stmts=stext)
     note = ""
     errs = []
-    m = None
     for attempt in range(8):
+        m = ask(base + note)
         try:
-            m = ask(base + note)
-            groups = check_pass(m, cells, stmts, blank, ess, bad)
-            if final:
-                g = groups[0]
-                assert len(groups) == 1, "this is the final pass: return exactly one group that holds all cells"
-                assert isinstance(g.get("takes"), str) and g["takes"].strip(), "the final group needs a takes field"
-                assert isinstance(g.get("gives"), str) and g["gives"].strip(), "the final group needs a gives field"
-                node = {"layer": layer, "text": g["text"].strip(), "takes": g["takes"].strip(),
-                        "gives": g["gives"].strip(), "lines": merge([r for c in cells for r in c["lines"]])}
-                if len(cells) > 1:
-                    node["children"] = cells
-                return [node]
+            groups = check_pass(m, cells, stmts, blank, ess)
             return lift(groups, cells, layer)
         except (AssertionError, TypeError, ValueError, KeyError) as e:
-            print(f"retry {attempt + 1} [{label}]: {e}")
+            print(f"retry {attempt + 1}: {e}")
             errs.append(f"- {e}")
             note = (f"\n\nYour last answer:\n{json.dumps(m)}\n\n"
                     f"It broke a rule: {e}. Repair it and return the full corrected JSON.\n"
                     f"Rules your answers broke so far, do not break them again:\n" + "\n".join(errs))
     sys.exit("no valid pass after 8 tries")
-
-
-def compile_block(bl, cells, name, code, lines, stmts, blank, ess, ctx, bad):
-    bstmts = [s for s in stmts if any(x <= s[1] and s[2] <= y for x, y in bl["lines"])]
-    stext = ""
-    if bstmts:
-        stext = ("Statements as line ranges, a child indented under its parent. A group holds all of a statement or none of it:\n"
-                 + "\n".join("  " * d + f"{a}-{b}" for d, a, b in bstmts) + "\n\n")
-    label = bl["name"] + "()" if bl["node"] else "the top-level script code"
-    span = ", ".join(f"{a}-{b}" for a, b in bl["lines"])
-    layer = 0
-    while len(cells) > 1 or "takes" not in cells[0]:
-        layer += 1
-        n = len(cells)
-        final = all("text" in c for c in cells)
-        cells = one_pass(cells, name, code, lines, stext, bstmts, blank, ess, layer, label, span, ctx, bad, final)
-        print(f"{bl['name']} pass {layer}: {n} -> {len(cells)}")
-    return cells[0]
 
 
 def main():
@@ -448,36 +337,28 @@ def main():
         if not any(s >= a and e <= b and (s, e) != (a, b) for _, s, e in stmts):
             ess.update(range(a, b + 1))
     ess -= blank
-    blocks = blocks_of(path, src, lines)
-    body = ast.parse(src).body if path.suffix == ".py" else []
-    names = {b["name"] for b in blocks if b["node"]}
-    calls = {b["name"]: calls_of(b, body, names) for b in blocks}
-    lay = layers_of(blocks, calls)
-    parts = {b["name"]: [] for b in blocks}
-    for c in cells:
-        home = next(b["name"] for b in blocks
-                    if all(any(x <= a and e <= y for x, y in b["lines"]) for a, e in c["lines"]))
-        parts[home].append(c)
-    done = {}
-    for bl in sorted(blocks, key=lambda b: (lay[b["name"]], b["lines"][0][0])):
-        ctx = "".join(f'{n}() — takes {done[n]["takes"]}, gives {done[n]["gives"]} — {done[n]["text"]}\n'
-                      for n in calls[bl["name"]] if n in done)
-        if ctx:
-            ctx = "Functions this block calls, compiled already. Their one-line meanings:\n" + ctx + "\n"
-        bad = names - set(calls[bl["name"]]) - {bl["name"]}
-        root = compile_block(bl, parts[bl["name"]], path.name, code, lines, stmts, blank, ess, ctx, bad)
-        root["name"] = bl["name"]
-        root["layer"] = lay[bl["name"]]
-        root["calls"] = calls[bl["name"]]
-        root["lines"] = bl["lines"]
-        done[bl["name"]] = root
-    tree = sorted(done.values(), key=lambda t: t["lines"][0][0])
-    number(tree)
-    owner = owner_of(tree)
-    m = {"file": path.name, "links": links(path, owner), "map": tree}
+    stext = ""
+    if stmts:
+        stext = ("Statements as line ranges, a child indented under its parent. A group holds all of a statement or none of it:\n"
+                 + "\n".join("  " * d + f"{a}-{b}" for d, a, b in stmts) + "\n\n")
+    layer = 0
+    while len(cells) > 1 or "text" not in cells[0]:
+        layer += 1
+        n = len(cells)
+        if "text" not in cells[0]:
+            nxt = []
+            for chunk in top_chunks(cells, stmts, blank):
+                nxt += one_pass(chunk, path.name, code, lines, stext, stmts, blank, ess, layer)
+            cells = nxt
+        else:
+            cells = one_pass(cells, path.name, code, lines, stext, stmts, blank, ess, layer)
+        print(f"pass {layer}: {n} -> {len(cells)}")
+    number(cells)
+    owner = owner_of(cells)
+    m = {"file": path.name, "links": links(path, owner), "map": cells}
     out = path.parent / "map.json"
     write_map(out, m)
-    print(f"{len(blocks)} blocks, {len(nodes_of(tree))} texts, {len(m['links'])} links -> {out}")
+    print(f"{len(nodes_of(cells))} texts, {len(m['links'])} links -> {out}")
 
 
 if __name__ == "__main__":
