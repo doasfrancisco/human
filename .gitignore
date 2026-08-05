@@ -1,4 +1,6 @@
 .playwright-mcp/
+.claude/settings.local.json
+graphify-out/
 .env
 .venv/
 __pycache__/

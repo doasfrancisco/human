@@ -1,3 +1,3 @@
 {
-  "projects": ["sort", "decompile", "web", "decompile_v2"]
+  "projects": ["decompile_v4", "decompile_v3", "sort", "decompile", "decompile_v2", "web", "decompile_legacy"]
 }

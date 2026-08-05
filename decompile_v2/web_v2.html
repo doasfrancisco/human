@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>decompile — map reader</title>
+<title>decompile — cut reader</title>
 <style>
   :root{
     --ground:#eef1f4; --surface:#fff; --surface-2:#f6f8fa; --ink:#151a22; --muted:#59636f;
@@ -31,21 +31,17 @@
   #projlist .prow:hover{background:var(--spec-wash);}
   #treewrap{flex:1;min-height:0;display:flex;flex-direction:column;}
   #tree{flex:1;min-height:0;}
-  #viewport{flex:1;min-width:0;overflow:hidden;position:relative;}
-  #strip{display:flex;gap:28px;align-items:stretch;height:100%;padding:0 4px;transition:transform .35s cubic-bezier(.2,.7,.2,1);will-change:transform;}
-  .layer{flex:0 0 460px;display:flex;flex-direction:column;cursor:pointer;}
-  .layer[hidden]{display:none;}
-  .layer.focus,.codepane.focus{border-color:var(--spec-line);}
+  #mappane{flex:1;min-width:0;display:flex;flex-direction:column;}
   .phead{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--hair);padding:5px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
   .rows{flex:1;min-height:0;overflow-y:auto;padding:6px 0;}
-  .group{font-family:var(--mono);font-size:11px;color:var(--faint);padding:8px 14px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .divider{border-top:1px solid var(--hair);margin:7px 14px 3px;}
+  .group{font-family:var(--mono);font-size:11px;color:var(--faint);padding:8px 14px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:color .12s;}
+  .group:hover{color:var(--spec);}
   .trow{display:flex;gap:10px;padding:5px 14px;cursor:pointer;font-size:14px;transition:background .12s;}
-  .trow .rid{font-family:var(--mono);font-size:11px;color:var(--spec);flex-shrink:0;min-width:3em;padding-top:2px;}
   .trow.hov{background:var(--spec-wash);}
   .trow.rel{background:var(--spec-wash-2);}
   .trow.sel{background:var(--spec-line);color:#fff;}
-  .trow.sel .rid{color:#fff;}
-  .codepane{flex:0 0 min(52vw,780px);display:flex;flex-direction:column;cursor:pointer;}
+  #codepane{flex:0 0 min(52vw,780px);display:flex;flex-direction:column;}
   .codewrap{flex:1;min-height:0;overflow:auto;padding:10px 0;}
   .crow{display:flex;padding:0 14px;font-family:var(--mono);font-size:13px;line-height:1.62;white-space:pre;transition:background .12s;}
   .crow .ln{display:inline-block;width:4ch;margin-right:14px;text-align:right;color:var(--faint);user-select:none;flex-shrink:0;}
@@ -55,6 +51,7 @@
   .crow.sel .ln{color:#fff;}
   #msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;}
   #msg[hidden]{display:none;}
+  #viewport{flex:1;min-width:0;display:flex;gap:14px;position:relative;}
 </style>
 </head>
 <body>
@@ -64,14 +61,18 @@
     <section class="pane" id="projlist" hidden></section>
     <section class="pane" id="treewrap"><div id="tree"></div></section>
   </div>
-  <div id="viewport"><div id="strip"></div><div id="msg" hidden></div></div>
+  <div id="viewport">
+    <section class="pane" id="mappane"><div class="phead" id="maphead"></div><div class="rows" id="maprows"></div></section>
+    <section class="pane" id="codepane"><div class="phead" id="codehead"></div><div class="codewrap" id="codewrap"></div></section>
+    <div id="msg" hidden></div>
+  </div>
 </main>
 <script type="module">
 import { FileTree } from "./trees.js";
 
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-var projs=[], cur=null, lines=[], byId={}, depths=[], nb={}, sel=null, hov=null, focusK=0, mode="dock", ft=null;
-var strip=document.getElementById("strip"), viewport=document.getElementById("viewport");
+var projs=[], cur=null, lines=[], byId={}, nb={}, cut=[], sel=null, hov=null, ft=null;
+var maprows=document.getElementById("maprows"), codewrap=document.getElementById("codewrap");
 
 function msg(t){var el=document.getElementById("msg");el.hidden=!t;el.textContent=t||"";}
 
@@ -87,7 +88,7 @@ fetch("projects.json").then(function(r){return r.json();}).then(function(j){
   ft=new FileTree({paths:[projs[0].file],initialExpansion:"open",initialSelectedPaths:[projs[0].file]});
   ft.render({fileTreeContainer:document.getElementById("tree")});
   open(projs[0]);
-}).catch(function(){msg("could not load — serve decompile_v2/ and open /web.html");});
+}).catch(function(){msg("could not load — serve decompile_v2/ and open /web_v2.html");});
 
 document.getElementById("projbar").addEventListener("click",function(){
   var el=document.getElementById("projlist");
@@ -110,23 +111,23 @@ function open(p){
     msg("");
     lines=t.replace(/\n$/,"").split("\n");
     buildIndex();
-    sel=null; hov=null; focusK=0; mode="dock";
-    render();
+    sel=null; hov=null;
+    initCut();
+    renderCode();
+    renderMap();
+    paintAll();
   });
 }
 
 function buildIndex(){
-  byId={}; depths=[];
+  byId={};
+  var ord=0;
   (function walk(ns,depth,parent,anc){
     ns.forEach(function(t){
-      byId[t.id]={id:t.id,text:t.text,lines:t.lines||[],depth:depth,parent:parent,anc:anc,maxd:depth};
-      (depths[depth]=depths[depth]||[]).push(t.id);
+      byId[t.id]={id:t.id,text:t.text,lines:t.lines||[],depth:depth,layer:t.layer!=null?t.layer:depth,parent:parent,anc:anc,ord:ord++,kids:(t.children||[]).map(function(c){return c.id;})};
       if(t.children) walk(t.children,depth+1,t.id,anc.concat(t.id));
     });
   })(cur.m.map,0,null,[]);
-  Object.keys(byId).forEach(function(id){
-    byId[id].anc.forEach(function(a){byId[a].maxd=Math.max(byId[a].maxd,byId[id].depth);});
-  });
   nb={};
   (cur.m.links||[]).forEach(function(l){
     l.used.forEach(function(u){
@@ -136,153 +137,154 @@ function buildIndex(){
   });
 }
 
-function near(a,b){return !!(a&&b&&nb[a]&&nb[a][b]);}
+function initCut(){
+  cut=Object.keys(byId).filter(function(id){return !byId[id].kids.length;});
+  cut.sort(function(a,b){return byId[a].ord-byId[b].ord;});
+}
 
-function render(){
-  var html="";
-  depths.forEach(function(ids,d){
-    var head=d===0?cur.name+"/"+cur.file:"layer "+d;
-    html+='<section class="pane layer'+(d===focusK?" focus":"")+'" data-k="'+d+'">'
-      +'<div class="phead">'+esc(head)+'</div><div class="rows">';
-    var prev=null;
-    ids.forEach(function(id){
-      var t=byId[id];
-      if(d>0&&t.parent!==prev){
-        html+='<div class="group">'+t.parent+' · '+esc(byId[t.parent].text)+'</div>';
-        prev=t.parent;
-      }
-      html+='<div class="trow" data-id="'+id+'"><span class="rid">'+id+'</span><span>'+esc(t.text)+'</span></div>';
-    });
-    html+='</div></section>';
+function expand(id){
+  var i=cut.indexOf(id);
+  if(i<0||!byId[id].kids.length) return;
+  cut.splice.apply(cut,[i,1].concat(byId[id].kids));
+}
+
+function collapse(pid){
+  var keep=[], placed=false;
+  cut.forEach(function(id){
+    if(byId[id].anc.indexOf(pid)>=0){
+      if(!placed){keep.push(pid);placed=true;}
+    }else keep.push(id);
   });
-  html+='<section class="pane codepane'+(focusK===depths.length?" focus":"")+'" data-k="'+depths.length+'">'
-    +'<div class="phead" id="codehead"></div><div class="codewrap">'
-    +lines.map(function(l,i){
-      return '<div class="crow" data-n="'+(i+1)+'"><span class="ln">'+(i+1)+'</span><span>'+(esc(l)||" ")+'</span></div>';
-    }).join("")
-    +'</div></section>';
-  strip.innerHTML=html;
-  paintAll();
-  applyFocus();
+  cut=keep;
 }
 
-function relTo(id){
-  if(!id) return {};
-  var out={};
-  byId[id].anc.forEach(function(a){out[a]=1;});
-  Object.keys(byId).forEach(function(o){if(byId[o].parent===id)out[o]=1;});
-  Object.keys(nb[id]||{}).forEach(function(o){out[o]=1;});
-  return out;
+function renderMap(){
+  var titled={}, at={};
+  cut.forEach(function(id){
+    var p=byId[id].parent;
+    if(p!==null) titled[p]=1;
+  });
+  cut.forEach(function(id,i){
+    byId[id].anc.forEach(function(a){
+      if(titled[a]&&at[a]===undefined) at[a]=i;
+    });
+  });
+  var ends={};
+  cut.forEach(function(id,i){
+    byId[id].anc.forEach(function(a){
+      if(titled[a]) ends[a]=i;
+    });
+  });
+  var starts={}, endsAt={};
+  Object.keys(at).forEach(function(a){(starts[at[a]]=starts[at[a]]||[]).push(a);});
+  Object.keys(ends).forEach(function(a){endsAt[ends[a]]=1;});
+  var html="";
+  cut.forEach(function(id,i){
+    (starts[i]||[]).sort(function(a,b){return byId[a].depth-byId[b].depth;}).forEach(function(a){
+      html+='<div class="group" data-id="'+a+'">layer '+byId[a].layer+' · '+esc(byId[a].text)+'</div>';
+    });
+    html+='<div class="trow" data-id="'+id+'"><span>'+esc(byId[id].text)+'</span></div>';
+    if(endsAt[i]&&i<cut.length-1) html+='<div class="divider"></div>';
+  });
+  maprows.innerHTML=html;
+  document.getElementById("maphead").textContent=cur.name+"/"+cur.file+"  ·  "+cut.length+" texts";
 }
+
+function renderCode(){
+  codewrap.innerHTML=lines.map(function(l,i){
+    return '<div class="crow" data-n="'+(i+1)+'"><span class="ln">'+(i+1)+'</span><span>'+(esc(l)||" ")+'</span></div>';
+  }).join("");
+}
+
+function near(a,b){return !!(a&&b&&nb[a]&&nb[a][b]);}
 
 function inRanges(id,n){
   return !!id&&byId[id].lines.some(function(r){return r[0]<=n&&n<=r[1];});
 }
 
 function paintAll(){
-  var selRel=relTo(sel), hovRel=hov&&hov!==sel?relTo(hov):{};
-  strip.querySelectorAll(".trow").forEach(function(row){
+  var hovLink=Object.keys(nb[hov]||{});
+  maprows.querySelectorAll(".trow").forEach(function(row){
     var id=row.getAttribute("data-id");
     row.classList.toggle("sel",id===sel);
-    row.classList.toggle("hov",!!hov&&id===hov);
-    row.classList.toggle("rel",id!==sel&&(!!selRel[id]||!!hovRel[id]));
+    row.classList.toggle("hov",!!hov&&id===hov&&id!==sel);
+    row.classList.toggle("rel",id!==sel&&id!==hov&&(near(sel,id)||near(hov,id)));
   });
-  var hovLink=Object.keys(nb[hov]||{});
-  strip.querySelectorAll(".crow").forEach(function(row){
+  codewrap.querySelectorAll(".crow").forEach(function(row){
     var n=+row.getAttribute("data-n");
     var s=inRanges(sel,n);
     row.classList.toggle("sel",s);
     row.classList.toggle("hov",!s&&inRanges(hov,n));
     row.classList.toggle("rel",!s&&hovLink.some(function(o){return inRanges(o,n);}));
   });
-  document.getElementById("codehead").textContent=cur.name+"/"+cur.file+(sel?"  ·  "+sel:"");
+  document.getElementById("codehead").textContent=cur.name+"/"+cur.file;
 }
 
-strip.addEventListener("click",function(e){
-  var row=e.target.closest(".trow");
-  if(row){
-    setSel(row.getAttribute("data-id"));
+function cutOwner(n){
+  var best=null;
+  cut.forEach(function(id){if(inRanges(id,n))best=id;});
+  return best;
+}
+
+function revealCode(){
+  var first=codewrap.querySelector(".crow.sel");
+  if(first) codewrap.scrollTop=first.offsetTop-codewrap.offsetTop-codewrap.clientHeight/2;
+}
+
+function revealMap(){
+  var row=maprows.querySelector('.trow[data-id="'+sel+'"]');
+  if(row) maprows.scrollTop=row.offsetTop-maprows.offsetTop-maprows.clientHeight/3;
+}
+
+document.getElementById("mappane").addEventListener("click",function(e){
+  var g=e.target.closest(".group");
+  if(g){
+    var pid=g.getAttribute("data-id");
+    collapse(pid);
+    sel=pid; hov=null;
+    renderMap(); paintAll(); revealCode(); revealMap();
     return;
   }
-  var crow=e.target.closest(".crow");
-  if(crow){
-    var o=ownerOf(+crow.getAttribute("data-n"));
-    if(o){setSel(o);return;}
-  }
-  var p=e.target.closest(".layer,.codepane");
-  if(p){
-    mode="center";
-    focusK=+p.getAttribute("data-k");
-    setFocusClass();
-    applyFocus();
+  var row=e.target.closest(".trow");
+  if(!row) return;
+  var id=row.getAttribute("data-id");
+  if(byId[id].kids.length){
+    expand(id);
+    sel=id; hov=null;
+    renderMap(); paintAll(); revealCode();
+  }else{
+    sel=sel===id?null:id;
+    paintAll();
+    if(sel) revealCode();
   }
 });
 
-function setSel(id){
-  sel=sel===id?null:id;
-  if(sel){mode="dock";focusK=byId[sel].depth;}
-  updatePanes();
-  setFocusClass();
+codewrap.addEventListener("click",function(e){
+  var crow=e.target.closest(".crow");
+  if(!crow) return;
+  var o=cutOwner(+crow.getAttribute("data-n"));
+  if(!o) return;
+  sel=sel===o?null:o;
   paintAll();
-  if(sel) reveal();
-  applyFocus();
-}
+  if(sel) revealMap();
+});
 
-function updatePanes(){
-  strip.querySelectorAll(".layer").forEach(function(p){
-    p.hidden=!!sel&&+p.getAttribute("data-k")>byId[sel].maxd;
-  });
-}
-
-function setFocusClass(){
-  strip.querySelectorAll(".layer,.codepane").forEach(function(p){
-    p.classList.toggle("focus",+p.getAttribute("data-k")===focusK);
-  });
-}
-
-function ownerOf(n){
-  var best=null;
-  Object.keys(byId).forEach(function(id){
-    if(inRanges(id,n)&&(!best||byId[id].depth>byId[best].depth)) best=id;
-  });
-  return best;
-}
-strip.addEventListener("mouseover",function(e){
-  var row=e.target.closest(".trow");
+document.getElementById("mappane").addEventListener("mouseover",function(e){
+  var row=e.target.closest(".trow,.group");
   var id=row?row.getAttribute("data-id"):null;
   if(id!==hov){hov=id;paintAll();}
 });
-strip.addEventListener("mouseleave",function(){
+document.getElementById("mappane").addEventListener("mouseleave",function(){
   if(hov){hov=null;paintAll();}
 });
-
-function firstChild(id){
-  var child=null;
-  Object.keys(byId).some(function(o){if(byId[o].parent===id){child=o;return true;}return false;});
-  return child;
-}
-
-function reveal(){
-  var wrap=strip.querySelector(".codewrap");
-  var first=wrap.querySelector(".crow.sel");
-  if(first) wrap.scrollTop=first.offsetTop-wrap.offsetTop-wrap.clientHeight/2;
-  var child=firstChild(sel);
-  if(child){
-    var row=strip.querySelector('.trow[data-id="'+child+'"]');
-    var rows=row.closest(".rows");
-    rows.scrollTop=row.offsetTop-rows.offsetTop-40;
-  }
-}
-
-function applyFocus(){
-  var el=strip.querySelector('[data-k="'+focusK+'"]');
-  if(!el||el.hidden) el=strip.querySelector(".layer:not([hidden]),.codepane");
-  if(!el) return;
-  var off=mode==="dock"?4-el.offsetLeft:viewport.clientWidth/2-(el.offsetLeft+el.offsetWidth/2);
-  strip.style.transform="translateX("+off+"px)";
-}
-
-window.addEventListener("resize",applyFocus);
+codewrap.addEventListener("mouseover",function(e){
+  var crow=e.target.closest(".crow");
+  var id=crow?cutOwner(+crow.getAttribute("data-n")):null;
+  if(id!==hov){hov=id;paintAll();}
+});
+codewrap.addEventListener("mouseleave",function(){
+  if(hov){hov=null;paintAll();}
+});
 </script>
 </body>
 </html>

@@ -1,7 +1,6 @@
 import ast
 import json
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -33,14 +32,14 @@ You are compiling the block {block}, lines {span}. Ignore all other lines.
 8. A group holds all of a statement or none of it. A header line or an else line may join the group on either side.
 9. On the first pass, a group is one step: at most 15 non-blank lines, unless the group is one single cell. A small block gets one group. A big block gets one group per stage, cut at its inner statement boundaries. Never group the lines before a loop or branch with only a part of it.
 10. A text names the concrete things its lines touch: the names, the files, the keys, the counts. It never says only what kind of thing the code is.
-11. When the lines call a compiled function from the list above, the text names it with parentheses. It does not explain the inside of that function. It never names a function this block does not call.
+11. When the lines call a compiled function from the list above, the text names it with parentheses. It does not explain the inside of that function.
 
 Texts from a good map, in the exact voice to use:
 "imports bring in the tools: JSON, the environment, paths, the Bedrock client, and .env loading."
 "load_dotenv() reads the credentials from the .env file next to the script."
 "write_json() writes a list of rows to a file as JSON, one row per line."
 "check() verifies the map: no duplicate id, no cut statement, no overlap, and full coverage."
-"main() turns one code file into map.json: a tree of texts over line ranges, plus the links between names."
+"main() reads the file, asks the model for the tree, checks it, and writes map.json."
 "main()'s first stage reads the source file and numbers its lines."
 
 Return one JSON object only, no code fences:
@@ -157,7 +156,7 @@ def ask(prompt):
     return json.loads(raw[raw.index("{"):raw.rindex("}") + 1])
 
 
-def check_pass(m, cells, stmts, blank, ess, bad):
+def check_pass(m, cells, stmts, blank, ess):
     groups = m.get("groups")
     assert isinstance(groups, list) and groups, "no groups"
     assert len(groups) < len(cells) or len(cells) == 1, "the group count must go down"
@@ -167,8 +166,6 @@ def check_pass(m, cells, stmts, blank, ess, bad):
         assert a == at, f"group {a}-{b}: it must start at cell {at}"
         assert a <= b <= len(cells), f"group {a}-{b}: bad end"
         assert isinstance(g.get("text"), str) and g["text"].strip(), f"group {a}-{b}: empty text"
-        for w in re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\(\)", g["text"]):
-            assert w not in bad, f"group {a}-{b}: the text names {w}(), but this block does not call {w}"
         got = set()
         for c in cells[a - 1:b]:
             for x, y in c["lines"]:
@@ -357,8 +354,7 @@ def row_of(i, c, lines):
 def write_node(t, ind):
     head = f'{ind}{{"id": {json.dumps(t["id"])}, '
     if "name" in t:
-        head += (f'"name": {json.dumps(t["name"])}, "layer": {t["layer"]}, "calls": {json.dumps(t["calls"])}, '
-                 f'"takes": {json.dumps(t["takes"], ensure_ascii=False)}, "gives": {json.dumps(t["gives"], ensure_ascii=False)}, ')
+        head += f'"name": {json.dumps(t["name"])}, "layer": {t["layer"]}, "calls": {json.dumps(t["calls"])}, '
     else:
         head += f'"layer": {t["layer"]}, '
     head += (f'"text": {json.dumps(t["text"], ensure_ascii=False)}, '
@@ -377,35 +373,20 @@ def write_map(path, m):
                     + ',\n  "map": [\n' + tree + '\n  ]\n}\n', encoding="utf-8")
 
 
-def one_pass(cells, name, code, lines, stext, stmts, blank, ess, layer, label, span, ctx, bad, final):
+def one_pass(cells, name, code, lines, stext, stmts, blank, ess, layer, label, span, ctx, final):
     rows = "\n".join(row_of(i, c, lines) for i, c in enumerate(cells, 1))
     base = PROMPT.format(name=name, code=code, block=label, span=span, ctx=ctx, cells=rows, n=len(cells), stmts=stext)
     if final:
         base += ("\n\nThis is the final pass. Return exactly one group that holds all cells. "
-                 "The cell texts in order are the execution flow of the block. "
-                 "The group's text states the effect of the whole block: what it takes, what it gives, and the shape of the result. "
-                 "It does not repeat the calls: the cell texts hold them. "
-                 'The group also gets "takes" and "gives": short noun phrases that name the input and the output.\n'
-                 'Example: {"groups": [{"cells": [1, 6], "takes": "a .py file path from the command line", '
-                 '"gives": "map.json next to the source file", '
-                 '"text": "main() turns one source file into map.json: a tree with one root text and its stages for every block, plus the links between names."}]}')
+                 "Its text is the one sentence for the whole block.")
     note = ""
     errs = []
     m = None
     for attempt in range(8):
         try:
             m = ask(base + note)
-            groups = check_pass(m, cells, stmts, blank, ess, bad)
-            if final:
-                g = groups[0]
-                assert len(groups) == 1, "this is the final pass: return exactly one group that holds all cells"
-                assert isinstance(g.get("takes"), str) and g["takes"].strip(), "the final group needs a takes field"
-                assert isinstance(g.get("gives"), str) and g["gives"].strip(), "the final group needs a gives field"
-                node = {"layer": layer, "text": g["text"].strip(), "takes": g["takes"].strip(),
-                        "gives": g["gives"].strip(), "lines": merge([r for c in cells for r in c["lines"]])}
-                if len(cells) > 1:
-                    node["children"] = cells
-                return [node]
+            groups = check_pass(m, cells, stmts, blank, ess)
+            assert not final or len(groups) == 1, "this is the final pass: return exactly one group that holds all cells"
             return lift(groups, cells, layer)
         except (AssertionError, TypeError, ValueError, KeyError) as e:
             print(f"retry {attempt + 1} [{label}]: {e}")
@@ -416,7 +397,7 @@ def one_pass(cells, name, code, lines, stext, stmts, blank, ess, layer, label, s
     sys.exit("no valid pass after 8 tries")
 
 
-def compile_block(bl, cells, name, code, lines, stmts, blank, ess, ctx, bad):
+def compile_block(bl, cells, name, code, lines, stmts, blank, ess, ctx):
     bstmts = [s for s in stmts if any(x <= s[1] and s[2] <= y for x, y in bl["lines"])]
     stext = ""
     if bstmts:
@@ -425,11 +406,11 @@ def compile_block(bl, cells, name, code, lines, stmts, blank, ess, ctx, bad):
     label = bl["name"] + "()" if bl["node"] else "the top-level script code"
     span = ", ".join(f"{a}-{b}" for a, b in bl["lines"])
     layer = 0
-    while len(cells) > 1 or "takes" not in cells[0]:
+    while len(cells) > 1 or "text" not in cells[0]:
         layer += 1
         n = len(cells)
         final = all("text" in c for c in cells)
-        cells = one_pass(cells, name, code, lines, stext, bstmts, blank, ess, layer, label, span, ctx, bad, final)
+        cells = one_pass(cells, name, code, lines, stext, bstmts, blank, ess, layer, label, span, ctx, final)
         print(f"{bl['name']} pass {layer}: {n} -> {len(cells)}")
     return cells[0]
 
@@ -460,12 +441,10 @@ def main():
         parts[home].append(c)
     done = {}
     for bl in sorted(blocks, key=lambda b: (lay[b["name"]], b["lines"][0][0])):
-        ctx = "".join(f'{n}() — takes {done[n]["takes"]}, gives {done[n]["gives"]} — {done[n]["text"]}\n'
-                      for n in calls[bl["name"]] if n in done)
+        ctx = "".join(f'{n}() — {done[n]["text"]}\n' for n in calls[bl["name"]] if n in done)
         if ctx:
             ctx = "Functions this block calls, compiled already. Their one-line meanings:\n" + ctx + "\n"
-        bad = names - set(calls[bl["name"]]) - {bl["name"]}
-        root = compile_block(bl, parts[bl["name"]], path.name, code, lines, stmts, blank, ess, ctx, bad)
+        root = compile_block(bl, parts[bl["name"]], path.name, code, lines, stmts, blank, ess, ctx)
         root["name"] = bl["name"]
         root["layer"] = lay[bl["name"]]
         root["calls"] = calls[bl["name"]]

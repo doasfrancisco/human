@@ -1,0 +1,16 @@
+{
+  "file": "sample.py",
+  "links": [
+    {"name": "area", "def": "F01", "used": ["F02.2"]},
+    {"name": "total", "def": "F02.1", "used": ["F03"]}
+  ],
+  "map": [
+    {"id": "F01", "name": "area", "layer": 1, "calls": [], "text": "area() multiplies w by h and returns the result.", "lines": [[1, 2]]},
+    {"id": "F02", "name": "total", "layer": 2, "calls": ["area"], "text": "total() adds the area() of each room in rooms and returns the sum.", "lines": [[5, 9]], "children": [
+      {"id": "F02.1", "layer": 1, "text": "total() starts with out set to zero.", "lines": [[5, 6]]},
+      {"id": "F02.2", "layer": 1, "text": "total() loops over rooms, calls area() for each width and height, and adds the result to out.", "lines": [[7, 8]]},
+      {"id": "F02.3", "layer": 1, "text": "total() returns out.", "lines": [[9, 9]]}
+    ]},
+    {"id": "F03", "name": "script", "layer": 3, "calls": ["total"], "text": "rooms sets [(3, 4), (5, 2)] and prints total() of those rooms.", "lines": [[12, 14]]}
+  ]
+}

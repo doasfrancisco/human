@@ -1,0 +1,21 @@
+{
+  "file": "sort.py",
+  "links": [
+    {"name": "insertion_sort", "def": "T01", "used": ["T10"]}
+  ],
+  "map": [
+    {"id": "T01", "text": "insertion_sort() sorts a list of items in place and returns it.", "lines": [[1, 9]], "children": [
+      {"id": "T02", "text": "insertion_sort() steps through each item from the second to the last.", "lines": [[2, 8]], "children": [
+        {"id": "T03", "text": "insertion_sort() saves the current item as the key to place.", "lines": [[3, 3]]},
+        {"id": "T04", "text": "insertion_sort() sets the compare position to one step left of the current item.", "lines": [[4, 4]]},
+        {"id": "T05", "text": "insertion_sort() shifts each item that is greater than the key one step to the right.", "lines": [[5, 7]], "children": [
+          {"id": "T06", "text": "insertion_sort() moves the larger item one position to the right.", "lines": [[6, 6]]},
+          {"id": "T07", "text": "insertion_sort() moves the compare position one step to the left.", "lines": [[7, 7]]}
+        ]},
+        {"id": "T08", "text": "insertion_sort() places the key in its correct position.", "lines": [[8, 8]]}
+      ]},
+      {"id": "T09", "text": "insertion_sort() returns the sorted list.", "lines": [[9, 9]]}
+    ]},
+    {"id": "T10", "text": "print() runs insertion_sort() on a sample list and prints the result.", "lines": [[12, 12]]}
+  ]
+}
