@@ -210,10 +210,14 @@ function dispName(id){
 }
 
 function markCalls(text,rf){
-  var own=byId[rf].name;
+  var path=byId[rf].name.split(".");
   return esc(text).replace(/([A-Za-z_][A-Za-z0-9_]*)\(\)/g,function(m0,nm){
-    if(nm===own||!fnByName[nm]) return m0;
-    var fid=fnByName[nm];
+    var fid=null;
+    for(var k=path.length;k>=0;k--){
+      var cand=path.slice(0,k).concat([nm]).join(".");
+      if(fnByName[cand]){fid=fnByName[cand];break;}
+    }
+    if(!fid||fid===rf) return m0;
     return '<span class="call'+(revealed[fid]?" on":"")+'" data-fn="'+fid+'">'+m0+'</span>';
   });
 }
