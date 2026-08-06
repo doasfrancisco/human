@@ -205,32 +205,47 @@ def lift(groups, cells, layer):
     return out
 
 
+def carve(a, b, minus, lines):
+    used = {x for s, e in minus for x in range(s, e + 1)}
+    spans = []
+    run = None
+    for i in range(a, b + 2):
+        free = i <= b and i not in used
+        if free and run is None:
+            run = i
+        if not free and run is not None:
+            spans.append([run, i - 1])
+            run = None
+    out = []
+    for s, e in spans:
+        while s <= e and not lines[s - 1].strip():
+            s += 1
+        while e >= s and not lines[e - 1].strip():
+            e -= 1
+        if s <= e:
+            out.append([s, e])
+    return out
+
+
 def blocks_of(path, src, lines):
     fns = []
     if path.suffix == ".py":
-        for n in ast.parse(src).body:
-            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                a = min([n.lineno] + [d.lineno for d in n.decorator_list])
-                fns.append({"name": n.name, "lines": [[a, n.end_lineno]], "node": n})
-    used = {x for f in fns for a, b in f["lines"] for x in range(a, b + 1)}
-    spans = []
-    a = None
-    for i in range(1, len(lines) + 2):
-        free = i <= len(lines) and i not in used
-        if free and a is None:
-            a = i
-        if not free and a is not None:
-            spans.append([a, i - 1])
-            a = None
-    out = []
-    for a, b in spans:
-        while a <= b and not lines[a - 1].strip():
-            a += 1
-        while b >= a and not lines[b - 1].strip():
-            b -= 1
-        if a <= b:
-            out.append([a, b])
-    blocks = fns[:]
+        def grab(node, scope):
+            for n in ast.iter_child_nodes(node):
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    a = min([n.lineno] + [d.lineno for d in n.decorator_list])
+                    fns.append({"name": ".".join(scope + [n.name]), "span": [a, n.end_lineno], "node": n})
+                    grab(n, scope + [n.name])
+                else:
+                    grab(n, scope)
+
+        grab(ast.parse(src), [])
+    blocks = []
+    for f in fns:
+        inner = [g["span"] for g in fns
+                 if g is not f and f["span"][0] <= g["span"][0] and g["span"][1] <= f["span"][1]]
+        blocks.append({"name": f["name"], "lines": carve(f["span"][0], f["span"][1], inner, lines), "node": f["node"]})
+    out = carve(1, len(lines), [f["span"] for f in fns], lines)
     if out:
         blocks.append({"name": "script", "lines": out, "node": None})
     blocks.sort(key=lambda b: b["lines"][0][0])
@@ -239,12 +254,28 @@ def blocks_of(path, src, lines):
 
 def calls_of(block, body, names):
     skip = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-    tops = [block["node"]] if block["node"] else [n for n in body if not isinstance(n, skip)]
+    scope = block["name"].split(".") if block["node"] else []
     out = set()
-    for t in tops:
-        for x in ast.walk(t):
-            if isinstance(x, ast.Name) and x.id in names and x.id != block["name"]:
-                out.add(x.id)
+
+    def resolve(word):
+        for k in range(len(scope), -1, -1):
+            hit = ".".join(scope[:k] + [word])
+            if hit in names:
+                return hit
+        return None
+
+    def scan(node):
+        for c in ast.iter_child_nodes(node):
+            if isinstance(c, skip):
+                continue
+            if isinstance(c, ast.Name):
+                hit = resolve(c.id)
+                if hit and hit != block["name"]:
+                    out.add(hit)
+            scan(c)
+
+    for t in [block["node"]] if block["node"] else [n for n in body if not isinstance(n, skip)]:
+        scan(t)
     return sorted(out)
 
 
@@ -422,7 +453,7 @@ def compile_block(bl, cells, name, code, lines, stmts, blank, ess, ctx, bad):
     if bstmts:
         stext = ("Statements as line ranges, a child indented under its parent. A group holds all of a statement or none of it:\n"
                  + "\n".join("  " * d + f"{a}-{b}" for d, a, b in bstmts) + "\n\n")
-    label = bl["name"] + "()" if bl["node"] else "the top-level script code"
+    label = bl["name"].split(".")[-1] + "()" if bl["node"] else "the top-level script code"
     span = ", ".join(f"{a}-{b}" for a, b in bl["lines"])
     layer = 0
     while len(cells) > 1 or "takes" not in cells[0]:
@@ -460,11 +491,12 @@ def main():
         parts[home].append(c)
     done = {}
     for bl in sorted(blocks, key=lambda b: (lay[b["name"]], b["lines"][0][0])):
-        ctx = "".join(f'{n}() — takes {done[n]["takes"]}, gives {done[n]["gives"]} — {done[n]["text"]}\n'
+        ctx = "".join(f'{n.split(".")[-1]}() — takes {done[n]["takes"]}, gives {done[n]["gives"]} — {done[n]["text"]}\n'
                       for n in calls[bl["name"]] if n in done)
         if ctx:
             ctx = "Functions this block calls, compiled already. Their one-line meanings:\n" + ctx + "\n"
-        bad = names - set(calls[bl["name"]]) - {bl["name"]}
+        bad = ({n.split(".")[-1] for n in names}
+               - {c.split(".")[-1] for c in calls[bl["name"]]} - {bl["name"].split(".")[-1]})
         root = compile_block(bl, parts[bl["name"]], path.name, code, lines, stmts, blank, ess, ctx, bad)
         root["name"] = bl["name"]
         root["layer"] = lay[bl["name"]]
