@@ -1,0 +1,182 @@
+{
+  "file": "decompile.py",
+  "links": [
+    {"name": "PROMPT", "def": "F01.3", "used": ["F29.1"]},
+    {"name": "TERMS", "def": "F01.4", "used": ["F30.1"]},
+    {"name": "statements", "def": "F02.1", "used": ["F32.2"]},
+    {"name": "cells_of", "def": "F04.1", "used": ["F32.2"]},
+    {"name": "merge", "def": "F07", "used": ["F10.2", "F29.5"]},
+    {"name": "ask", "def": "F08.1", "used": ["F29.4", "F30.3"]},
+    {"name": "check_pass", "def": "F09.1", "used": ["F29.4"]},
+    {"name": "lift", "def": "F10.1", "used": ["F29.5"]},
+    {"name": "carve", "def": "F11.1", "used": ["F12.2", "F12.3"]},
+    {"name": "blocks_of", "def": "F12.1", "used": ["F32.4"]},
+    {"name": "calls_of", "def": "F14.1", "used": ["F32.4"]},
+    {"name": "layers_of", "def": "F17.1", "used": ["F32.4"]},
+    {"name": "nodes_of", "def": "F20", "used": ["F24.1", "F30.1", "F32.7"]},
+    {"name": "number", "def": "F22", "used": ["F32.7"]},
+    {"name": "owner_of", "def": "F24.1", "used": ["F32.7"]},
+    {"name": "links", "def": "F25.1", "used": ["F32.7"]},
+    {"name": "row_of", "def": "F26.1", "used": ["F29.1"]},
+    {"name": "write_node", "def": "F27.1", "used": ["F27.5", "F28.2"]},
+    {"name": "write_map", "def": "F28.1", "used": ["F32.7"]},
+    {"name": "one_pass", "def": "F29.1", "used": ["F31.4"]},
+    {"name": "terms_of", "def": "F30.1", "used": ["F32.7"]},
+    {"name": "compile_block", "def": "F31.1", "used": ["F32.6"]},
+    {"name": "main", "def": "F32.1", "used": ["F01.5"]}
+  ],
+  "terms": [
+    {"term": "non-blank run", "text": "a longest consecutive sequence of lines where each line has text after strip(), tracked by opening index a when a non-blank line starts and closing when a blank line or the end of range is reached", "defs": [[122, 132], [136, 145]]},
+    {"term": "condensed DAG", "text": "a directed graph built from calls where each node is an SCC root from comp and each edge connects two roots that belong to different SCCs, used by height() to compute layer numbers", "defs": [[329, 333]]},
+    {"term": "compiled block node", "text": "the single dict with keys layer, text, takes, gives, lines, and optionally children that compile_block() returns after one_pass() collapses all cells", "defs": [[459, 470]]},
+    {"term": "context prompt", "text": "the string ctx built from done[] entries for each function bl calls, listing each callee's short name, takes, gives, and text, prepended to the PROMPT so the model knows what compiled callees do", "defs": [[564, 566]]},
+    {"term": "innermost statements", "text": "the set ess of line numbers that belong to statements in stmts which have no child statement nested inside them, minus blank lines, used to enforce no-cut-statement rules in check_pass()", "defs": [[547, 551]]},
+    {"term": "free sub-range", "text": "a contiguous run of line numbers inside [a, b] that are not covered by any span in minus, after blank lines are trimmed from each end, returned by carve() as one [s, e] entry", "defs": [[231, 248]]},
+    {"term": "SCC root", "text": "the name v stored in comp[w] for every w in a strongly connected component, assigned when low[v] == idx[v] in strong(), used as the node identity in the condensed DAG", "defs": [[318, 324]]}
+  ],
+  "map": [
+    {"id": "F01", "name": "script", "layer": 6, "calls": ["main"], "takes": "nothing", "gives": "nothing — runs only when executed as a script", "text": "script — imports, prompts, and entry point for the decompiler\nif __name__ == \"__main__\": main()", "lines": [[1, 68], [585, 586]], "children": [
+      {"id": "F01.1", "layer": 1, "text": "import ast, json, os, re, sys, Path, boto3, jedi, Config, load_dotenv — the parse, file, model, path, and link tools.", "lines": [[1, 6], [8, 11]]},
+      {"id": "F01.2", "layer": 1, "text": "load_dotenv(.env) — reads the credentials next to the script.", "lines": [[13, 13]]},
+      {"id": "F01.3", "layer": 1, "text": "PROMPT = the decompiler prompt — instructs the model to merge cells into groups with pseudocode texts, name real variables and functions, follow 13 grouping and voice rules, and return one JSON object with groups.", "lines": [[15, 50]]},
+      {"id": "F01.4", "layer": 1, "text": "TERMS = the terms prompt — instructs the model to collect coined noun phrases from the map texts, define each term in plain words with its line ranges, and return one JSON object with terms.", "lines": [[52, 68]]},
+      {"id": "F01.5", "layer": 1, "text": "if __name__ == \"__main__\": main()", "lines": [[585, 586]]}
+    ]},
+    {"id": "F02", "name": "statements", "layer": 2, "calls": ["statements.walk"], "takes": "a file path and source text", "gives": "a list of (depth, lineno, end_lineno) tuples for every statement in the file", "text": "statements(path, src) -> rows — walks the AST and returns one tuple per statement node, with its nesting depth and line span", "lines": [[71, 74], [84, 85]], "children": [
+      {"id": "F02.1", "layer": 1, "text": "statements(path, src) -> rows — returns [] if path is not a .py file.", "lines": [[71, 73]]},
+      {"id": "F02.2", "layer": 1, "text": "rows = []\nwalk(ast.parse(src), 0)\nreturn rows", "lines": [[74, 74], [84, 85]]}
+    ]},
+    {"id": "F03", "name": "statements.walk", "layer": 1, "calls": [], "takes": "an AST node and a depth integer", "gives": "appended (depth, lineno, end_lineno) tuples in rows for every statement descendant", "text": "walk(node, depth) -> None — visits every descendant of node and appends (depth, child.lineno, child.end_lineno) to rows for each ast.stmt child, then recurses into all children, incrementing depth only for statement nodes", "lines": [[76, 82]]},
+    {"id": "F04", "name": "cells_of", "layer": 3, "calls": ["cells_of.emit"], "takes": "path, src, and lines for one file", "gives": "a list of cells, each with a lines key holding one or more [start, end] spans", "text": "cells_of(path, src, lines) -> cells — splits the file into leaf cells whose spans cover every non-blank line\nexample: [{\"lines\": [[1, 3]]}, {\"lines\": [[5, 7], [9, 9]]}, …]", "lines": [[88, 90], [120, 152]], "children": [
+      {"id": "F04.1", "layer": 1, "text": "spans = []\nif path.suffix == \".py\": collect spans via emit(node)", "lines": [[88, 90]]},
+      {"id": "F04.2", "layer": 1, "text": "for node in ast.parse(src).body: emit(node) — each call fills spans.", "lines": [[120, 121]]},
+      {"id": "F04.3", "layer": 1, "text": "if not spans: return the non-blank runs of lines as cells — the fallback for files that are not Python.", "lines": [[122, 133]]},
+      {"id": "F04.4", "layer": 1, "text": "covered = all line numbers already in spans\nextra = []\na = None", "lines": [[134, 136]]},
+      {"id": "F04.5", "layer": 1, "text": "for n, l in enumerate(lines, 1): collect non-blank runs not in covered into extra", "lines": [[137, 145]]},
+      {"id": "F04.6", "layer": 1, "text": "for run in extra: merge run into the nearest span whose start is past run, or extend the last span", "lines": [[146, 151]]},
+      {"id": "F04.7", "layer": 1, "text": "return [the spans] sorted — each span wrapped as a cell with a lines key", "lines": [[152, 152]]}
+    ]},
+    {"id": "F05", "name": "cells_of.kids_of", "layer": 1, "calls": [], "takes": "an AST node", "gives": "list of direct ast.stmt children, recursing through non-statement nodes", "text": "kids_of(node) -> out — collects every direct statement child, skipping non-statement wrapper nodes", "lines": [[91, 98]]},
+    {"id": "F06", "name": "cells_of.emit", "layer": 2, "calls": ["cells_of.kids_of"], "takes": "an AST node", "gives": "entries appended to spans", "text": "emit(node) -> spans — appends every line range of node that is not inside a child statement", "lines": [[100, 118]], "children": [
+      {"id": "F06.1", "layer": 1, "text": "emit(node):\nkids = kids_of(node) — direct statement children of node", "lines": [[100, 101]]},
+      {"id": "F06.2", "layer": 1, "text": "if not kids: spans.append([node.lineno, node.end_lineno])\nreturn — leaf node gets its own span", "lines": [[102, 104]]},
+      {"id": "F06.3", "layer": 1, "text": "covered = set()\nfor k in kids: covered.update(k's line range)\n    emit(k) — recurse into each child", "lines": [[105, 108]]},
+      {"id": "F06.4", "layer": 1, "text": "a = None — start of current non-blank run\nfor n in node's line range:\n    own = n not in covered and line n is non-blank\n    if own and a is None: a = n — open a non-blank run\n    if not own and a is not None: spans.append([a, n-1]); a = None — close the run\nif a is not None: spans.append([a, node.end_lineno]) — close trailing run", "lines": [[109, 118]]}
+    ]},
+    {"id": "F07", "name": "merge", "layer": 1, "calls": [], "takes": "a list of [a, b] span pairs", "gives": "a sorted list of non-overlapping [a, b] spans", "text": "merge(spans) -> out — joins overlapping or adjacent spans into a minimal sorted list", "lines": [[155, 162]]},
+    {"id": "F08", "name": "ask", "layer": 1, "calls": [], "takes": "a prompt string", "gives": "the parsed JSON object from the model reply", "text": "ask(prompt) -> dict — sends prompt to BEDROCK_MODEL_ID and returns the first {...} in the reply as a parsed dict", "lines": [[165, 178]], "children": [
+      {"id": "F08.1", "layer": 1, "text": "client = boto3.client(bedrock-runtime) — AWS_REGION and timeouts from the environment.", "lines": [[165, 170]]},
+      {"id": "F08.2", "layer": 1, "text": "r = client.converse(BEDROCK_MODEL_ID, prompt, maxTokens=32000)", "lines": [[171, 175]]},
+      {"id": "F08.3", "layer": 1, "text": "assert r[stopReason] == end_turn\nraw = r[output][message][content][0][text]\nreturn json.loads(the first {...} in raw)", "lines": [[176, 178]]}
+    ]},
+    {"id": "F09", "name": "check_pass", "layer": 1, "calls": [], "takes": "model reply m, cells list, stmts, blank line set, ess line set, bad function name set", "gives": "validated groups list", "text": "check_pass(m, cells, stmts, blank, ess, bad) -> groups — asserts that groups cover all cells in order, each group is contiguous and non-empty, no group names a function not called by this block, no first-pass group exceeds 15 non-blank lines, and no group cuts a statement across its boundary", "lines": [[181, 211]], "children": [
+      {"id": "F09.1", "layer": 1, "text": "def check_pass(m, cells, stmts, blank, ess, bad):", "lines": [[181, 181]]},
+      {"id": "F09.2", "layer": 1, "text": "groups = m.get(\"groups\")\nassert groups is a non-empty list\nassert len(groups) < len(cells) or len(cells) == 1 — the group count must go down", "lines": [[182, 184]]},
+      {"id": "F09.3", "layer": 1, "text": "at = 1 — the next expected cell index", "lines": [[185, 185]]},
+      {"id": "F09.4", "layer": 1, "text": "for g in groups:\n  a, b = g[\"cells\"]\n  assert a == at — each group must start where the last ended\n  assert a <= b <= len(cells) — end is in range\n  assert g[\"text\"] is a non-empty string\n  for w in function names in g[\"text\"]: assert w not in bad — no call this block does not make", "lines": [[186, 192]]},
+      {"id": "F09.5", "layer": 1, "text": "got = all line numbers covered by cells a..b, minus blank lines\nif b > a and no cell has a text: assert len(got) <= 15 — first-pass group too large\ngot &= ess", "lines": [[193, 201]]},
+      {"id": "F09.6", "layer": 1, "text": "for each statement s-e in stmts:\n  assert got does not cut s-e — hold all lines of a statement, or only lines inside it, or none\nat = b + 1", "lines": [[202, 209]]},
+      {"id": "F09.7", "layer": 1, "text": "assert at == len(cells) + 1 — the last group must end at the last cell", "lines": [[210, 210]]},
+      {"id": "F09.8", "layer": 1, "text": "return groups", "lines": [[211, 211]]}
+    ]},
+    {"id": "F10", "name": "lift", "layer": 2, "calls": ["merge"], "takes": "groups list, cells list, layer number", "gives": "a new cells list with adjacent cells merged into nodes", "text": "lift(groups, cells, layer) -> out — replaces each group of cells with one node, preserving single already-textted cells as-is", "lines": [[214, 226]], "children": [
+      {"id": "F10.1", "layer": 1, "text": "lift(groups, cells, layer) -> out\nout = []", "lines": [[214, 215]]},
+      {"id": "F10.2", "layer": 1, "text": "for g in groups:\n  a, b = g[\"cells\"]\n  kids = cells[a-1:b]\n  if kids is one cell with a text: out.append(kids[0])\n  else: node = {\"layer\": layer, \"text\": g[\"text\"], \"lines\": merge(all line spans of kids)}\n  if any kid has a text: node[\"children\"] = kids\n  out.append(node)\nreturn out", "lines": [[216, 226]]}
+    ]},
+    {"id": "F11", "name": "carve", "layer": 1, "calls": [], "takes": "line range [a, b], minus spans to exclude, and lines list", "gives": "list of [start, end] spans free of minus and blank lines", "text": "carve(a, b, minus, lines) -> out — returns the free sub-ranges of [a, b] after removing minus spans and trimming blank lines from each end", "lines": [[229, 248]], "children": [
+      {"id": "F11.1", "layer": 1, "text": "used = all line numbers covered by minus spans\nspans = []\nrun = None — tracks the start of the current free run", "lines": [[229, 232]]},
+      {"id": "F11.2", "layer": 1, "text": "for i in range(a, b+2): build spans from free positions\nfree = i is within [a,b] and not in used\nif free and run is None: run = i\nif not free and run is not None: spans.append([run, i-1]); run = None", "lines": [[233, 239]]},
+      {"id": "F11.3", "layer": 1, "text": "out = []\nfor s, e in spans: trim leading and trailing blank lines\nif s <= e: out.append([s, e])\nreturn out", "lines": [[240, 248]]}
+    ]},
+    {"id": "F12", "name": "blocks_of", "layer": 2, "calls": ["blocks_of.grab", "carve"], "takes": "path, src, and lines for one file", "gives": "list of block dicts, each with name, lines, and node, sorted by first line", "text": "blocks_of(path, src, lines) -> blocks — finds every function, class, and top-level region in the file\nexample: [{\"name\": \"blocks_of\", \"lines\": [[251, 253], [263, 273]], \"node\": <FunctionDef …>}, {\"name\": \"script\", \"lines\": [[1, 12]], \"node\": None}, …]", "lines": [[251, 253], [263, 273]], "children": [
+      {"id": "F12.1", "layer": 1, "text": "fns = []\nif path.suffix == .py: grab(ast.parse(src), []) — fills fns with every def and class in the file", "lines": [[251, 253], [263, 263]]},
+      {"id": "F12.2", "layer": 1, "text": "blocks = []\nfor f in fns:\n  inner = the spans of all fns nested inside f\n  blocks += {name: f[\"name\"], lines: carve(f[\"span\"], inner, lines), node: f[\"node\"]}", "lines": [[264, 268]]},
+      {"id": "F12.3", "layer": 1, "text": "out = carve(1, len(lines), all fns spans, lines)\nif out: blocks += {name: \"script\", lines: out, node: None} — captures the top-level code outside all defs", "lines": [[269, 271]]},
+      {"id": "F12.4", "layer": 1, "text": "blocks.sort(key: first line of each block)\nreturn blocks", "lines": [[272, 273]]}
+    ]},
+    {"id": "F13", "name": "blocks_of.grab", "layer": 1, "calls": [], "takes": "an AST node and a scope list of name parts", "gives": "entries appended to fns for every function, async function, and class found at any depth", "text": "grab(node, scope) -> None — walks all child nodes and records each def or class into fns, then recurses\nexample: fns += [{\"name\": \"blocks_of.grab\", \"span\": [254, 261], \"node\": <ClassDef …>}, …]", "lines": [[254, 261]]},
+    {"id": "F14", "name": "calls_of", "layer": 3, "calls": ["calls_of.scan"], "takes": "a block dict, the module body nodes, and the set of defined function names", "gives": "sorted list of qualified names that the block calls", "text": "calls_of(block, body, names) -> sorted list of qualified names — walks the block's own AST nodes and collects every name in names that scan() finds, skipping nested function and class definitions", "lines": [[276, 279], [298, 300]], "children": [
+      {"id": "F14.1", "layer": 1, "text": "skip = FunctionDef, AsyncFunctionDef, ClassDef — node types whose contents calls_of() does not enter\nscope = block[\"name\"] split on \".\", or [] if block has no node\nout = empty set — collects qualified names found", "lines": [[276, 279]]},
+      {"id": "F14.2", "layer": 1, "text": "for t in block[\"node\"] or top-level non-skip nodes of body: scan(t)\nreturn sorted(out)", "lines": [[298, 300]]}
+    ]},
+    {"id": "F15", "name": "calls_of.resolve", "layer": 1, "calls": [], "takes": "a bare name and the current scope list", "gives": "the first matching qualified name in names, or None", "text": "resolve(word) -> hit or None — walks scope[:k] + word from innermost to outermost, returns the first hit in names", "lines": [[281, 286]]},
+    {"id": "F16", "name": "calls_of.scan", "layer": 2, "calls": ["calls_of.resolve"], "takes": "an AST node to walk", "gives": "qualified names added to out", "text": "scan(node) — adds to out every name resolve(c.id) finds in non-skipped child nodes, then recurses into each child", "lines": [[288, 296]]},
+    {"id": "F17", "name": "layers_of", "layer": 2, "calls": ["layers_of.height", "layers_of.strong"], "takes": "blocks list and calls dict mapping each block name to its callees", "gives": "dict mapping each block name to its integer call-depth layer", "text": "layers_of(blocks, calls) -> {name: layer} — assigns each block a layer number equal to its height in the condensed call DAG\nexample: {\"script\": 1, \"merge\": 1, \"cells_of\": 2, \"main\": 5, …}", "lines": [[303, 305], [326, 334], [341, 341]], "children": [
+      {"id": "F17.1", "layer": 1, "text": "idx = {}\nlow = {}\non = set()\nst = []\ncomp = {}\nk = [0] — Tarjan state: discovery index, low-link, on-stack set, stack, SCC root map, and counter", "lines": [[303, 305]]},
+      {"id": "F17.2", "layer": 1, "text": "for b in blocks: if b[\"name\"] not in idx: strong(b[\"name\"]) — runs Tarjan DFS on every unvisited block; fills comp with each name's SCC root", "lines": [[326, 328]]},
+      {"id": "F17.3", "layer": 1, "text": "edges = {}\nfor b in blocks: for w in calls[b[\"name\"]]: if comp[w] != comp[b[\"name\"]]: edges[comp[b[\"name\"]]] += comp[w] — builds the condensed DAG: one directed edge between SCC roots for every cross-SCC call", "lines": [[329, 333]]},
+      {"id": "F17.4", "layer": 1, "text": "h = {}\nreturn {b[\"name\"]: height(comp[b[\"name\"]]) for b in blocks} — maps each block name to its call-depth layer via height(comp[b[\"name\"]])", "lines": [[334, 334], [341, 341]]}
+    ]},
+    {"id": "F18", "name": "layers_of.strong", "layer": 1, "calls": [], "takes": "a node name v, plus idx, low, st, on, comp, k, and calls from the enclosing scope", "gives": "comp filled with the SCC root for v and all nodes reachable from v", "text": "strong(v) — Tarjan DFS that finds strongly connected components and writes each node's root into comp\nexample: comp = {\"a\": \"a\", \"b\": \"a\", \"c\": \"c\", …}", "lines": [[307, 324]], "children": [
+      {"id": "F18.1", "layer": 1, "text": "idx[v] = low[v] = k[0]\nk[0] += 1\nst.append(v)\non.add(v) — assign discovery and low indices, increment counter, push v onto stack, mark v as on-stack", "lines": [[307, 311]]},
+      {"id": "F18.2", "layer": 1, "text": "for w in calls[v]:\n  if w not in idx: strong(w)\n  low[v] = min(low[v], low[w])\n  elif w in on: low[v] = min(low[v], idx[w]) — recurse into unvisited neighbors; pull back the lowest reachable index", "lines": [[312, 317]]},
+      {"id": "F18.3", "layer": 1, "text": "if low[v] == idx[v]:\n  while True: w = st.pop()\n  on.discard(w)\n  comp[w] = v\n  if w == v: break — v is a component root: pop st into comp until v is reached", "lines": [[318, 324]]}
+    ]},
+    {"id": "F19", "name": "layers_of.height", "layer": 1, "calls": [], "takes": "an SCC representative c, the edges DAG, and the memoization dict h", "gives": "the height of c in the DAG — cached in h", "text": "height(c) -> h[c] — returns 1 + the max height of all successors of c in edges, memoized in h", "lines": [[336, 339]]},
+    {"id": "F20", "name": "nodes_of", "layer": 2, "calls": ["nodes_of.walk"], "takes": "a tree of nested node dicts", "gives": "a flat list of every node in the tree", "text": "nodes_of(tree) -> out — walks tree depth-first and returns every node in a flat list", "lines": [[344, 345], [353, 354]]},
+    {"id": "F21", "name": "nodes_of.walk", "layer": 1, "calls": [], "takes": "a list of tree nodes", "gives": "nothing — out is filled as a side effect", "text": "walk(ns) -> None — appends every node in ns to out, then recurses into children", "lines": [[347, 351]]},
+    {"id": "F22", "name": "number", "layer": 2, "calls": ["number.walk"], "takes": "tree — a list of top-level nodes, each optionally with children", "gives": "t[\"id\"] set to F01, F02, … and every descendant id set to F01.1, F01.1.1, … in place", "text": "number(tree) -> ids in place — assigns F-prefixed ids to each top-level node and walk() dot-numbers every descendant", "lines": [[357, 360], [369, 369]]},
+    {"id": "F23", "name": "number.walk", "layer": 1, "calls": [], "takes": "a list of child nodes ns", "gives": "k[0] and c[\"id\"] updated in place for every node in the subtree", "text": "walk(ns) — assigns a dot-number id to each child and recurses into its children", "lines": [[362, 367]]},
+    {"id": "F24", "name": "owner_of", "layer": 3, "calls": ["nodes_of"], "takes": "a tree of nested node dicts", "gives": "a dict mapping each line number to the id of the leaf node that owns it", "text": "owner_of(tree) -> owner — maps every line number to the id of its leaf node\nexample: {1: \"F01.1\", 2: \"F01.1\", 3: \"F01.2\", …}", "lines": [[372, 379]], "children": [
+      {"id": "F24.1", "layer": 1, "text": "owner = {}\nfor t in nodes_of(tree): map each line number to t[\"id\"] — only leaf nodes, those with no children", "lines": [[372, 374]]},
+      {"id": "F24.2", "layer": 1, "text": "if not t.get(\"children\"):\n  for a, b in t[\"lines\"]:\n    for n in range(a, b + 1): owner[n] = t[\"id\"]\nreturn owner", "lines": [[375, 379]]}
+    ]},
+    {"id": "F25", "name": "links", "layer": 1, "calls": [], "takes": "a file path and an owner map from line number to node id", "gives": "a list of cross-reference rows with name, def node id, and used node ids", "text": "links(path, owner) -> rows — finds every in-file name and the node ids that use it\nexample: [{\"name\": \"cells\", \"def\": \"F02.3\", \"used\": [\"F03.1\", \"F05.2\"]}, …]", "lines": [[382, 398]], "children": [
+      {"id": "F25.1", "layer": 1, "text": "if path.suffix != .py: return [] — skip non-Python files.", "lines": [[382, 384]]},
+      {"id": "F25.2", "layer": 1, "text": "p = path resolved to an absolute path\nscript = jedi.Script(path=p)\nrows = []", "lines": [[385, 387]]},
+      {"id": "F25.3", "layer": 1, "text": "for d in script.get_names():\n  if any definition of d goes outside p: skip — keeps only names defined in this file\n  src = owner.get(d.line) — the node id that defines d\n  if src is None: skip — line not in the map\n  used = sorted node ids that reference d, excluding src, via script.get_references(d.line, d.column)\n  if used: rows.append({name: d.name, def: src, used: used})", "lines": [[388, 397]]},
+      {"id": "F25.4", "layer": 1, "text": "return rows", "lines": [[398, 398]]}
+    ]},
+    {"id": "F26", "name": "row_of", "layer": 1, "calls": [], "takes": "cell index i, cell c, and lines list", "gives": "one display string for the cell", "text": "row_of(i, c, lines) -> str — formats a cell as its index, line spans, and either its compiled text or its first source line", "lines": [[401, 406]], "children": [
+      {"id": "F26.1", "layer": 1, "text": "spans = c[\"lines\"] ranges joined as \"a-b, …\"\ntext = c.get(\"text\")  — the compiled text, or None if this is a raw cell", "lines": [[401, 403]]},
+      {"id": "F26.2", "layer": 1, "text": "if text: return \"{i}: lines {spans} — {text}\"\nelse: return \"{i}: lines {spans} | {first source line of c}\"", "lines": [[404, 406]]}
+    ]},
+    {"id": "F27", "name": "write_node", "layer": 1, "calls": [], "takes": "a map node dict and an indentation string", "gives": "an indented JSON text fragment for the node", "text": "write_node(t, ind) -> str — serializes one map node to indented JSON, recursing into children\nexample: {\"id\": \"F01\", \"name\": \"emit\", \"layer\": 1, \"calls\": […], \"takes\": \"…\", \"gives\": \"…\", \"text\": \"…\", \"lines\": […], \"children\": […]}", "lines": [[409, 421]], "children": [
+      {"id": "F27.1", "layer": 1, "text": "write_node(t, ind) — serializes one map node to indented JSON text.\nhead = opening JSON fragment: ind + id", "lines": [[409, 410]]},
+      {"id": "F27.2", "layer": 1, "text": "if \"name\" in t: head += name, layer, calls, takes, gives fields\nelse: head += layer field only", "lines": [[411, 415]]},
+      {"id": "F27.3", "layer": 1, "text": "head += text and lines fields", "lines": [[416, 417]]},
+      {"id": "F27.4", "layer": 1, "text": "if t has no children: return head + \"}\" — leaf node, close and done", "lines": [[418, 419]]},
+      {"id": "F27.5", "layer": 1, "text": "kids = write_node(c, ind + 2 spaces) for each child, joined by \",\\n\"\nreturn head + children array wrapping kids", "lines": [[420, 421]]}
+    ]},
+    {"id": "F28", "name": "write_map", "layer": 2, "calls": ["write_node"], "takes": "an output path and a map dict with links, terms, and map keys", "gives": "map.json written to path", "text": "write_map(path, m) -> None — serializes m to path as a formatted JSON file\nexample: {\"file\": \"x.py\", \"links\": […], \"terms\": […], \"map\": [{\"id\": \"F01\", …}]}", "lines": [[424, 431]], "children": [
+      {"id": "F28.1", "layer": 1, "text": "rows = each entry in m[\"links\"] as JSON, joined by \",\\n    \"\nlinks_part = \"[\\n    {rows}\\n  ]\" if rows else \"[]\"\ntrows = each entry in m[\"terms\"] as JSON, joined by \",\\n    \"\nterms_part = \"[\\n    {trows}\\n  ]\" if trows else \"[]\"", "lines": [[424, 428]]},
+      {"id": "F28.2", "layer": 1, "text": "tree = write_node(t, \"    \") for each t in m[\"map\"], joined by \",\\n\"\npath.write_text(JSON object with keys file, links, terms, map)", "lines": [[429, 431]]}
+    ]},
+    {"id": "F29", "name": "one_pass", "layer": 3, "calls": ["ask", "check_pass", "lift", "merge", "row_of"], "takes": "cells list, block name, code, lines, stext, stmts, blank, ess, layer, label, span, ctx, bad, final flag", "gives": "a list with one compiled node", "text": "one_pass(cells, name, code, lines, stext, stmts, blank, ess, layer, label, span, ctx, bad, final) -> [node] — asks the model up to 8 times, checks each reply with check_pass(), and returns the merged or finalised node; exits if no valid reply arrives", "lines": [[434, 478]], "children": [
+      {"id": "F29.1", "layer": 1, "text": "rows = row_of(i, c, lines) for each cell — the display list the prompt sees\nbase = PROMPT filled with name, code, label, span, ctx, rows, cell count, stext", "lines": [[434, 436]]},
+      {"id": "F29.2", "layer": 1, "text": "if final: append the final-pass instruction to base — tells the model to return one group with a signature, takes, gives, and a shape example", "lines": [[437, 450]]},
+      {"id": "F29.3", "layer": 1, "text": "note = \"\"\nerrs = []\nm = None — retry state", "lines": [[451, 453]]},
+      {"id": "F29.4", "layer": 1, "text": "for attempt in range(8):\n  m = ask(base + note)\n  groups = check_pass(m, cells, stmts, blank, ess, bad)", "lines": [[454, 457]]},
+      {"id": "F29.5", "layer": 1, "text": "if final:\n  assert exactly one group, takes field, gives field, text starts with label signature\n  node = layer, text, takes, gives, merged lines — the compiled block node\n  if len(cells) > 1: node[children] = cells\n  return [node]\nreturn lift(groups, cells, layer)", "lines": [[458, 471]]},
+      {"id": "F29.6", "layer": 1, "text": "except AssertionError, TypeError, ValueError, KeyError as e:\n  print retry attempt, label, e\n  errs += e\n  note = last answer json + rule broken + all errors so far — fed back to the model on the next attempt", "lines": [[472, 477]]},
+      {"id": "F29.7", "layer": 1, "text": "sys.exit(\"no valid pass after 8 tries\")", "lines": [[478, 478]]}
+    ]},
+    {"id": "F30", "name": "terms_of", "layer": 3, "calls": ["ask", "nodes_of"], "takes": "name, code, lines, and a compiled tree of nodes", "gives": "a list of validated term dicts with term, text, and defs", "text": "terms_of(name, code, lines, tree) -> out — asks the model up to 8 times to find coined noun phrases in the map texts and returns each one validated\nexample: [{\"term\": \"non-blank run\", \"text\": \"a longest stretch of…\", \"defs\": [[88, 97], …]}]", "lines": [[481, 517]], "children": [
+      {"id": "F30.1", "layer": 1, "text": "nodes = nodes_of(tree)\ntexts = each node's id and text joined by newlines — the text the TERMS prompt sees\nlow = each node's text lowercased\nbase = TERMS prompt filled with name, code, texts", "lines": [[481, 485]]},
+      {"id": "F30.2", "layer": 1, "text": "note = \"\"\nerrs = []\nm = None", "lines": [[486, 488]]},
+      {"id": "F30.3", "layer": 1, "text": "for attempt in range(8): m = ask(base + note)", "lines": [[489, 491]]},
+      {"id": "F30.4", "layer": 1, "text": "terms = m[\"terms\"] — assert it is a list", "lines": [[492, 493]]},
+      {"id": "F30.5", "layer": 1, "text": "seen = set()\nout = []", "lines": [[494, 495]]},
+      {"id": "F30.6", "layer": 1, "text": "for t in terms:\n  w = t[\"term\"] — assert non-empty, not duplicate, present in low\n  assert t[\"text\"] is a non-empty string\n  d = t[\"defs\"] — assert non-empty list with each range inside lines\n  out.append({\"term\": w, \"text\": t[\"text\"], \"defs\": d})", "lines": [[496, 509]]},
+      {"id": "F30.7", "layer": 1, "text": "return out", "lines": [[510, 510]]},
+      {"id": "F30.8", "layer": 1, "text": "except AssertionError, TypeError, ValueError, KeyError as e:\n  print(retry attempt [terms]: e)\n  errs.append(e)\n  note = last answer plus e plus all errors so far — tells the model what rule it broke", "lines": [[511, 516]]},
+      {"id": "F30.9", "layer": 1, "text": "sys.exit(\"no valid terms after 8 tries\")", "lines": [[517, 517]]}
+    ]},
+    {"id": "F31", "name": "compile_block", "layer": 4, "calls": ["one_pass"], "takes": "a block descriptor, its cells, and all shared context needed by one_pass()", "gives": "one compiled root node with text, takes, gives, and lines", "text": "compile_block(bl, cells, name, code, lines, stmts, blank, ess, ctx, bad) -> node — drives one_pass() in a loop until the cells collapse to one signed node", "lines": [[520, 535]], "children": [
+      {"id": "F31.1", "layer": 1, "text": "compile_block(bl, cells, name, code, lines, stmts, blank, ess, ctx, bad)\nbstmts = the statements whose line spans fall inside bl[\"lines\"]", "lines": [[520, 521]]},
+      {"id": "F31.2", "layer": 1, "text": "stext = \"\"\nif bstmts: stext = the statement ranges formatted as an indented tree — the prompt section the model uses to avoid cut statements", "lines": [[522, 525]]},
+      {"id": "F31.3", "layer": 1, "text": "label = bl[\"name\"] last segment + \"()\" if bl has a node, else \"the top-level script code\"\nspan = bl[\"lines\"] ranges joined as a string\nlayer = 0", "lines": [[526, 528]]},
+      {"id": "F31.4", "layer": 1, "text": "while cells has more than one entry or cells[0] has no \"takes\":\n  layer += 1\n  final = true when every cell already has a \"text\"\n  cells = one_pass(cells, name, code, lines, stext, bstmts, blank, ess, layer, label, span, ctx, bad, final)\n  print bl[\"name\"] pass layer: n -> len(cells)", "lines": [[529, 534]]},
+      {"id": "F31.5", "layer": 1, "text": "return cells[0]", "lines": [[535, 535]]}
+    ]},
+    {"id": "F32", "name": "main", "layer": 5, "calls": ["blocks_of", "calls_of", "cells_of", "compile_block", "layers_of", "links", "nodes_of", "number", "owner_of", "statements", "terms_of", "write_map"], "takes": "a source file path from the command line", "gives": "map.json next to the source file", "text": "main(path) -> map.json — parses, compiles, and writes one map for the whole file\nexample: {\"file\": \"x.py\", \"links\": […], \"terms\": […], \"map\": [{\"id\": \"F01\", \"text\": …, \"children\": […]}]}", "lines": [[538, 582]], "children": [
+      {"id": "F32.1", "layer": 1, "text": "path = the file path from sys.argv[1]\nsrc = the text read from path\nlines = src split into lines\nassert any line is non-blank\ncode = the lines, each with its number in front — the file the model sees", "lines": [[538, 543]]},
+      {"id": "F32.2", "layer": 1, "text": "cells = cells_of(path, src, lines)\nstmts = statements(path, src)", "lines": [[544, 545]]},
+      {"id": "F32.3", "layer": 1, "text": "blank = the set of blank line numbers\ness = the set of lines in innermost statements — lines the model must not cut across\ness -= blank", "lines": [[546, 551]]},
+      {"id": "F32.4", "layer": 1, "text": "blocks = blocks_of(path, src, lines)\nbody = the top-level AST nodes of src\nnames = the set of defined function and class names\ncalls = calls_of(b, body, names) for each block b\nlay = layers_of(blocks, calls)", "lines": [[552, 556]]},
+      {"id": "F32.5", "layer": 1, "text": "parts = cells grouped by block\nfor each cell: parts[the block whose line spans hold all its lines] += cell", "lines": [[557, 561]]},
+      {"id": "F32.6", "layer": 1, "text": "done = {}\nfor bl in blocks sorted by (layer, first line):\n  ctx = the compiled summaries of the functions bl calls — the context prompt for compile_block()\n  if ctx: prefix ctx with the header line\n  bad = the function names in names that bl does not call\n  root = compile_block(bl, parts[bl[\"name\"]], path.name, code, lines, stmts, blank, ess, ctx, bad)\n  root[\"name\"], root[\"layer\"], root[\"calls\"], root[\"lines\"] = the block metadata\n  done[bl[\"name\"]] = root", "lines": [[562, 575]]},
+      {"id": "F32.7", "layer": 1, "text": "tree = done values sorted by first line\nnumber(tree)\nowner = owner_of(tree)\nm = {\"file\": path.name, \"links\": links(path, owner), \"terms\": terms_of(path.name, code, lines, tree), \"map\": tree}\nout = map.json next to the source file\nwrite_map(out, m)\nprint(block count, nodes_of(tree) count, link count, term count, and out path)", "lines": [[576, 582]]}
+    ]}
+  ]
+}
