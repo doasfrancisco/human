@@ -32,23 +32,8 @@ Root rules:
 10. root.text is the signature of the block: name(arguments) -> result, then one clause after " — " that says what the whole block does for its caller. The top-level script block starts with the word script instead of a signature.
 11. root.takes and root.gives are short noun phrases that name the input and the output.
 
-Story rules:
-12. Before you write the story, judge the block: would a competent programmer who reads these lines stumble — is there a surprise, a hidden reason, or a rule they would guess wrong from the code alone? When the answer is no, story is the empty string "" and terms is []. Most small or straightforward blocks earn no story. When the answer is yes, the story is about that stumble specifically.
-13. story is the explanation a person reads; the beats are only the bridge to the code. The reader sees root.text directly above the story, so the story never restates it. Its shape, in this order: one small worked example — a tiny concrete input and what the block makes of it, with real values that stay consistent — then at most 3 short sentences for rules and edge cases the example does not show. Shorter is better.
-14. Choose the example so it shows the one rule a reader would guess wrong without it. An example that shows only the obvious case teaches nothing.
-15. The example is one or two short lines: the input, then the result. Never a formatted dump. Its names are real names from this file, or plainly generic ones like f, x and small numbers. Never a plausible name that does not exist in this file.
-16. Story sentences have 20 words or fewer, one idea per sentence, active voice. No metaphors: never words like carve, glue, promise.
-17. Every technical term the story uses is a name from the code, or is defined: in the story at first use, or in terms with a plain one-line meaning.
-18. terms lists those defined words as {{"term": ..., "meaning": ...}}. Each term appears verbatim in the story. An empty list is legal.
-
-A gold story, for a function clip(text, n) that shortens text to at most n characters without cutting a word. It earned a story: a reader would guess it cuts at exactly n. Imitate this shape — example first, then short rules:
-Example: clip("red fox jumps", 9) gives "red fox", not "red fox j".
-The cut moves back to the last space. When the first word alone is longer than n, clip keeps that word whole.
-
-A negative gold, for a function total(nums) that returns sum(nums): a reader does not stumble on it, so story is "" and terms is [].
-
 Return one JSON object only, no code fences:
-{{"root": {{"text": "digits(text) -> list of ints — collects every digit character in the text as a number", "takes": "a string", "gives": "the digit values in order"}}, "story": "", "terms": [], "beats": [{{"cells": [1, 2], "text": "walk the characters and keep only the digits"}}, {{"cells": [3, 3], "text": "hand the collected digits back"}}]}}"""
+{{"root": {{"text": "digits(text) -> list of ints — collects every digit character in the text as a number", "takes": "a string", "gives": "the digit values in order"}}, "beats": [{{"cells": [1, 2], "text": "walk the characters and keep only the digits"}}, {{"cells": [3, 3], "text": "hand the collected digits back"}}]}}"""
 
 
 def statements(path, src):
@@ -165,16 +150,6 @@ def check_block(m, cells, stmts, ess, label):
     if label.endswith("()"):
         assert root["text"].strip().startswith(label[:-2] + "("), \
             f"the root text must start with the signature {label[:-2]}(...)"
-    story = m.get("story")
-    assert isinstance(story, str), "story must be a string, empty when the reader would not stumble"
-    terms = m.get("terms")
-    assert isinstance(terms, list), "terms must be a list, empty is legal"
-    if not story.strip():
-        assert not terms, "when story is empty, terms must be empty"
-    for t in terms:
-        assert isinstance(t, dict) and isinstance(t.get("term"), str) and t["term"].strip(), "a term needs a term string"
-        assert isinstance(t.get("meaning"), str) and t["meaning"].strip(), f'the term {t.get("term")} needs a meaning'
-        assert t["term"].strip() in story, f'the term "{t["term"].strip()}" does not appear verbatim in the story'
     beats = m.get("beats")
     assert isinstance(beats, list) and beats, "no beats"
     at = 1
@@ -197,7 +172,7 @@ def check_block(m, cells, stmts, ess, label):
                  f"cells {', '.join(ins)} are the cells inside it")
         at = b + 1
     assert at == len(cells) + 1, f"the last beat ends at cell {at - 1}, not at cell {len(cells)}"
-    return root, story, terms, beats
+    return root, beats
 
 
 def carve(a, b, minus, lines):
@@ -382,8 +357,6 @@ def write_node(t, ind):
     if "name" in t:
         head += (f'"name": {json.dumps(t["name"])}, "layer": {t["layer"]}, "calls": {json.dumps(t["calls"])}, '
                  f'"takes": {json.dumps(t["takes"], ensure_ascii=False)}, "gives": {json.dumps(t["gives"], ensure_ascii=False)}, ')
-        if "story" in t:
-            head += f'"story": {json.dumps(t["story"], ensure_ascii=False)}, '
     else:
         head += f'"layer": {t["layer"]}, '
     head += (f'"text": {json.dumps(t["text"], ensure_ascii=False)}, '
@@ -420,18 +393,15 @@ def compile_block(bl, cells, name, code, lines, stmts, ess, ctx):
     for attempt in range(8):
         try:
             m = ask_claude(base + note)
-            root, story, terms, beats = check_block(m, cells, bstmts, ess, label)
+            root, beats = check_block(m, cells, bstmts, ess, label)
             node = {"text": root["text"].strip(), "takes": root["takes"].strip(), "gives": root["gives"].strip(),
                     "lines": merge([r for c in cells for r in c["lines"]])}
-            if story.strip():
-                node["story"] = story.strip()
             if len(cells) > 1:
                 node["children"] = [{"layer": 1, "text": g["text"].strip(),
                                      "lines": merge([r for c in cells[g["cells"][0] - 1:g["cells"][1]] for r in c["lines"]])}
                                     for g in beats]
-            print(f"{bl['name']}: {len(cells)} cells -> {len(beats)} beats, {len(terms)} terms, "
-                  f"story {'yes' if story.strip() else 'no'}")
-            return node, [{"term": t["term"].strip(), "meaning": t["meaning"].strip()} for t in terms]
+            print(f"{bl['name']}: {len(cells)} cells -> {len(beats)} beats")
+            return node
         except (AssertionError, TypeError, ValueError, KeyError) as e:
             print(f"retry {attempt + 1} [{label}]: {e}")
             errs.append(f"- {e}")
@@ -466,18 +436,12 @@ def main():
                     if all(any(x <= a and e <= y for x, y in b["lines"]) for a, e in c["lines"]))
         parts[home].append(c)
     done = {}
-    tout = []
-    tseen = set()
     for bl in sorted(blocks, key=lambda b: (lay[b["name"]], b["lines"][0][0])):
         ctx = "".join(f'{n.split(".")[-1]}() — takes {done[n]["takes"]}, gives {done[n]["gives"]} — {done[n]["text"]}\n'
                       for n in calls[bl["name"]] if n in done)
         if ctx:
             ctx = "Functions this block calls, explained already. Their one-line meanings:\n" + ctx + "\n"
-        root, bterms = compile_block(bl, parts[bl["name"]], path.name, code, lines, stmts, ess, ctx)
-        for t in bterms:
-            if t["term"] not in tseen:
-                tseen.add(t["term"])
-                tout.append({"term": t["term"], "meaning": t["meaning"], "block": bl["name"]})
+        root = compile_block(bl, parts[bl["name"]], path.name, code, lines, stmts, ess, ctx)
         root["name"] = bl["name"]
         root["layer"] = lay[bl["name"]]
         root["calls"] = calls[bl["name"]]
@@ -486,11 +450,10 @@ def main():
     tree = sorted(done.values(), key=lambda t: t["lines"][0][0])
     number(tree)
     owner = owner_of(tree)
-    m = {"file": path.name, "links": links(path, owner), "terms": tout, "map": tree}
+    m = {"file": path.name, "links": links(path, owner), "terms": [], "map": tree}
     out = path.parent / "map.json"
     write_map(out, m)
-    print(f"{len(blocks)} blocks, {len(nodes_of(tree))} texts, {len(m['links'])} links, "
-          f"{len(tout)} terms, {CALLS[0]} claude calls -> {out}")
+    print(f"{len(blocks)} blocks, {len(nodes_of(tree))} texts, {len(m['links'])} links, {CALLS[0]} claude calls -> {out}")
 
 
 if __name__ == "__main__":

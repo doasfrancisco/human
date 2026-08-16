@@ -1,0 +1,21 @@
+ask_claude: root + body
+retry 1 [check_block()]: the root has 13 words, the limit is 12
+check_block: root + body
+check_vocab: root + body
+carve: root + body
+blocks_of.grab: root + body
+calls_of.resolve: root + body
+layers_of.strong: root + body
+layers_of.height: root + body
+retry 1 [links()]: (B15) is not the name of a block of this file
+links: root + body
+blocks_of: root + body
+calls_of.scan: root + body
+layers_of: root + body
+compile_block: root + body
+vocab_pass: root + body
+calls_of: root + body
+main: root + body
+script: root + body
+vocabulary: 5 terms
+17 blocks, 0 silent, 5 terms, 15 links, 20 claude calls -> decompile_v13/map.json

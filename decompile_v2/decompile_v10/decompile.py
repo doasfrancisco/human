@@ -33,22 +33,19 @@ Root rules:
 11. root.takes and root.gives are short noun phrases that name the input and the output.
 
 Story rules:
-12. Before you write the story, judge the block: would a competent programmer who reads these lines stumble — is there a surprise, a hidden reason, or a rule they would guess wrong from the code alone? When the answer is no, story is the empty string "" and terms is []. Most small or straightforward blocks earn no story. When the answer is yes, the story is about that stumble specifically.
-13. story is the explanation a person reads; the beats are only the bridge to the code. The reader sees root.text directly above the story, so the story never restates it. Its shape, in this order: one small worked example — a tiny concrete input and what the block makes of it, with real values that stay consistent — then at most 3 short sentences for rules and edge cases the example does not show. Shorter is better.
-14. Choose the example so it shows the one rule a reader would guess wrong without it. An example that shows only the obvious case teaches nothing.
-15. The example is one or two short lines: the input, then the result. Never a formatted dump. Its names are real names from this file, or plainly generic ones like f, x and small numbers. Never a plausible name that does not exist in this file.
-16. Story sentences have 20 words or fewer, one idea per sentence, active voice. No metaphors: never words like carve, glue, promise.
-17. Every technical term the story uses is a name from the code, or is defined: in the story at first use, or in terms with a plain one-line meaning.
-18. terms lists those defined words as {{"term": ..., "meaning": ...}}. Each term appears verbatim in the story. An empty list is legal.
+12. story is the explanation a person reads; the beats are only the bridge to the code. The reader sees root.text directly above the story, so the story never restates it. Its shape, in this order: one small worked example — a tiny concrete input and what the block makes of it, with real values that stay consistent — then at most 3 short sentences for rules and edge cases the example does not show. Shorter is better.
+13. Choose the example so it shows the one rule a reader would guess wrong without it. An example that shows only the obvious case teaches nothing.
+14. The example is one or two short lines: the input, then the result. Never a formatted dump. Its names are real names from this file, or plainly generic ones like f, x and small numbers. Never a plausible name that does not exist in this file.
+15. Story sentences have 20 words or fewer, one idea per sentence, active voice. No metaphors: never words like carve, glue, promise.
+16. Every technical term the story uses is a name from the code, or is defined: in the story at first use, or in terms with a plain one-line meaning.
+17. terms lists those defined words as {{"term": ..., "meaning": ...}}. Each term appears verbatim in the story. An empty list is legal.
 
-A gold story, for a function clip(text, n) that shortens text to at most n characters without cutting a word. It earned a story: a reader would guess it cuts at exactly n. Imitate this shape — example first, then short rules:
-Example: clip("red fox jumps", 9) gives "red fox", not "red fox j".
-The cut moves back to the last space. When the first word alone is longer than n, clip keeps that word whole.
-
-A negative gold, for a function total(nums) that returns sum(nums): a reader does not stumble on it, so story is "" and terms is [].
+A gold story, for a function digits(text) that collects the digit characters of a string as ints. Imitate this shape — example first, then short rules:
+Example: digits("ab12c3") gives [1, 2, 3].
+Letters and spaces are dropped. When text has no digits, the result is an empty list.
 
 Return one JSON object only, no code fences:
-{{"root": {{"text": "digits(text) -> list of ints — collects every digit character in the text as a number", "takes": "a string", "gives": "the digit values in order"}}, "story": "", "terms": [], "beats": [{{"cells": [1, 2], "text": "walk the characters and keep only the digits"}}, {{"cells": [3, 3], "text": "hand the collected digits back"}}]}}"""
+{{"root": {{"text": "digits(text) -> list of ints — collects every digit character in the text as a number", "takes": "a string", "gives": "the digit values in order"}}, "story": "Example: digits(\\"ab12c3\\") gives [1, 2, 3].\\nLetters and spaces are dropped. When text has no digits, the result is an empty list.", "terms": [], "beats": [{{"cells": [1, 2], "text": "walk the characters and keep only the digits"}}, {{"cells": [3, 3], "text": "hand the collected digits back"}}]}}"""
 
 
 def statements(path, src):
@@ -166,11 +163,9 @@ def check_block(m, cells, stmts, ess, label):
         assert root["text"].strip().startswith(label[:-2] + "("), \
             f"the root text must start with the signature {label[:-2]}(...)"
     story = m.get("story")
-    assert isinstance(story, str), "story must be a string, empty when the reader would not stumble"
+    assert isinstance(story, str) and story.strip(), "no story"
     terms = m.get("terms")
     assert isinstance(terms, list), "terms must be a list, empty is legal"
-    if not story.strip():
-        assert not terms, "when story is empty, terms must be empty"
     for t in terms:
         assert isinstance(t, dict) and isinstance(t.get("term"), str) and t["term"].strip(), "a term needs a term string"
         assert isinstance(t.get("meaning"), str) and t["meaning"].strip(), f'the term {t.get("term")} needs a meaning'
@@ -422,15 +417,12 @@ def compile_block(bl, cells, name, code, lines, stmts, ess, ctx):
             m = ask_claude(base + note)
             root, story, terms, beats = check_block(m, cells, bstmts, ess, label)
             node = {"text": root["text"].strip(), "takes": root["takes"].strip(), "gives": root["gives"].strip(),
-                    "lines": merge([r for c in cells for r in c["lines"]])}
-            if story.strip():
-                node["story"] = story.strip()
+                    "story": story.strip(), "lines": merge([r for c in cells for r in c["lines"]])}
             if len(cells) > 1:
                 node["children"] = [{"layer": 1, "text": g["text"].strip(),
                                      "lines": merge([r for c in cells[g["cells"][0] - 1:g["cells"][1]] for r in c["lines"]])}
                                     for g in beats]
-            print(f"{bl['name']}: {len(cells)} cells -> {len(beats)} beats, {len(terms)} terms, "
-                  f"story {'yes' if story.strip() else 'no'}")
+            print(f"{bl['name']}: {len(cells)} cells -> {len(beats)} beats, {len(terms)} terms")
             return node, [{"term": t["term"].strip(), "meaning": t["meaning"].strip()} for t in terms]
         except (AssertionError, TypeError, ValueError, KeyError) as e:
             print(f"retry {attempt + 1} [{label}]: {e}")

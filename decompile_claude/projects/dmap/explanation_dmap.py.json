@@ -1,0 +1,556 @@
+{
+  "code_file": "dmap.py",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "cmd_map",
+      "block_lines": [
+        [
+          212,
+          275
+        ]
+      ],
+      "text": "code            = the file split into numbered lines\nspans           = the real line span of every def and class    (block_spans)\ndata            = the map file beside the code, or a fresh one (load_map)\ntext            = the explanation, from stdin or --text\n\nprompt          = the numbered code, the span table, the mapped entries, and the text, filled into PROMPT\n\nup to 8 tries:\n    one claude call -> block, block_lines, within, parts    (ask_claude)\n    the hints --block and --within override the answer\n    the checker gates spans, bounds, callees, within    (check_entry)\n    on a failure, the broken answer and the rule go back\n\nentry           = the checked delta, with the next id and the text\n! map file      = the entry appended, the coverage recomputed and the report printed    (recompute)",
+      "parts": [
+        {
+          "part": "code",
+          "own_lines": [
+            [
+              212,
+              214
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "spans",
+          "own_lines": [
+            [
+              215,
+              215
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "block_spans",
+              "lines": [
+                [
+                  58,
+                  70
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "data",
+          "own_lines": [
+            [
+              216,
+              217
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "load_map",
+              "lines": [
+                [
+                  199,
+                  202
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "text",
+          "own_lines": [
+            [
+              218,
+              220
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "prompt",
+          "own_lines": [
+            [
+              222,
+              234
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "numbered",
+              "lines": [
+                [
+                  54,
+                  55
+                ]
+              ]
+            }
+          ],
+          "constant_lines": [
+            {
+              "name": "PROMPT",
+              "lines": [
+                [
+                  8,
+                  51
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "up to 8 tries",
+          "own_lines": [
+            [
+              221,
+              221
+            ],
+            [
+              235,
+              257
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "parse_within",
+              "lines": [
+                [
+                  205,
+                  209
+                ]
+              ]
+            },
+            {
+              "name": "ask_claude",
+              "lines": [
+                [
+                  190,
+                  196
+                ]
+              ]
+            },
+            {
+              "name": "check_entry",
+              "lines": [
+                [
+                  114,
+                  175
+                ]
+              ]
+            },
+            {
+              "name": "check_spans",
+              "lines": [
+                [
+                  102,
+                  111
+                ]
+              ]
+            },
+            {
+              "name": "expand",
+              "lines": [
+                [
+                  73,
+                  77
+                ]
+              ]
+            },
+            {
+              "name": "part_lines",
+              "lines": [
+                [
+                  80,
+                  86
+                ]
+              ]
+            },
+            {
+              "name": "fmt",
+              "lines": [
+                [
+                  89,
+                  99
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "entry",
+          "own_lines": [
+            [
+              258,
+              263
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "! map file",
+          "own_lines": [
+            [
+              264,
+              275
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "recompute",
+              "lines": [
+                [
+                  178,
+                  187
+                ]
+              ]
+            },
+            {
+              "name": "expand",
+              "lines": [
+                [
+                  73,
+                  77
+                ]
+              ]
+            },
+            {
+              "name": "part_lines",
+              "lines": [
+                [
+                  80,
+                  86
+                ]
+              ]
+            },
+            {
+              "name": "fmt",
+              "lines": [
+                [
+                  89,
+                  99
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "block": "check_entry",
+      "block_lines": [
+        [
+          114,
+          175
+        ]
+      ],
+      "within": {
+        "explanation": 1,
+        "part": "up to 8 tries"
+      },
+      "text": "block           = the name of the block; an empty name stops the check with the BLOCK-NAME error\n\nblock_lines     = the line spans of the block; there must be one span at least, inside the file    (check_spans)\n\nfor each part, in the order of the text:\n    a part is one line of the flow text \u2014 one left-column name; the line:\n\n        \"spans = the real line span of every def and class\"\n\n    is the part named spans; the text is a list of such parts, in order\n\n    is the part name new?                                            no -> PART-NAME stops\n    do the own lines of the part sit inside the block lines?         no -> PART-BOUNDS stops; a part with outside_within and a note passes\n    is each callee a real block of the file, with its true span?     no -> CALLEE-REAL stops    (check_spans)\n    does each constant keep a name and lines inside the file?        no -> CONST-NAME or CONST-LINES stops\n\nwithin          = the zoom into one part of an older entry\n    do the parent entry and its part exist?                          no -> WITHIN-REAL stops\n    does every line of the new block sit inside the lines of that part?    no -> WITHIN-BOUNDS stops    (part_lines)\n\nthe clean entry returns, ready to append",
+      "parts": [
+        {
+          "part": "block",
+          "own_lines": [
+            [
+              114,
+              117
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "block_lines",
+          "own_lines": [
+            [
+              118,
+              119
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "check_spans",
+              "lines": [
+                [
+                  102,
+                  111
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "for each part, in the order of the text",
+          "own_lines": [
+            [
+              120,
+              162
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "expand",
+              "lines": [
+                [
+                  73,
+                  77
+                ]
+              ]
+            },
+            {
+              "name": "check_spans",
+              "lines": [
+                [
+                  102,
+                  111
+                ]
+              ]
+            },
+            {
+              "name": "fmt",
+              "lines": [
+                [
+                  89,
+                  99
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "within",
+          "own_lines": [
+            [
+              164,
+              174
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "part_lines",
+              "lines": [
+                [
+                  80,
+                  86
+                ]
+              ]
+            },
+            {
+              "name": "expand",
+              "lines": [
+                [
+                  73,
+                  77
+                ]
+              ]
+            },
+            {
+              "name": "fmt",
+              "lines": [
+                [
+                  89,
+                  99
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the clean entry returns",
+          "own_lines": [
+            [
+              163,
+              163
+            ],
+            [
+              175,
+              175
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "block": "block_spans",
+      "block_lines": [
+        [
+          58,
+          70
+        ]
+      ],
+      "within": {
+        "explanation": 1,
+        "part": "spans"
+      },
+      "text": "{}              = the result when the file is not a .py file, or when the text does not parse as Python\n\ntree            = the syntax tree of the full file    (ast.parse)\n\nspans           = an empty dict; the loop fills it, and the function returns it at the end\n\nfor each def, async def, and class node in the tree:    (ast.walk)\n    start            = the line where the block starts; when decorators sit above the def, start is the line of the first decorator\n    spans[node.name] = [start, the last line of the block]",
+      "parts": [
+        {
+          "part": "{}",
+          "own_lines": [
+            [
+              58,
+              60
+            ],
+            [
+              63,
+              64
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "tree",
+          "own_lines": [
+            [
+              61,
+              62
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "spans",
+          "own_lines": [
+            [
+              65,
+              65
+            ],
+            [
+              70,
+              70
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "for each def, async def, and class node in the tree",
+          "own_lines": [
+            [
+              66,
+              69
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        }
+      ]
+    }
+  ],
+  "not_covered": {
+    "code_lines": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      278,
+      279,
+      280,
+      281,
+      282,
+      283,
+      284,
+      285,
+      286,
+      287,
+      288,
+      289,
+      290,
+      291,
+      292,
+      293,
+      294,
+      297,
+      298,
+      299,
+      302,
+      303,
+      304,
+      305,
+      306,
+      307,
+      308,
+      309,
+      310,
+      311,
+      312,
+      313,
+      314,
+      315,
+      316,
+      319,
+      320
+    ],
+    "blank_lines": [
+      7,
+      9,
+      11,
+      13,
+      15,
+      17,
+      19,
+      21,
+      23,
+      27,
+      29,
+      31,
+      42,
+      52,
+      53,
+      56,
+      57,
+      71,
+      72,
+      78,
+      79,
+      87,
+      88,
+      100,
+      101,
+      112,
+      113,
+      176,
+      177,
+      188,
+      189,
+      197,
+      198,
+      203,
+      204,
+      210,
+      211,
+      276,
+      277,
+      295,
+      296,
+      300,
+      301,
+      317,
+      318
+    ]
+  }
+}

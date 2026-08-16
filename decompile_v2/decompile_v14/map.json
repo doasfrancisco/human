@@ -1,0 +1,758 @@
+{
+  "file": "decompile.py",
+  "links": [
+    {
+      "name": "PROMPT",
+      "def": "B01",
+      "used": [
+        "B17"
+      ]
+    },
+    {
+      "name": "VOCAB",
+      "def": "B01",
+      "used": [
+        "B18"
+      ]
+    },
+    {
+      "name": "RULES",
+      "def": "B01",
+      "used": [
+        "B19"
+      ]
+    },
+    {
+      "name": "BLOCK_RULES",
+      "def": "B01",
+      "used": [
+        "B19"
+      ]
+    },
+    {
+      "name": "CALLS",
+      "def": "B01",
+      "used": [
+        "B02",
+        "B19"
+      ]
+    },
+    {
+      "name": "ask_claude",
+      "def": "B02",
+      "used": [
+        "B17",
+        "B18"
+      ]
+    },
+    {
+      "name": "NAME_REF",
+      "def": "B01",
+      "used": [
+        "B03",
+        "B04",
+        "B06"
+      ]
+    },
+    {
+      "name": "DOTTED",
+      "def": "B01",
+      "used": [
+        "B04"
+      ]
+    },
+    {
+      "name": "check_block",
+      "def": "B03",
+      "used": [
+        "B17"
+      ]
+    },
+    {
+      "name": "check_grounded",
+      "def": "B04",
+      "used": [
+        "B06"
+      ]
+    },
+    {
+      "name": "check_vocab",
+      "def": "B06",
+      "used": [
+        "B18"
+      ]
+    },
+    {
+      "name": "carve",
+      "def": "B07",
+      "used": [
+        "B08"
+      ]
+    },
+    {
+      "name": "blocks_of",
+      "def": "B08",
+      "used": [
+        "B19"
+      ]
+    },
+    {
+      "name": "calls_of",
+      "def": "B10",
+      "used": [
+        "B19"
+      ]
+    },
+    {
+      "name": "layers_of",
+      "def": "B13",
+      "used": [
+        "B19"
+      ]
+    },
+    {
+      "name": "links",
+      "def": "B16",
+      "used": [
+        "B19"
+      ]
+    },
+    {
+      "name": "compile_block",
+      "def": "B17",
+      "used": [
+        "B19"
+      ]
+    },
+    {
+      "name": "vocab_pass",
+      "def": "B18",
+      "used": [
+        "B19"
+      ]
+    },
+    {
+      "name": "main",
+      "def": "B19",
+      "used": [
+        "B01"
+      ]
+    }
+  ],
+  "terms": [
+    {
+      "term": "the retry dance",
+      "meaning": "a fixed number of tries of (ask_claude), each answer checked, and a failed try rides back into the next prompt as the last answer plus every rule broken so far; when the last try also fails, the program stops"
+    },
+    {
+      "term": "a real block name",
+      "meaning": "a name this file carries as a block, so a lone name in parentheses, like (carve), points at something; any other name fails the check"
+    },
+    {
+      "term": "the scope path",
+      "meaning": "the dotted name a block gets from the defs that hold it, innermost part last, like blocks_of.grab"
+    },
+    {
+      "term": "the layer order",
+      "meaning": "a block sits above every block it calls, so a caller is explained only after all its callees"
+    },
+    {
+      "term": "the marked walk",
+      "meaning": "a depth-first walk that keeps one mark per node, so each node is entered one time only and the answer found for it is kept"
+    }
+  ],
+  "rules": {
+    "SEQ-FIELDS": "takes and gives are non-empty plain phrases and effects is a list of short phrases, empty for a pure block",
+    "ROOT-12": "the root is 12 words or less, counted by spaces",
+    "LINK-REAL": "a lone name in parentheses is the name of a block of this file",
+    "EFFECT-MARK": "bang lines and the effects list agree: a bang line needs a declared effect, an effectful flow body needs a bang line",
+    "BODY-KEPT": "a body that was not empty does not come back empty from the vocabulary pass",
+    "TERM-USED": "every term appears verbatim in at least 2 rewritten texts",
+    "TERM-GROUNDED": "a term meaning cites only real blocks of this file and no circle of terms closes"
+  },
+  "blocks": [
+    {
+      "id": "B01",
+      "name": "script",
+      "layer": 6,
+      "lines": [
+        [
+          1,
+          95
+        ],
+        [
+          107,
+          108
+        ],
+        [
+          434,
+          435
+        ]
+      ],
+      "calls": [
+        "main"
+      ],
+      "takes": "nothing but the command line the run gives to main",
+      "gives": "nothing",
+      "effects": [],
+      "root": "Imports, prompt texts, rule table, call counter, then main runs.",
+      "body": "PROMPT   = the per-block question sent to claude, with slots for the\n           file, the block label, its line spans, the callee sequents\n           and the list of legal block names\nVOCAB    = the second question: find the shared logic, name it, rewrite\n           every root and body through the terms\nRULES    = rule id -> one line, copied into map.json so the reader can\n           show why a text is the way it is\nBLOCK_RULES = the rule ids every block text must hold\nCALLS    = a one-cell list, the count of claude calls\nNAME_REF = the pattern that finds a lone name in parentheses, like (carve)\nDOTTED   = the pattern for a dotted name like blocks_of.grab\n\nrun as a script -> (main)\n\nThe two prompt texts are format strings, so every brace a reader must see in the answer shape is doubled. RULES holds only the ids the checkers put in their messages between brackets.",
+      "premises": [
+        "B19"
+      ],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B02",
+      "name": "ask_claude",
+      "layer": 1,
+      "lines": [
+        [
+          98,
+          104
+        ]
+      ],
+      "calls": [],
+      "takes": "one prompt string",
+      "gives": "the JSON object parsed out of claude's answer",
+      "effects": [
+        "runs the claude CLI as a subprocess",
+        "counts the call in the CALLS global"
+      ],
+      "root": "Every claude call in the program goes through here.",
+      "body": "Example: the CLI answers with an envelope, and the model text sits in its \"result\" field:\n\n{\"result\": \"Here it is: {\\\"root\\\": \\\"...\\\"} hope this helps\"}\n\nThe first { and the last } cut the object out of that text, so chatter around it does no harm. A non-zero exit code or a run longer than 600 seconds stops the program. Every try of the retry dance comes through here, and the counter in CALLS makes the number of calls known at the end.",
+      "premises": [],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B03",
+      "name": "check_block",
+      "layer": 1,
+      "lines": [
+        [
+          111,
+          132
+        ]
+      ],
+      "calls": [],
+      "takes": "one parsed claude answer m and the set of legal block names",
+      "gives": "the same record with every field stripped, or an AssertionError",
+      "effects": [],
+      "root": "A block answer passes only when it obeys every block rule.",
+      "body": "Example: m = {\"takes\": \"a file\", \"gives\": \"a list\", \"effects\": [\"writes map.json\"], \"root\": \"One line\", \"body\": \"! map.json = the result (main)\"} passes: takes, gives and effects are filled, the root has two words, (main) is a real block name, and the bang line has an effect to stand on.\n\nThe bang rule cuts both ways: a bang line with effects empty fails, and effects with a flow body and no bang line fails. A body that starts with the word \"example\" is read as an example body, so it is free of the bang duty. An empty body is legal here; only the vocabulary pass (check_vocab) refuses to let a full body go empty.",
+      "premises": [],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B04",
+      "name": "check_grounded",
+      "layer": 2,
+      "lines": [
+        [
+          135,
+          151
+        ],
+        [
+          164,
+          166
+        ]
+      ],
+      "calls": [
+        "check_grounded.walk"
+      ],
+      "takes": "the vocabulary list of term and meaning pairs, plus the set of legal block names",
+      "gives": "nothing; it returns only when every meaning is grounded and no circle of terms closes",
+      "effects": [],
+      "root": "Every term meaning must cite real blocks and lead down.",
+      "body": "Example: the blocks of this file include ask_claude, compile_block and walk.\n\nvocabulary = [\n  {\"term\": \"the retry dance\", \"meaning\": \"up to 8 tries of (ask_claude), each retry told which rule broke\"},\n  {\"term\": \"the gate\",        \"meaning\": \"the asserts the retry dance is checked against\"}\n]\n\nBoth meanings pass: (ask_claude) is a real block name, and the edge from \"the gate\" down to \"the retry dance\" closes no circle; a name in parentheses that is not a real block name fails here. A dotted word is judged only when its first part is a block name, so ast.parse goes by untouched while the scope path compile_block.foo is caught. If the meaning of \"the retry dance\" named \"the gate\" back, the depth-first walk (walk) prints the circle and the vocabulary pass dies.",
+      "premises": [
+        "B05"
+      ],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B05",
+      "name": "check_grounded.walk",
+      "layer": 1,
+      "lines": [
+        [
+          153,
+          162
+        ]
+      ],
+      "calls": [],
+      "takes": "a term index, the path of indices that reached it, and the shared edges and state maps of the surrounding check",
+      "gives": "nothing; it comes back only when everything under that term is clean",
+      "effects": [
+        "marks each term open, then closed, in the shared state map",
+        "raises the circle assertion that stops the vocabulary pass"
+      ],
+      "root": "Depth-first from one term; a term still on the path aborts.",
+      "body": "Example: three terms 0, 1, 2, where the meaning of 0 uses 1, the meaning of 1 uses 2, and the meaning of 2 uses 0.\n\nwalk(0, [0]) marks 0 open, steps down to 1, then to 2, and there sees 0 still open, so the assertion fires with \"0 -> 1 -> 2 -> 0\".\n\nThis is the marked walk with one more mark, open, and a term found open again is a circle. A term already closed is skipped, so a term that many meanings cite is walked one time only, not one time for each parent. The path is kept for the message alone: the circle is cut at the first place the repeated term stands in it. A term is closed only after all terms below it are clean.",
+      "premises": [],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B06",
+      "name": "check_vocab",
+      "layer": 3,
+      "lines": [
+        [
+          169,
+          200
+        ]
+      ],
+      "calls": [
+        "check_grounded"
+      ],
+      "takes": "the model's vocabulary answer, the finished per-block explanations, and the set of legal block names",
+      "gives": "the cleaned term list and every block's record with its rewritten root and body",
+      "effects": [],
+      "root": "The vocabulary answer passes only if every term earns two uses.",
+      "body": "Example: done holds carve and check_block, and the answer proposes one term, \"the retry dance\". The meanings are grounded first (check_grounded); then both blocks must come back in rewritten, and the term must appear as that plain string, in roots or bodies, in at least 2 of them. A body that had text must not come back empty, but a body that was empty may stay empty. The returned record keeps takes, gives and effects from before; only root and body change.",
+      "premises": [
+        "B04"
+      ],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B07",
+      "name": "carve",
+      "layer": 1,
+      "lines": [
+        [
+          203,
+          222
+        ]
+      ],
+      "calls": [],
+      "takes": "a start line, an end line, a list of spans to remove, and the file's lines",
+      "gives": "the line spans left over, each trimmed of blank edge lines",
+      "effects": [],
+      "root": "A span minus its inner spans, blank edges trimmed away.",
+      "body": "Example: carve(1, 6, [[3, 4]], lines) over\n\n1  def f(x):\n2      y = x + 1\n3      def g(z):\n4          return z\n5\n6      return y\n\ngives [[1, 2], [6, 6]]. Lines 3-4 drop out, and the gap at line 5 is trimmed off the tail of the second run, so no span starts or ends on a blank line. A run that holds blank lines only disappears; the ranges are inclusive on both ends.",
+      "premises": [],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B08",
+      "name": "blocks_of",
+      "layer": 2,
+      "lines": [
+        [
+          225,
+          227
+        ],
+        [
+          237,
+          247
+        ]
+      ],
+      "calls": [
+        "blocks_of.grab",
+        "carve"
+      ],
+      "takes": "the file path, its source text, and its lines",
+      "gives": "the list of blocks, each with a name, its own line spans, and its AST node, in file order",
+      "effects": [],
+      "root": "Each def and class is a block, the leftover lines the script.",
+      "body": "Example: a four-line file\n\n1  def outer():\n2      def inner():\n3          return 1\n4      return inner\n\ngives two blocks: outer with lines [1,1] and [4,4], and inner with [2,3]. A nested def becomes its own block under the scope path outer.inner, and the parent keeps only the lines the child does not hold. The lines that belong to no def become one last block named script. A file that is not Python has no defs, so all of it is that script block.",
+      "premises": [
+        "B09",
+        "B07"
+      ],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B09",
+      "name": "blocks_of.grab",
+      "layer": 1,
+      "lines": [
+        [
+          228,
+          235
+        ]
+      ],
+      "calls": [],
+      "takes": "an AST node and the scope path of the names above it, plus the fns list it fills",
+      "gives": "nothing",
+      "effects": [
+        "appends every def and class it finds to the fns list of blocks_of"
+      ],
+      "root": "Recursion over the tree collects every def and class by scope path.",
+      "body": "Example: grab on the module node of this file, scope []\n\nit meets the def of blocks_of and appends {\"name\": \"blocks_of\", \"span\": [225, 247], \"node\": ...}, then calls itself on that same node with scope [\"blocks_of\"], where the def inside gets the scope path blocks_of.grab.\n\nA node that is not a def or a class is walked through but not recorded, so a def inside an if or a try is still found. When a def has decorators, the span starts at the first decorator line, not at the def line. Nothing comes back: the finds land in the fns list.",
+      "premises": [],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B10",
+      "name": "calls_of",
+      "layer": 3,
+      "lines": [
+        [
+          250,
+          253
+        ],
+        [
+          272,
+          274
+        ]
+      ],
+      "calls": [
+        "calls_of.scan"
+      ],
+      "takes": "one block record with its name and AST node, the file's top-level statements, and the set of all block names",
+      "gives": "the sorted names of the blocks this block calls",
+      "effects": [],
+      "root": "Which blocks a block calls, read from its own syntax tree.",
+      "body": "Example: calls_of on the main() block. Its node goes to (scan), which drops the resolved names into a set, and the answer comes back sorted: [\"blocks_of\", \"calls_of\", \"compile_block\", \"layers_of\", \"links\", \"vocab_pass\"].\n\nA function block gives (scan) one thing, its own def node. The script block has no node, so it gives each top-level statement that is not a def or a class instead, and the code inside a def counts for that def alone. A block never appears in its own list.",
+      "premises": [
+        "B12"
+      ],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B11",
+      "name": "calls_of.resolve",
+      "layer": 1,
+      "lines": [
+        [
+          255,
+          260
+        ]
+      ],
+      "calls": [],
+      "takes": "a bare word, plus the scope path of the block being scanned and the set of block names",
+      "gives": "the qualified block name that word means here, or None",
+      "effects": [],
+      "root": "A bare name resolves to the innermost enclosing block that defines it.",
+      "body": "Example: the scanner is inside (grab), so the scope path is blocks_of.grab and the word is \"grab\".\n\nresolve tries \"blocks_of.grab.grab\" first — not a real block name — then \"blocks_of.grab\", which is one, and stops there. The last candidate it would try is the bare \"grab\".\n\nThe walk goes from the deepest scope outward, so the nearest enclosing definition wins over a top-level one with the same name. A word that matches nothing at any depth gives None, and the caller keeps only the hits.",
+      "premises": [],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B12",
+      "name": "calls_of.scan",
+      "layer": 2,
+      "lines": [
+        [
+          262,
+          270
+        ]
+      ],
+      "calls": [
+        "calls_of.resolve"
+      ],
+      "takes": "one AST node, plus the enclosing calls_of state: the skip types, the block being scanned, and the out set",
+      "gives": "nothing to the caller; the found names land in the out set",
+      "effects": [
+        "adds resolved block names into the out set of the enclosing calls_of"
+      ],
+      "root": "The walk adds each resolved name to out, skipping nested defs.",
+      "body": "Example: the walk reaches a body that reads\n\n    x = carve(1, 2)\n    def g(): return links(p)\n\ncarve joins the set; the def g line is skipped whole, so links never joins it. A word that (resolve) does not map to a block of this file is dropped, and the block's own name is dropped too, so a call to itself never counts.",
+      "premises": [
+        "B11"
+      ],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B13",
+      "name": "layers_of",
+      "layer": 2,
+      "lines": [
+        [
+          277,
+          279
+        ],
+        [
+          300,
+          308
+        ],
+        [
+          315,
+          315
+        ]
+      ],
+      "calls": [
+        "layers_of.height",
+        "layers_of.strong"
+      ],
+      "takes": "the block list and the calls map from main()",
+      "gives": "a name -> layer number map, one entry per block",
+      "effects": [],
+      "root": "Every block gets a layer number: callees below, callers above.",
+      "body": "Example: three blocks, main calls compile_block, compile_block calls ask_claude.\n\nask_claude gets 1, compile_block 2, main 3, which is the layer order.\n\nMutual recursion would make the number impossible, so blocks that call each other in a circle are first collapsed to one group (strong), and the number is the height of the group graph (height). Every block of a circle then gets the same layer. A block that calls nothing gets 1, not 0.",
+      "premises": [
+        "B15",
+        "B14"
+      ],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B14",
+      "name": "layers_of.strong",
+      "layer": 1,
+      "lines": [
+        [
+          281,
+          298
+        ]
+      ],
+      "calls": [],
+      "takes": "a block name v, plus the shared idx, low, on, st, comp and counter k that layers_of set up",
+      "gives": "nothing",
+      "effects": [
+        "fills idx, low, comp and the stack of layers_of"
+      ],
+      "root": "Tarjan walk: each cycle of blocks collapses to one name.",
+      "body": "Example: main calls compile_block, and check_block and check_grounded call each other.\n\nstrong is the marked walk with idx and low as the marks. It gives each name a number in idx, and when it comes back to a name still on the stack (check_grounded reaches check_block again), it lowers low, so the two keep the same low value and pop together: comp maps both to check_block, the name that opened the cycle. A block with no cycle is its own group. The recursion follows calls[v], so every block the file reaches gets a group, and layers_of then measures height per group, not per block.",
+      "premises": [],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B15",
+      "name": "layers_of.height",
+      "layer": 1,
+      "lines": [
+        [
+          310,
+          313
+        ]
+      ],
+      "calls": [],
+      "takes": "a component name c, plus the edges map and the memo h from the enclosing scope",
+      "gives": "the height of that component: 1 plus the tallest height below it",
+      "effects": [],
+      "root": "A component sits one above the tallest component it calls.",
+      "body": "Example: three components, a -> b and a -> c, and c -> nothing.\n\nheight(c) = 1, because c calls nobody.\nheight(b) = 1. height(a) = 1 + max(1, 1) = 2.\n\nA leaf gets 1, not 0. The memo h makes this the marked walk, so each component is touched one time; the recursion is safe only because edges is the condensed graph, which has no cycle.",
+      "premises": [],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B16",
+      "name": "links",
+      "layer": 1,
+      "lines": [
+        [
+          318,
+          334
+        ]
+      ],
+      "calls": [],
+      "takes": "the file path and owner, a map from line number to the id of the block that holds that line; it reads the file again through jedi",
+      "gives": "a list of rows, one per name, each with the name, the block that defines it, and the blocks that use it",
+      "effects": [],
+      "root": "Jedi finds each name's defining block and the blocks that use it.",
+      "body": "Example: compile_block is defined on line 337 and used on line 407, inside main. owner turns both lines into block ids, so one row comes out:\n\n{\"name\": \"compile_block\", \"def\": the id of compile_block's own block, \"used\": [the id of main's block]}\n\nA name that jedi resolves to another module, like json, is dropped, and a file that is not Python gives [] at once. A name used only inside the block that defines it makes no row. Only top-level names are scanned, so a nested block like (resolve) never becomes a row of its own.",
+      "premises": [],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B17",
+      "name": "compile_block",
+      "layer": 2,
+      "lines": [
+        [
+          337,
+          358
+        ]
+      ],
+      "calls": [
+        "ask_claude",
+        "check_block"
+      ],
+      "takes": "one block record bl, the file name, the numbered code, the callee context text, and the set of legal block names",
+      "gives": "the checked record for that block — takes, gives, effects, root, body",
+      "effects": [
+        "prints one progress line per block and one line per retry",
+        "exits the program when 8 tries fail"
+      ],
+      "root": "The retry dance per block, checked against the block rules.",
+      "body": "base    = the prompt, filled with the file, the block label, its line spans,\n          the callee context and the short names of all blocks\n\nthe retry dance, 8 tries, each answer checked by (check_block)\n! ok:   print the block, its body or silence, its effect count\n\nThe block label is the bare function name with \"()\" for a def, and \"the top-level script code\" for the script block. The names given to claude are short: the last part of the scope path, so a nested name like grab arrives as grab.",
+      "premises": [
+        "B02",
+        "B03"
+      ],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B18",
+      "name": "vocab_pass",
+      "layer": 4,
+      "lines": [
+        [
+          361,
+          380
+        ]
+      ],
+      "calls": [
+        "ask_claude",
+        "check_vocab"
+      ],
+      "takes": "the blocks in file order, the finished per-block explanations, and the set of legal block names",
+      "gives": "the term list plus every block's record with its root and body rewritten",
+      "effects": [
+        "prints the term count and each retry",
+        "ends the program when the fourth try fails"
+      ],
+      "root": "The retry dance, 4 tries, rewrites every text through one vocabulary.",
+      "body": "expl = every block's name, root and body, one after the other, in file order\n\nthe retry dance, 4 tries, one claude call -> vocabulary + every text rewritten,\nchecked by (check_vocab) as a whole, all or nothing\n! every try prints, and the fourth failure ends the program",
+      "premises": [
+        "B02",
+        "B06"
+      ],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    },
+    {
+      "id": "B19",
+      "name": "main",
+      "layer": 5,
+      "lines": [
+        [
+          383,
+          431
+        ]
+      ],
+      "calls": [
+        "blocks_of",
+        "calls_of",
+        "compile_block",
+        "layers_of",
+        "links",
+        "vocab_pass"
+      ],
+      "takes": "the command line: the path of the file to explain and an optional output path",
+      "gives": "nothing",
+      "effects": [
+        "reads the source file named on the command line",
+        "writes map.json, or the path given as the second argument",
+        "prints the closing count line"
+      ],
+      "root": "Every block gets an explanation, bottom up, written beside the file.",
+      "body": "! code        = the file, read from argv[1], a line number in front of every line\nblocks      = one block per def and class plus the script (blocks_of)\ncalls       = for each block the blocks it calls (calls_of)\nlayers      = the layer order (layers_of)\n\nfor each block, lowest layer first:\n    ctx     = the sequents of the callees already finished,\n              so the block speaks about a callee at its level, not its inside\n    done[b] = the checked root and body (compile_block)\n\nterms, done = the shared vocabulary, every text rewritten through it (vocab_pass)\nrows        = per block: id B01, B02..., name, layer, lines, calls,\n              sequent, root, body, the ids of the blocks it calls, its rules\nowner       = line number -> block id, so a name can be placed (links)\n\n! map.json  = rows, links, terms and rules, written beside the file\n! last line = the counts: blocks, silent bodies, pure blocks, terms, links, claude calls\n\nThe layer order is the point: the context a caller gets is always complete.",
+      "premises": [
+        "B08",
+        "B10",
+        "B17",
+        "B13",
+        "B16",
+        "B18"
+      ],
+      "rules": [
+        "SEQ-FIELDS",
+        "ROOT-12",
+        "LINK-REAL",
+        "EFFECT-MARK",
+        "BODY-KEPT"
+      ]
+    }
+  ]
+}

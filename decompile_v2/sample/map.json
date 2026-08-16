@@ -1,0 +1,45 @@
+{
+  "file": "sample.py",
+  "links": [
+    {"name": "Tally", "def": "F02", "used": ["F07.6"]},
+    {"name": "digits", "def": "F05.1", "used": ["F07.2"]},
+    {"name": "spread", "def": "F06", "used": ["F07.7"]},
+    {"name": "report", "def": "F07.2", "used": ["F01.2"]}
+  ],
+  "terms": [
+    {"term": "doubled sum of all digits", "text": "the value in t.total after t.add(n) is called for every n in nums, where each add doubles n before adding it", "defs": [[33, 35], [38, 38]]},
+    {"term": "empty answer for path", "text": "the dict {\"file\": path, \"count\": 0} returned when nums is empty and no further computation is done", "defs": [[31, 31]]},
+    {"term": "file path from the command line", "text": "sys.argv[1] when len(sys.argv) is greater than 1, otherwise __file__, passed as path to report()", "defs": [[41, 41]]}
+  ],
+  "map": [
+    {"id": "F01", "name": "script", "layer": 3, "calls": ["report"], "takes": "a file path from the command line", "gives": "a JSON line printed to stdout", "text": "script — reads digit stats from a file and prints them as JSON\nexample: {\"file\": \"f.txt\", \"count\": 5, \"total\": 30, \"spread\": 8}", "lines": [[1, 2], [41, 42]], "children": [
+      {"id": "F01.1", "layer": 1, "text": "import json, sys — the serialization and argument tools.", "lines": [[1, 2]]},
+      {"id": "F01.2", "layer": 1, "text": "out = report(sys.argv[1]) — the file path from the command line, or this script if none given.\nprint(json.dumps(out)) — writes the result dict as a JSON line.", "lines": [[41, 42]]}
+    ]},
+    {"id": "F02", "name": "Tally", "layer": 1, "calls": [], "takes": "nothing", "gives": "a Tally instance with total set to 0", "text": "Tally() — accumulates a running total where each added value is doubled\nexample: {\"total\": 0}", "lines": [[5, 5]]},
+    {"id": "F03", "name": "Tally.__init__", "layer": 1, "calls": [], "takes": "a new Tally instance", "gives": "self.total set to zero", "text": "__init__(self) -> None — sets total to 0 before any adds", "lines": [[6, 7]]},
+    {"id": "F04", "name": "Tally.add", "layer": 1, "calls": [], "takes": "self (a Tally), n (a number)", "gives": "self.total updated in place", "text": "add(self, n) — doubles n and adds it to self.total", "lines": [[9, 10]]},
+    {"id": "F05", "name": "digits", "layer": 1, "calls": [], "takes": "a string of text", "gives": "a list of integers", "text": "digits(text) -> out — collect every digit character in text as an integer\nexample: [1, 4, 2, …]", "lines": [[13, 18]], "children": [
+      {"id": "F05.1", "layer": 1, "text": "def digits(text):\nout = []", "lines": [[13, 14]]},
+      {"id": "F05.2", "layer": 1, "text": "for ch in text: if ch.isdigit(): out.append(int(ch)) — collect each digit character as an integer.", "lines": [[15, 17]]},
+      {"id": "F05.3", "layer": 1, "text": "return out", "lines": [[18, 18]]}
+    ]},
+    {"id": "F06", "name": "spread", "layer": 1, "calls": [], "takes": "a list of numbers", "gives": "the difference between the largest and smallest numbers", "text": "spread(nums) -> number — subtract min(nums) from max(nums)", "lines": [[21, 24]]},
+    {"id": "F07", "name": "report", "layer": 2, "calls": ["Tally", "digits", "spread"], "takes": "a file path", "gives": "a dict with digit stats, and prints a summary line", "text": "report(path) -> dict — read the file, tally its digits, and return the counts\nexample: {\"file\": \"f.txt\", \"count\": 5, \"total\": 30, \"spread\": 8}", "lines": [[27, 38]], "children": [
+      {"id": "F07.1", "layer": 2, "text": "nums = the digits found in the file at path", "lines": [[27, 29]], "children": [
+        {"id": "F07.2", "layer": 1, "text": "def report(path):\nsrc = the text read from path\nnums = digits(src) — every digit character in src as an integer list", "lines": [[27, 29]]}
+      ]},
+      {"id": "F07.3", "layer": 2, "text": "if not nums: return the empty answer for path", "lines": [[30, 31]], "children": [
+        {"id": "F07.4", "layer": 1, "text": "if not nums: return {file: path, count: 0}", "lines": [[30, 31]]}
+      ]},
+      {"id": "F07.5", "layer": 2, "text": "t.total, wide = the doubled sum of the digits, and how far apart the digits reach", "lines": [[32, 35]], "children": [
+        {"id": "F07.6", "layer": 1, "text": "t = Tally()\nfor n in nums: t.add(n) — t.total holds the doubled sum of all digits", "lines": [[32, 34]]},
+        {"id": "F07.7", "layer": 1, "text": "wide = spread(nums) — difference between the largest and smallest digit", "lines": [[35, 35]]}
+      ]},
+      {"id": "F07.8", "layer": 2, "text": "report(path) = the counts told to the screen and given back to the caller", "lines": [[36, 38]], "children": [
+        {"id": "F07.9", "layer": 1, "text": "print a line: count of nums, t.total, and wide", "lines": [[36, 37]]},
+        {"id": "F07.10", "layer": 1, "text": "return {file: path, count: len(nums), total: t.total, spread: wide}", "lines": [[38, 38]]}
+      ]}
+    ]}
+  ]
+}

@@ -1,0 +1,14 @@
+flaky_get: root + body
+retry 1 [sum_leaves()]: Unterminated string starting at: line 1 column 82 (char 81)
+sum_leaves: root + body
+deep_flag: root + body
+average_scores: root + body
+spread_scores: root + body
+roman: root + body
+luhn_ok: root + body
+fetch_user: root + body
+fetch_orders: root + body
+fetch_prices: root + body
+script: root + body
+vocabulary: 4 terms
+11 blocks, 0 silent, 4 terms, 12 links, 13 claude calls -> decompile_v13/example_map.json

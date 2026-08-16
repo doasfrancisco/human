@@ -1,6 +1,7 @@
 .playwright-mcp/
-.claude/settings.local.json
+.claude/
 graphify-out/
+check-sort.png
 .env
 .venv/
 __pycache__/

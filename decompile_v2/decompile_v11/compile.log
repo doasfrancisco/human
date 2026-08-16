@@ -1,0 +1,31 @@
+statements.walk: 7 cells -> 2 beats, 0 terms, story yes
+cells_of.kids_of: 8 cells -> 3 beats, 0 terms, story yes
+merge: 8 cells -> 3 beats, 0 terms, story yes
+ask_claude: 6 cells -> 4 beats, 0 terms, story yes
+check_block: 38 cells -> 11 beats, 1 terms, story yes
+carve: 20 cells -> 4 beats, 0 terms, story yes
+blocks_of.grab: 8 cells -> 4 beats, 0 terms, story yes
+calls_of.resolve: 6 cells -> 3 beats, 0 terms, story yes
+layers_of.strong: 18 cells -> 3 beats, 1 terms, story yes
+layers_of.height: 4 cells -> 3 beats, 0 terms, story yes
+nodes_of.walk: 5 cells -> 2 beats, 0 terms, story no
+number.walk: 6 cells -> 3 beats, 0 terms, story yes
+links: 16 cells -> 8 beats, 0 terms, story yes
+row_of: 3 cells -> 2 beats, 0 terms, story no
+retry 1 [write_node()]: Expecting ',' delimiter: line 1 column 1032 (char 1031)
+write_node: 13 cells -> 6 beats, 0 terms, story yes
+statements: 6 cells -> 4 beats, 0 terms, story no
+cells_of.emit: 19 cells -> 4 beats, 0 terms, story yes
+blocks_of: 13 cells -> 5 beats, 0 terms, story yes
+calls_of.scan: 9 cells -> 4 beats, 1 terms, story yes
+layers_of: 13 cells -> 4 beats, 1 terms, story yes
+nodes_of: 4 cells -> 2 beats, 0 terms, story no
+number: 5 cells -> 3 beats, 0 terms, story yes
+write_map: 7 cells -> 4 beats, 0 terms, story no
+compile_block: 28 cells -> 10 beats, 0 terms, story yes
+cells_of: 36 cells -> 6 beats, 0 terms, story yes
+calls_of: 7 cells -> 3 beats, 1 terms, story yes
+owner_of: 8 cells -> 4 beats, 0 terms, story yes
+main: 47 cells -> 12 beats, 0 terms, story yes
+script: 11 cells -> 4 beats, 0 terms, story no
+29 blocks, 159 texts, 20 links, 5 terms, 30 claude calls -> decompile_v11/map.json

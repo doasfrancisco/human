@@ -1,0 +1,424 @@
+{
+  "file": "decompile.py",
+  "links": [
+    {
+      "name": "PROMPT",
+      "def": "B01",
+      "used": [
+        "B15"
+      ]
+    },
+    {
+      "name": "VOCAB",
+      "def": "B01",
+      "used": [
+        "B16"
+      ]
+    },
+    {
+      "name": "CALLS",
+      "def": "B01",
+      "used": [
+        "B02",
+        "B17"
+      ]
+    },
+    {
+      "name": "ask_claude",
+      "def": "B02",
+      "used": [
+        "B15",
+        "B16"
+      ]
+    },
+    {
+      "name": "NAME_REF",
+      "def": "B01",
+      "used": [
+        "B03",
+        "B04"
+      ]
+    },
+    {
+      "name": "check_block",
+      "def": "B03",
+      "used": [
+        "B15"
+      ]
+    },
+    {
+      "name": "check_vocab",
+      "def": "B04",
+      "used": [
+        "B16"
+      ]
+    },
+    {
+      "name": "carve",
+      "def": "B05",
+      "used": [
+        "B06"
+      ]
+    },
+    {
+      "name": "blocks_of",
+      "def": "B06",
+      "used": [
+        "B17"
+      ]
+    },
+    {
+      "name": "calls_of",
+      "def": "B08",
+      "used": [
+        "B17"
+      ]
+    },
+    {
+      "name": "layers_of",
+      "def": "B11",
+      "used": [
+        "B17"
+      ]
+    },
+    {
+      "name": "links",
+      "def": "B14",
+      "used": [
+        "B17"
+      ]
+    },
+    {
+      "name": "compile_block",
+      "def": "B15",
+      "used": [
+        "B17"
+      ]
+    },
+    {
+      "name": "vocab_pass",
+      "def": "B16",
+      "used": [
+        "B17"
+      ]
+    },
+    {
+      "name": "main",
+      "def": "B17",
+      "used": [
+        "B01"
+      ]
+    }
+  ],
+  "terms": [
+    {
+      "term": "the retry dance",
+      "meaning": "One claude call, the answer put through its checker, and on a broken rule the bad answer plus the new error plus every error so far ride into the next prompt; when the last try also fails the program stops."
+    },
+    {
+      "term": "a lone name in parentheses",
+      "meaning": "A name that stands alone inside parentheses, like (carve), which counts as a link to that block; a name inside a longer phrase, like f(carve), does not count."
+    },
+    {
+      "term": "the scope path",
+      "meaning": "A block's full name: the names of the defs and classes around it joined by dots, like blocks_of.grab, where only a def or a class adds a part."
+    },
+    {
+      "term": "the cycle group",
+      "meaning": "The blocks that call each other, collapsed into one node named after the block that opened it, so every block of the group gets the same layer and a cycle cannot stop the ordering."
+    },
+    {
+      "term": "the nested-def stop",
+      "meaning": "The tree walk does not step into a nested def or class, so the names on those lines belong to that nested block alone and not to its parent."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B01",
+      "name": "script",
+      "layer": 5,
+      "lines": [
+        [
+          1,
+          76
+        ],
+        [
+          88,
+          88
+        ],
+        [
+          353,
+          354
+        ]
+      ],
+      "calls": [
+        "main"
+      ],
+      "root": "Both claude prompts live here; running the file explains one file.",
+      "body": "PROMPT   = the per-block prompt, filled in and sent by (compile_block)\nVOCAB    = the one-shot vocabulary prompt, sent by (vocab_pass)\nCALLS    = the claude call counter, raised in (ask_claude), printed at the end\nNAME_REF = the pattern for a lone name in parentheses, used by (check_block) and (check_vocab)\n\nlast two lines = run (main) when the file is called as a program\n\nBoth templates pass through str.format, so every brace they must keep is doubled: the JSON skeleton and the gold body are written with double braces and arrive with single ones."
+    },
+    {
+      "id": "B02",
+      "name": "ask_claude",
+      "layer": 1,
+      "lines": [
+        [
+          79,
+          85
+        ]
+      ],
+      "calls": [],
+      "root": "Every claude call goes out here and comes back parsed JSON.",
+      "body": "Example: ask_claude(\"...prompt...\") runs the claude CLI as a subprocess with --output-format json, then reads the JSON object out of the result text.\n\nThe outer JSON has the model text under \"result\", so the object is parsed twice. The inner text is cut from the first { to the last }, so a stray sentence around the object is dropped. A non-zero exit or a 600 second timeout stops the run, and CALLS counts every call for the final line."
+    },
+    {
+      "id": "B03",
+      "name": "check_block",
+      "layer": 1,
+      "lines": [
+        [
+          91,
+          99
+        ]
+      ],
+      "calls": [],
+      "root": "Every claude answer passes here: root under 12 words, parenthesized names real.",
+      "body": "Example: the answer {\"root\": \"One claude call turns a block into root plus body.\", \"body\": \"the checker (check_block) gates it\"} passes, and comes back stripped of white space at both ends.\n\nAn empty body is legal, a missing or empty root is not. Only a lone name in parentheses is tested against the block names. The name set holds both the scope path and its last part, so (grab) passes as well as (blocks_of).\n\nEvery failure is an assertion with the reason in plain words, because the caller (compile_block) feeds that reason into the retry dance."
+    },
+    {
+      "id": "B04",
+      "name": "check_vocab",
+      "layer": 1,
+      "lines": [
+        [
+          102,
+          132
+        ]
+      ],
+      "calls": [],
+      "root": "Every block keeps a legal text and every term earns two uses.",
+      "body": "Example: the vocabulary offers one term, \"the retry dance\", and the rewrite comes back as\n\nask_claude  root: \"the retry dance around one claude call\"   body: \"\"\ncarve       root: \"cuts one span into clean pieces\"          body: \"...\"\n\nOnly ask_claude says the term, so the count is 1 and the check fails: a term must stand verbatim in at least 2 of the texts, and a root counts the same as a body.\n\nThe per-block rules run first, so a block missing from rewritten, a root above 12 words, a lone name in parentheses that is not a block, or a body that was full and came back empty stops it before the term count. A body that was already empty may stay empty. Only the blocks that were explained come back; anything else in rewritten is dropped."
+    },
+    {
+      "id": "B05",
+      "name": "carve",
+      "layer": 1,
+      "lines": [
+        [
+          135,
+          154
+        ]
+      ],
+      "calls": [],
+      "root": "A span minus the spans inside it, blank edges trimmed away.",
+      "body": "Example: the range 1 to 10, minus the inner span 4 to 6, with line 3 blank and line 7 blank.\n\nThe free runs are [1,3] and [7,10]. Each run then loses its blank edge lines: [1,3] becomes [1,2], and [7,10] becomes [8,10]. The result is [[1,2],[8,10]].\n\nAll bounds are inclusive line numbers that start at 1. A run of only blank lines disappears, thus the result can be an empty list. The removed spans need no order and no merge; only the line numbers they cover have an effect."
+    },
+    {
+      "id": "B06",
+      "name": "blocks_of",
+      "layer": 2,
+      "lines": [
+        [
+          157,
+          159
+        ],
+        [
+          169,
+          179
+        ]
+      ],
+      "calls": [
+        "blocks_of.grab",
+        "carve"
+      ],
+      "root": "Every def and class is a block, leftover lines the script.",
+      "body": "Example: a six-line file\n\n1  def f():\n2      def g():\n3          return 1\n4      return g()\n5\n6  print(f())\n\nOne walk names every def by the scope path (grab), so the inner one is the block f.g over [2,3]. The block f keeps [1,1] and [4,4]: its span minus the spans inside it (carve). The lines no def owns become one block called script, here [6,6]. So a block can hold several spans, and a file that is not Python is all script."
+    },
+    {
+      "id": "B07",
+      "name": "blocks_of.grab",
+      "layer": 1,
+      "lines": [
+        [
+          160,
+          167
+        ]
+      ],
+      "calls": [],
+      "root": "One walk down the tree gives every def the scope path.",
+      "body": "Example: two lines of this file\n\n157  def blocks_of(path, src, lines):\n160      def grab(node, scope):\n\ngrab appends blocks_of first, then steps inside it and appends blocks_of.grab — the parent name, a dot, the child name. A def inside an if or a for keeps the enclosing name, because only a def or a class extends the scope path. The span of a decorated def starts at its topmost decorator line, not at the def line."
+    },
+    {
+      "id": "B08",
+      "name": "calls_of",
+      "layer": 3,
+      "lines": [
+        [
+          182,
+          185
+        ],
+        [
+          204,
+          206
+        ]
+      ],
+      "calls": [
+        "calls_of.scan"
+      ],
+      "root": "A block's calls are the block names its own code mentions.",
+      "body": "Example: calls_of on layers_of. Its own lines mention strong and height, both nested blocks of it, so the answer is [\"layers_of.height\", \"layers_of.strong\"].\n\nThe walk (scan) obeys the nested-def stop, so a block claims only the names written on its own lines. The script block has no node, so the roots are the file's top-level statements with the defs dropped, and line 354 gives [\"main\"]. A bare name is enough, a call is not needed, and the block's own name never comes back."
+    },
+    {
+      "id": "B09",
+      "name": "calls_of.resolve",
+      "layer": 1,
+      "lines": [
+        [
+          187,
+          192
+        ]
+      ],
+      "calls": [],
+      "root": "A bare name resolves to the innermost block that owns it.",
+      "body": "Example: scan is inside calls_of, so scope = [\"calls_of\"].\n\n\"resolve\" -> calls_of.resolve is a block -> \"calls_of.resolve\"\n\"carve\"   -> calls_of.carve is no block -> carve is -> \"carve\"\n\"range\"   -> nothing matches -> None\n\nThe prefixes of the scope path are tried longest first, so a nested (resolve) hides a top-level one of the same name. The bare name is the last try, not the first. A word that names no block gives None, and the caller keeps only the hits."
+    },
+    {
+      "id": "B10",
+      "name": "calls_of.scan",
+      "layer": 2,
+      "lines": [
+        [
+          194,
+          202
+        ]
+      ],
+      "calls": [
+        "calls_of.resolve"
+      ],
+      "root": "Walk the block's tree, collect every name that resolves to a block.",
+      "body": "Example: scan over the tree of compile_block meets the names json, ask_claude and check_block. json resolves to nothing, so out ends as [ask_claude, check_block].\n\nIt is the nested-def stop that keeps the names of (grab) out of (blocks_of). A name that resolves to the block itself is dropped, so a recursive block does not call itself. Every name goes through (resolve), so it binds to the innermost block that owns it."
+    },
+    {
+      "id": "B11",
+      "name": "layers_of",
+      "layer": 2,
+      "lines": [
+        [
+          209,
+          211
+        ],
+        [
+          232,
+          240
+        ],
+        [
+          247,
+          247
+        ]
+      ],
+      "calls": [
+        "layers_of.height",
+        "layers_of.strong"
+      ],
+      "root": "Every block gets a layer number, so callees come before callers.",
+      "body": "comp   = every block put in the cycle group it belongs to (strong)\nedges  = group -> the groups that group calls, own group dropped\nlayer  = the height of the block's group (height)\n\nExample: main calls compile_block, compile_block calls ask_claude. ask_claude gets 1, compile_block 2, main 3. Two blocks that share the cycle group get the same number, so a cycle does not stop the ordering."
+    },
+    {
+      "id": "B12",
+      "name": "layers_of.strong",
+      "layer": 1,
+      "lines": [
+        [
+          213,
+          230
+        ]
+      ],
+      "calls": [],
+      "root": "Tarjan walk gives every block the cycle group it belongs to.",
+      "body": "Example: three blocks, with calls saying a -> b, b -> a, and a -> c.\n\nstrong(\"a\") enters a, then b. b sees a still on the stack, so low[b] drops to idx[a]. Back in a, low[a] == idx[a], so the stack pops down to a and comp[\"b\"] = comp[\"a\"] = \"a\". c is entered on its own and gets comp[\"c\"] = \"c\".\n\nA block already in idx is never entered a second time. The walk is plain recursion, so a deep call chain costs stack."
+    },
+    {
+      "id": "B13",
+      "name": "layers_of.height",
+      "layer": 1,
+      "lines": [
+        [
+          242,
+          245
+        ]
+      ],
+      "calls": [],
+      "root": "Height of a cycle group: one above the tallest it calls.",
+      "body": "Example: ask_claude calls nothing, so its height is 1. check_block is also 1. compile_block calls both, so it gets 1 + max(1, 1) = 2. main calls compile_block and blocks_of, so it gets 1 + max(2, 1) = 3.\n\nThe argument is a cycle group, not a block name, so the walk down the edges always ends. A group with no outgoing edge gets 1, not 0. The h dict keeps every answer, so each group is walked one time only."
+    },
+    {
+      "id": "B14",
+      "name": "links",
+      "layer": 1,
+      "lines": [
+        [
+          250,
+          266
+        ]
+      ],
+      "calls": [],
+      "root": "Jedi turns each name into its defining block and its user blocks.",
+      "body": "Example: ask_claude is defined in one block and two other blocks call it, (compile_block) and (vocab_pass). The row is {\"name\": \"ask_claude\", \"def\": \"B02\", \"used\": [\"B15\", \"B16\"]} — block ids, not block names, because owner maps a line number to an id. A name whose definition sits outside this file, like json or ast, is dropped, and a name used only inside its own block makes no row. A file that is not Python gets no links at all."
+    },
+    {
+      "id": "B15",
+      "name": "compile_block",
+      "layer": 2,
+      "lines": [
+        [
+          269,
+          289
+        ]
+      ],
+      "calls": [
+        "ask_claude",
+        "check_block"
+      ],
+      "root": "One block gets its claude answer through the retry dance.",
+      "body": "prompt = the file, this block's label and line spans, the callee roots as context,\n         and the names of all blocks of this file\n\nthe retry dance, up to 8 tries:\n    one claude call -> root + body   (ask_claude)\n    rules checked                    (check_block)\n\nAfter 8 failures the whole program stops. A block of a nested def like grab is labelled by the last part of the scope path, grab(), not by the whole path."
+    },
+    {
+      "id": "B16",
+      "name": "vocab_pass",
+      "layer": 2,
+      "lines": [
+        [
+          292,
+          311
+        ]
+      ],
+      "calls": [
+        "ask_claude",
+        "check_vocab"
+      ],
+      "root": "The vocabulary pass gets the same retry dance, four tries.",
+      "body": "expl  = every block's name, root and body, one text\nvocab = one claude call -> terms + rewritten texts   (ask_claude)\n        the retry dance, up to 4 tries               (check_vocab)\n\nAfter four failures the program exits."
+    },
+    {
+      "id": "B17",
+      "name": "main",
+      "layer": 4,
+      "lines": [
+        [
+          314,
+          350
+        ]
+      ],
+      "calls": [
+        "blocks_of",
+        "calls_of",
+        "compile_block",
+        "layers_of",
+        "links",
+        "vocab_pass"
+      ],
+      "root": "One python file goes in, map.json with every block explained comes out.",
+      "body": "code       = the file to explain, a line number in front of every line\nblocks     = one per def and class, the leftover lines the script (blocks_of)\ncalls      = the block names each block mentions (calls_of)\nlayers     = the order, callees before callers (layers_of)\n\nfor each block, bottom up:\n    root + body through the retry dance (compile_block)\n    the roots of the callees already done ride along as context,\n    so a caller speaks about its callees at their level\n\nthen one pass over all the texts together: shared terms coined,\nevery root and body rewritten through them (vocab_pass)\n\nowner      = line number -> block id, one entry per line of the file\nlinks      = each name, its defining block and its user blocks (links)\nmap.json   = file, links, terms, blocks; written beside the file, or to argv[2]"
+    }
+  ]
+}

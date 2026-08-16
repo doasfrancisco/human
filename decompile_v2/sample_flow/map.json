@@ -1,0 +1,43 @@
+{
+  "file": "sample.py",
+  "links": [
+    {"name": "Tally", "def": "F02", "used": ["F07.4"]},
+    {"name": "digits", "def": "F05.1", "used": ["F07.2"]},
+    {"name": "spread", "def": "F06.1", "used": ["F07.5"]},
+    {"name": "report", "def": "F07.1", "used": ["F01.2"]},
+    {"name": "out", "def": "F01.2", "used": ["F01.3"]}
+  ],
+  "terms": [],
+  "map": [
+    {"id": "F01", "name": "script", "layer": 3, "calls": ["report"], "takes": "the command-line arguments", "gives": "one JSON line on standard output", "story": "Example: `python sample.py` with no arguments reports on sample.py itself.\nThe path comes from `sys.argv[1]` only when an argument is present. Otherwise the script uses `__file__`, its own source file.", "text": "script — reads a file path from the command line, reports on it, and writes the result as JSON to standard output", "lines": [[1, 2], [41, 42]], "children": [
+      {"id": "F01.1", "layer": 1, "text": "Bring in the two standard modules the script needs:\njson — to write the result as a JSON line\nsys — to read the command-line arguments", "lines": [[1, 2]]},
+      {"id": "F01.2", "layer": 1, "text": "out = the result dict from report(), which reads one file, counts the digits in it, prints a summary line, and returns the numbers\nThe path is the first command-line argument when the caller gives one, and the script's own file when the caller gives none.", "lines": [[41, 41]]},
+      {"id": "F01.3", "layer": 1, "text": "Print the result dict as one JSON line, so another program can read the output.", "lines": [[42, 42]]}
+    ]},
+    {"id": "F02", "name": "Tally", "layer": 1, "calls": [], "takes": "nothing", "gives": "a new tally with its own total", "text": "Tally() -> a tally object — makes a counter that keeps one running total for its caller", "lines": [[5, 5]]},
+    {"id": "F03", "name": "Tally.__init__", "layer": 1, "calls": [], "takes": "a fresh Tally object", "gives": "nothing; the object now has total 0", "text": "__init__(self) -> None — starts a new Tally with an empty running total", "lines": [[6, 7]], "children": [
+      {"id": "F03.1", "layer": 1, "text": "total = the running sum the Tally builds up, set to 0 at the start\nEvery new Tally begins from zero, so add() has a number to grow.", "lines": [[6, 7]]}
+    ]},
+    {"id": "F04", "name": "Tally.add", "layer": 1, "calls": [], "takes": "a number", "gives": "nothing; the total grows", "story": "Example: after t.add(3) on a fresh Tally, t.total is 6, not 3.\nEvery number counts double.", "text": "add(self, n) -> None — adds n twice over to the running total", "lines": [[9, 10]], "children": [
+      {"id": "F04.1", "layer": 1, "text": "take a number n and add double its value to self.total", "lines": [[9, 10]]}
+    ]},
+    {"id": "F05", "name": "digits", "layer": 1, "calls": [], "takes": "a string", "gives": "the digit values, in the order they appear", "text": "digits(text) -> list of ints — pulls every digit character out of the text and returns it as a number", "lines": [[13, 18]], "children": [
+      {"id": "F05.1", "layer": 1, "text": "out = the digit values found so far, empty at the start", "lines": [[13, 14]]},
+      {"id": "F05.2", "layer": 1, "text": "look at each character of text in turn, and when the character is a digit, store it as a number, not as a character", "lines": [[15, 17]]},
+      {"id": "F05.3", "layer": 1, "text": "give the collected numbers back to the caller", "lines": [[18, 18]]}
+    ]},
+    {"id": "F06", "name": "spread", "layer": 1, "calls": [], "takes": "a list of numbers", "gives": "the distance from the smallest to the largest", "text": "spread(nums) -> number — measures how far apart the largest and smallest values in nums are", "lines": [[21, 24]], "children": [
+      {"id": "F06.1", "layer": 1, "text": "top = the largest value in nums\nlow = the smallest value in nums", "lines": [[21, 23]]},
+      {"id": "F06.2", "layer": 1, "text": "give back the gap between them, top minus low", "lines": [[24, 24]]}
+    ]},
+    {"id": "F07", "name": "report", "layer": 2, "calls": ["Tally", "digits", "spread"], "takes": "a file path", "gives": "a dict of file, count, total and spread", "story": "Example: a file holding \"a3b4\" gives count 2, total 14, spread 1, and prints \"2 digits, doubled total 14, spread 1\".\ntotal is not the sum of the digits: Tally.add doubles each number.\nA file with no digits returns early with only file and count, so the caller sees a dict without total or spread.", "text": "report(path) -> a result dict — reads one file, counts the digits in it, prints a summary line, and returns the numbers", "lines": [[27, 38]], "children": [
+      {"id": "F07.1", "layer": 1, "text": "src = the whole text of the file at path, read as UTF-8", "lines": [[27, 28]]},
+      {"id": "F07.2", "layer": 1, "text": "nums = every digit in that text as a number, from digits()", "lines": [[29, 29]]},
+      {"id": "F07.3", "layer": 1, "text": "when the file holds no digits, stop here and give back only the path and a count of 0\nthe later steps need at least one number, so this branch protects them", "lines": [[30, 31]]},
+      {"id": "F07.4", "layer": 1, "text": "t = a new Tally, from Tally(), and each number in nums goes into it with t.add\nt.total is therefore twice the sum of the digits, because add doubles what it takes", "lines": [[32, 34]]},
+      {"id": "F07.5", "layer": 1, "text": "wide = the distance from the smallest digit to the largest, from spread()", "lines": [[35, 35]]},
+      {"id": "F07.6", "layer": 1, "text": "line = one sentence with the digit count, the doubled total and the spread, and print puts it on screen for the person who runs this", "lines": [[36, 37]]},
+      {"id": "F07.7", "layer": 1, "text": "give the caller the same three measures with the file path, as a dict", "lines": [[38, 38]]}
+    ]}
+  ]
+}

@@ -1,0 +1,506 @@
+{
+  "code_file": "decompile.py",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "main",
+      "block_lines": [
+        [
+          383,
+          431
+        ]
+      ],
+      "text": "code            = the file, with a line number in front of every line\n\nblocks          = one block per function and class, plus one \"script\" block for the top-level code; nested defs are their own blocks, the parent keeps only its own lines    (blocks_of, carve)\n\ncalls           = for each block, the names of the blocks it calls, found through the scope chain    (calls_of)\n\nlayers          = Tarjan SCC over the call graph gives each block a call height    (layers_of)\n\nfor each block, bottom up by layer:\n    the sequents of finished callees ride along as context\n    one claude call -> takes, gives, effects, root, body    (ask_claude)\n    checked, up to 8 tries    (check_block)\n\none more claude call over all texts:\n    invent shared terms, rewrite every root and body, checked, up to 4 tries    (vocab_pass, check_vocab, check_grounded)\n\nlinks           = the name links jedi finds between blocks    (links)\n\n! map.json      = blocks + sequents + texts + terms + links + rules",
+      "parts": [
+        {
+          "part": "code",
+          "own_lines": [
+            [
+              383,
+              388
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "blocks",
+          "own_lines": [
+            [
+              389,
+              389
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "blocks_of",
+              "lines": [
+                [
+                  225,
+                  247
+                ]
+              ]
+            },
+            {
+              "name": "carve",
+              "lines": [
+                [
+                  203,
+                  222
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "calls",
+          "own_lines": [
+            [
+              390,
+              392
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "calls_of",
+              "lines": [
+                [
+                  250,
+                  274
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "layers",
+          "own_lines": [
+            [
+              393,
+              393
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "layers_of",
+              "lines": [
+                [
+                  277,
+                  315
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "block loop",
+          "own_lines": [
+            [
+              394,
+              407
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "compile_block",
+              "lines": [
+                [
+                  337,
+                  358
+                ]
+              ]
+            },
+            {
+              "name": "ask_claude",
+              "lines": [
+                [
+                  98,
+                  104
+                ]
+              ]
+            },
+            {
+              "name": "check_block",
+              "lines": [
+                [
+                  111,
+                  132
+                ]
+              ]
+            }
+          ],
+          "constant_lines": [
+            {
+              "name": "PROMPT",
+              "lines": [
+                [
+                  10,
+                  60
+                ]
+              ]
+            },
+            {
+              "name": "CALLS",
+              "lines": [
+                [
+                  95,
+                  95
+                ]
+              ]
+            },
+            {
+              "name": "NAME_REF",
+              "lines": [
+                [
+                  107,
+                  107
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "vocab pass",
+          "own_lines": [
+            [
+              408,
+              408
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "vocab_pass",
+              "lines": [
+                [
+                  361,
+                  380
+                ]
+              ]
+            },
+            {
+              "name": "ask_claude",
+              "lines": [
+                [
+                  98,
+                  104
+                ]
+              ]
+            },
+            {
+              "name": "check_vocab",
+              "lines": [
+                [
+                  169,
+                  200
+                ]
+              ]
+            },
+            {
+              "name": "check_grounded",
+              "lines": [
+                [
+                  135,
+                  166
+                ]
+              ]
+            }
+          ],
+          "constant_lines": [
+            {
+              "name": "VOCAB",
+              "lines": [
+                [
+                  62,
+                  79
+                ]
+              ]
+            },
+            {
+              "name": "NAME_REF",
+              "lines": [
+                [
+                  107,
+                  107
+                ]
+              ]
+            },
+            {
+              "name": "DOTTED",
+              "lines": [
+                [
+                  108,
+                  108
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "links",
+          "own_lines": [
+            [
+              419,
+              423
+            ],
+            [
+              424,
+              424
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "links",
+              "lines": [
+                [
+                  318,
+                  334
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "map.json",
+          "own_lines": [
+            [
+              409,
+              418
+            ],
+            [
+              424,
+              431
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": [
+            {
+              "name": "RULES",
+              "lines": [
+                [
+                  82,
+                  90
+                ]
+              ]
+            },
+            {
+              "name": "BLOCK_RULES",
+              "lines": [
+                [
+                  92,
+                  92
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "block": "imports",
+      "block_lines": [
+        [
+          1,
+          6
+        ],
+        [
+          8,
+          8
+        ]
+      ],
+      "text": "the imports (ast, json, re, subprocess, sys, pathlib, jedi)",
+      "parts": [
+        {
+          "part": "imports",
+          "own_lines": [
+            [
+              1,
+              6
+            ],
+            [
+              8,
+              8
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "block": "entry point",
+      "block_lines": [
+        [
+          434,
+          435
+        ]
+      ],
+      "text": "the if __name__ == \"__main__\" entry point that calls main()",
+      "parts": [
+        {
+          "part": "entry point",
+          "own_lines": [
+            [
+              434,
+              435
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "main",
+              "lines": [
+                [
+                  383,
+                  431
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "block": "layers_of",
+      "block_lines": [
+        [
+          277,
+          315
+        ]
+      ],
+      "within": {
+        "explanation": 1,
+        "part": "layers"
+      },
+      "text": "calls           = the call graph: block name -> callee names, self-calls already dropped    (calls_of)\n\ncomp            = Tarjan walks the graph depth first    (strong)\n                      idx   = the visit number of each block\n                      low   = the smallest visit number the block reaches\n                      st,on = the stack of open blocks\n                  when low == idx, the block closes a component: pop the stack down to it, every popped block points to it as representative\n                  so each cycle collapses into one component, and a block outside every cycle stands alone\n\nedges           = the calls between components only; calls inside a component vanish, so the component graph has no cycles\n\nh               = the height of each component    (height)\n                      calls nothing -> 1\n                      calls others  -> 1 + the tallest callee\n\nlayers          = each block gets the height of its component\n\nmain then sorts by (layer, first line) and compiles upward, so every callee sits in done before its caller speaks",
+      "parts": [
+        {
+          "part": "calls",
+          "own_lines": [
+            [
+              277,
+              277
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "calls_of",
+              "lines": [
+                [
+                  250,
+                  274
+                ]
+              ]
+            }
+          ],
+          "constant_lines": [],
+          "outside_within": true,
+          "note": "self-calls dropped at line 268; these lines belong to the calls part of explanation 1"
+        },
+        {
+          "part": "comp",
+          "own_lines": [
+            [
+              278,
+              302
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "edges",
+          "own_lines": [
+            [
+              303,
+              307
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "h",
+          "own_lines": [
+            [
+              308,
+              313
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "layers",
+          "own_lines": [
+            [
+              315,
+              315
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "main sorts",
+          "own_lines": [
+            [
+              396,
+              396
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": [],
+          "outside_within": true,
+          "note": "line 396 belongs to the block loop part of explanation 1"
+        }
+      ]
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": [
+      7,
+      9,
+      61,
+      80,
+      81,
+      93,
+      94,
+      96,
+      97,
+      105,
+      106,
+      109,
+      110,
+      133,
+      134,
+      167,
+      168,
+      201,
+      202,
+      223,
+      224,
+      248,
+      249,
+      275,
+      276,
+      316,
+      317,
+      335,
+      336,
+      359,
+      360,
+      381,
+      382,
+      432,
+      433
+    ]
+  }
+}
