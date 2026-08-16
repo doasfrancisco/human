@@ -3,6 +3,435 @@
   "explanations": [
     {
       "id": 1,
+      "block": "decompile.py",
+      "block_lines": [
+        [
+          1,
+          435
+        ]
+      ],
+      "text": "imports         = ast, json, re, subprocess, sys, Path, jedi\n\nPROMPT          = the ask text for one block: sequent rules, root rules, body rules, two gold bodies\nVOCAB           = the ask text for the vocabulary pass: shared terms plus rewritten texts\nRULES           = each rule name with one plain line that defines it\nBLOCK_RULES     = the rule names every block carries\nCALLS           = a one-cell counter of claude calls\nNAME_REF        = the pattern for a lone name in parentheses\nDOTTED          = the pattern for a dotted name\n\nask_claude      = one claude -p run, the JSON pulled out of the answer    (ask_claude)\ncheck_block     = the gate on one block answer: sequent, root, real links, bang marks    (check_block)\ncheck_grounded  = the gate on term meanings: real block names, no circle of terms    (check_grounded)\ncheck_vocab     = the gate on the vocabulary answer: terms, rewritten texts, term use    (check_vocab)\ncarve           = the free line spans of a range, minus the used spans, blanks trimmed    (carve)\nblocks_of       = one block per def and class plus the script block, with carved lines    (blocks_of)\ncalls_of        = the block names one block calls, found in its syntax tree    (calls_of)\nlayers_of       = a height per block, so a block sits above the blocks it calls    (layers_of)\nlinks           = the name links jedi finds between blocks    (links)\ncompile_block   = one block explained: ask, check, retry up to 4 times    (compile_block)\nvocab_pass      = all texts rewritten through a shared vocabulary, up to 4 tries    (vocab_pass)\nmain            = the whole run: cut, order, explain bottom up, compress, write map.json    (main)\n\nentry point     = run main() when the file starts as a script    (script)",
+      "parts": [
+        {
+          "part": "imports",
+          "own_lines": [
+            [
+              1,
+              8
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "PROMPT",
+          "own_lines": [
+            [
+              10,
+              60
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "VOCAB",
+          "own_lines": [
+            [
+              62,
+              79
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "RULES",
+          "own_lines": [
+            [
+              82,
+              90
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "BLOCK_RULES",
+          "own_lines": [
+            [
+              92,
+              92
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "CALLS",
+          "own_lines": [
+            [
+              95,
+              95
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "NAME_REF",
+          "own_lines": [
+            [
+              107,
+              107
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "DOTTED",
+          "own_lines": [
+            [
+              108,
+              108
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "ask_claude",
+          "own_lines": [
+            [
+              98,
+              104
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": [
+            {
+              "name": "CALLS",
+              "lines": [
+                [
+                  95,
+                  95
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "check_block",
+          "own_lines": [
+            [
+              111,
+              132
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": [
+            {
+              "name": "NAME_REF",
+              "lines": [
+                [
+                  107,
+                  107
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "check_grounded",
+          "own_lines": [
+            [
+              135,
+              152
+            ],
+            [
+              163,
+              166
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "walk",
+              "lines": [
+                [
+                  153,
+                  162
+                ]
+              ]
+            }
+          ],
+          "constant_lines": [
+            {
+              "name": "NAME_REF",
+              "lines": [
+                [
+                  107,
+                  107
+                ]
+              ]
+            },
+            {
+              "name": "DOTTED",
+              "lines": [
+                [
+                  108,
+                  108
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "check_vocab",
+          "own_lines": [
+            [
+              169,
+              200
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": [
+            {
+              "name": "NAME_REF",
+              "lines": [
+                [
+                  107,
+                  107
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "carve",
+          "own_lines": [
+            [
+              203,
+              222
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "blocks_of",
+          "own_lines": [
+            [
+              225,
+              227
+            ],
+            [
+              236,
+              247
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "grab",
+              "lines": [
+                [
+                  228,
+                  235
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "calls_of",
+          "own_lines": [
+            [
+              250,
+              254
+            ],
+            [
+              271,
+              274
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "resolve",
+              "lines": [
+                [
+                  255,
+                  260
+                ]
+              ]
+            },
+            {
+              "name": "scan",
+              "lines": [
+                [
+                  262,
+                  270
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "layers_of",
+          "own_lines": [
+            [
+              277,
+              279
+            ],
+            [
+              300,
+              308
+            ],
+            [
+              315,
+              315
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "strong",
+              "lines": [
+                [
+                  281,
+                  298
+                ]
+              ]
+            },
+            {
+              "name": "height",
+              "lines": [
+                [
+                  310,
+                  313
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "links",
+          "own_lines": [
+            [
+              318,
+              334
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "compile_block",
+          "own_lines": [
+            [
+              337,
+              358
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": [
+            {
+              "name": "PROMPT",
+              "lines": [
+                [
+                  10,
+                  60
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "vocab_pass",
+          "own_lines": [
+            [
+              361,
+              380
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": [
+            {
+              "name": "VOCAB",
+              "lines": [
+                [
+                  62,
+                  79
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "main",
+          "own_lines": [
+            [
+              383,
+              431
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": [
+            {
+              "name": "RULES",
+              "lines": [
+                [
+                  82,
+                  90
+                ]
+              ]
+            },
+            {
+              "name": "BLOCK_RULES",
+              "lines": [
+                [
+                  92,
+                  92
+                ]
+              ]
+            },
+            {
+              "name": "CALLS",
+              "lines": [
+                [
+                  95,
+                  95
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "entry point",
+          "own_lines": [
+            [
+              434,
+              435
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "main",
+              "lines": [
+                [
+                  383,
+                  431
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        }
+      ]
+    },
+    {
+      "id": 2,
       "block": "main",
       "block_lines": [
         [
@@ -10,13 +439,29 @@
           431
         ]
       ],
-      "text": "code            = the file, with a line number in front of every line\n\nblocks          = one block per function and class, plus one \"script\" block for the top-level code; nested defs are their own blocks, the parent keeps only its own lines    (blocks_of, carve)\n\ncalls           = for each block, the names of the blocks it calls, found through the scope chain    (calls_of)\n\nlayers          = Tarjan SCC over the call graph gives each block a call height    (layers_of)\n\nfor each block, bottom up by layer:\n    the sequents of finished callees ride along as context\n    one claude call -> takes, gives, effects, root, body    (ask_claude)\n    checked, up to 8 tries    (check_block)\n\none more claude call over all texts:\n    invent shared terms, rewrite every root and body, checked, up to 4 tries    (vocab_pass, check_vocab, check_grounded)\n\nlinks           = the name links jedi finds between blocks    (links)\n\n! map.json      = blocks + sequents + texts + terms + links + rules",
+      "within": {
+        "explanation": 1,
+        "part": "main",
+        "instruction": "main            = the whole run: cut, order, explain bottom up, compress, write map.json    (main)"
+      },
+      "text": "path, src, lines = the code file named on the command line, its text, its lines\ncode             = the same text, a line number in front of every line\nblocks           = the file cut into blocks: one per def and class, plus the script block    (blocks_of)\n                       the script block is one block that collects every line outside all defs and classes\n                       here: the imports, the constants, the two patterns, the entry point at the bottom\nbody             = that loose script code, parsed into statements\n                       it exists only so calls_of can scan what the script block calls\nnames            = the block names that are real defs or classes\ncalls            = for each block, the list of blocks it calls    (calls_of)\nlay              = a layer number for each block: a block sits one layer above the blocks it calls    (layers_of)\nok               = every name a text may put in parentheses: the full names and the short names\n\nfor each block, lowest layer first, so a callee is explained before its caller:\n    ctx          = a note for the prompt: one line per callee already explained, what it takes, gives, and does\n    done[name]   = the block's explanation from claude, checked, retried up to 4 times    (compile_block)\n\nterms, done      = one more claude pass: shared terms found, every text rewritten through them    (vocab_pass)\nids              = a label per block: the first block in the file is B01, the next is B02, and so on\nrows             = one output record per block: its id, lines, calls, explanation, rules\nowner            = a table that says, for each code line, which block id owns it\nmap.json         = all of it written to disk, beside the code file    (links)\ntally            = one printed line of counts: blocks, terms, links, claude calls",
       "parts": [
+        {
+          "part": "path, src, lines",
+          "own_lines": [
+            [
+              384,
+              387
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
         {
           "part": "code",
           "own_lines": [
             [
-              383,
+              388,
               388
             ]
           ],
@@ -42,6 +487,15 @@
               ]
             },
             {
+              "name": "grab",
+              "lines": [
+                [
+                  228,
+                  235
+                ]
+              ]
+            },
+            {
               "name": "carve",
               "lines": [
                 [
@@ -54,10 +508,32 @@
           "constant_lines": []
         },
         {
-          "part": "calls",
+          "part": "body",
           "own_lines": [
             [
               390,
+              390
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "names",
+          "own_lines": [
+            [
+              391,
+              391
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "calls",
+          "own_lines": [
+            [
+              392,
               392
             ]
           ],
@@ -70,12 +546,30 @@
                   274
                 ]
               ]
+            },
+            {
+              "name": "resolve",
+              "lines": [
+                [
+                  255,
+                  260
+                ]
+              ]
+            },
+            {
+              "name": "scan",
+              "lines": [
+                [
+                  262,
+                  270
+                ]
+              ]
             }
           ],
           "constant_lines": []
         },
         {
-          "part": "layers",
+          "part": "lay",
           "own_lines": [
             [
               393,
@@ -91,15 +585,55 @@
                   315
                 ]
               ]
+            },
+            {
+              "name": "strong",
+              "lines": [
+                [
+                  281,
+                  298
+                ]
+              ]
+            },
+            {
+              "name": "height",
+              "lines": [
+                [
+                  310,
+                  313
+                ]
+              ]
             }
           ],
           "constant_lines": []
         },
         {
-          "part": "block loop",
+          "part": "ok",
           "own_lines": [
             [
               394,
+              394
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "ctx",
+          "own_lines": [
+            [
+              396,
+              406
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "done[name]",
+          "own_lines": [
+            [
+              407,
               407
             ]
           ],
@@ -132,38 +666,10 @@
               ]
             }
           ],
-          "constant_lines": [
-            {
-              "name": "PROMPT",
-              "lines": [
-                [
-                  10,
-                  60
-                ]
-              ]
-            },
-            {
-              "name": "CALLS",
-              "lines": [
-                [
-                  95,
-                  95
-                ]
-              ]
-            },
-            {
-              "name": "NAME_REF",
-              "lines": [
-                [
-                  107,
-                  107
-                ]
-              ]
-            }
-          ]
+          "constant_lines": []
         },
         {
-          "part": "vocab pass",
+          "part": "terms, done",
           "own_lines": [
             [
               408,
@@ -208,46 +714,57 @@
               ]
             }
           ],
+          "constant_lines": []
+        },
+        {
+          "part": "ids",
+          "own_lines": [
+            [
+              409,
+              409
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "rows",
+          "own_lines": [
+            [
+              410,
+              418
+            ]
+          ],
+          "callee_lines": [],
           "constant_lines": [
             {
-              "name": "VOCAB",
+              "name": "BLOCK_RULES",
               "lines": [
                 [
-                  62,
-                  79
-                ]
-              ]
-            },
-            {
-              "name": "NAME_REF",
-              "lines": [
-                [
-                  107,
-                  107
-                ]
-              ]
-            },
-            {
-              "name": "DOTTED",
-              "lines": [
-                [
-                  108,
-                  108
+                  92,
+                  92
                 ]
               ]
             }
           ]
         },
         {
-          "part": "links",
+          "part": "owner",
           "own_lines": [
             [
               419,
               423
-            ],
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "map.json",
+          "own_lines": [
             [
               424,
-              424
+              427
             ]
           ],
           "callee_lines": [
@@ -261,21 +778,6 @@
               ]
             }
           ],
-          "constant_lines": []
-        },
-        {
-          "part": "map.json",
-          "own_lines": [
-            [
-              409,
-              418
-            ],
-            [
-              424,
-              431
-            ]
-          ],
-          "callee_lines": [],
           "constant_lines": [
             {
               "name": "RULES",
@@ -285,13 +787,25 @@
                   90
                 ]
               ]
-            },
+            }
+          ]
+        },
+        {
+          "part": "tally",
+          "own_lines": [
+            [
+              428,
+              431
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": [
             {
-              "name": "BLOCK_RULES",
+              "name": "CALLS",
               "lines": [
                 [
-                  92,
-                  92
+                  95,
+                  95
                 ]
               ]
             }
@@ -300,165 +814,190 @@
       ]
     },
     {
-      "id": 2,
-      "block": "imports",
-      "block_lines": [
-        [
-          1,
-          6
-        ],
-        [
-          8,
-          8
-        ]
-      ],
-      "text": "the imports (ast, json, re, subprocess, sys, pathlib, jedi)",
-      "parts": [
-        {
-          "part": "imports",
-          "own_lines": [
-            [
-              1,
-              6
-            ],
-            [
-              8,
-              8
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        }
-      ]
-    },
-    {
       "id": 3,
-      "block": "entry point",
+      "block": "compile_block",
       "block_lines": [
         [
-          434,
-          435
-        ]
-      ],
-      "text": "the if __name__ == \"__main__\" entry point that calls main()",
-      "parts": [
-        {
-          "part": "entry point",
-          "own_lines": [
-            [
-              434,
-              435
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "main",
-              "lines": [
-                [
-                  383,
-                  431
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "block": "layers_of",
-      "block_lines": [
-        [
-          277,
-          315
+          337,
+          358
         ]
       ],
       "within": {
-        "explanation": 1,
-        "part": "layers"
+        "explanation": 2,
+        "part": "done[name]",
+        "instruction": "done[name]   = the block's explanation from claude, checked, retried up to 4 times    (compile_block)"
       },
-      "text": "calls           = the call graph: block name -> callee names, self-calls already dropped    (calls_of)\n\ncomp            = Tarjan walks the graph depth first    (strong)\n                      idx   = the visit number of each block\n                      low   = the smallest visit number the block reaches\n                      st,on = the stack of open blocks\n                  when low == idx, the block closes a component: pop the stack down to it, every popped block points to it as representative\n                  so each cycle collapses into one component, and a block outside every cycle stands alone\n\nedges           = the calls between components only; calls inside a component vanish, so the component graph has no cycles\n\nh               = the height of each component    (height)\n                      calls nothing -> 1\n                      calls others  -> 1 + the tallest callee\n\nlayers          = each block gets the height of its component\n\nmain then sorts by (layer, first line) and compiles upward, so every callee sits in done before its caller speaks",
+      "text": "label     = the block's name for the prompt: its short name plus (), or \"the top-level script code\"\nspan      = the block's line ranges as one text, like \"337-358\"\nshort     = the short names of all blocks, the list the prompt shows as legal link names\nbase      = the PROMPT text filled in: file name, numbered code, label, span, the ctx note, short\nnote      = extra repair text that grows after a failed try, empty at first\nerrs      = the list of rules the answers broke so far\n\nup to 4 tries:\n    m     = claude's answer to base plus note, pulled out as JSON    (ask_claude)\n    rec   = the answer checked against the rules    (check_block)\n                the sequent: takes, gives, effects - what the block needs, returns, and does to the world\n                the root: the one answer line, 15 words or less\n                the links: the answer can name a block in parentheses, like (carve) - each such name must be a real block of this file\n                the bang marks: an effect is what a block does to the world - it writes a file, prints a line, runs a program\n                               a step line that performs an effect starts with \"! \", and the \"! \" lines and the effects list must agree\n    a good answer: print one status line, return rec - the loop ends here\n    a broken answer: print the retry, add the error to errs\n    note  = the last answer, the rule it broke, and every rule broken so far, so the next try repairs it\n\nafter 4 broken tries: stop the whole program with an error    (sys.exit)",
       "parts": [
         {
-          "part": "calls",
+          "part": "label",
           "own_lines": [
             [
-              277,
-              277
+              338,
+              338
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "span",
+          "own_lines": [
+            [
+              339,
+              339
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "short",
+          "own_lines": [
+            [
+              340,
+              340
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "base",
+          "own_lines": [
+            [
+              341,
+              341
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": [
+            {
+              "name": "PROMPT",
+              "lines": [
+                [
+                  10,
+                  60
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "note",
+          "own_lines": [
+            [
+              342,
+              342
+            ],
+            [
+              355,
+              357
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "errs",
+          "own_lines": [
+            [
+              343,
+              343
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "up to 4 tries",
+          "own_lines": [
+            [
+              345,
+              346
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "m",
+          "own_lines": [
+            [
+              344,
+              344
+            ],
+            [
+              347,
+              347
             ]
           ],
           "callee_lines": [
             {
-              "name": "calls_of",
+              "name": "ask_claude",
               "lines": [
                 [
-                  250,
-                  274
+                  98,
+                  104
                 ]
               ]
             }
           ],
-          "constant_lines": [],
-          "outside_within": true,
-          "note": "self-calls dropped at line 268; these lines belong to the calls part of explanation 1"
+          "constant_lines": []
         },
         {
-          "part": "comp",
+          "part": "rec",
           "own_lines": [
             [
-              278,
-              302
+              348,
+              348
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "check_block",
+              "lines": [
+                [
+                  111,
+                  132
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "a good answer",
+          "own_lines": [
+            [
+              349,
+              351
             ]
           ],
           "callee_lines": [],
           "constant_lines": []
         },
         {
-          "part": "edges",
+          "part": "a broken answer",
           "own_lines": [
             [
-              303,
-              307
+              352,
+              354
             ]
           ],
           "callee_lines": [],
           "constant_lines": []
         },
         {
-          "part": "h",
+          "part": "after 4 broken tries",
           "own_lines": [
             [
-              308,
-              313
+              358,
+              358
             ]
           ],
           "callee_lines": [],
           "constant_lines": []
-        },
-        {
-          "part": "layers",
-          "own_lines": [
-            [
-              315,
-              315
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "main sorts",
-          "own_lines": [
-            [
-              396,
-              396
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": [],
-          "outside_within": true,
-          "note": "line 396 belongs to the block loop part of explanation 1"
         }
       ]
     }
@@ -468,9 +1007,26 @@
     "blank_lines": [
       7,
       9,
+      11,
+      14,
+      16,
+      21,
+      26,
+      34,
+      39,
+      45,
+      48,
+      51,
+      56,
+      58,
       61,
+      63,
+      65,
+      70,
+      77,
       80,
       81,
+      91,
       93,
       94,
       96,
@@ -481,16 +1037,26 @@
       110,
       133,
       134,
+      152,
+      163,
       167,
       168,
       201,
       202,
       223,
       224,
+      236,
       248,
       249,
+      254,
+      261,
+      271,
       275,
       276,
+      280,
+      299,
+      309,
+      314,
       316,
       317,
       335,
