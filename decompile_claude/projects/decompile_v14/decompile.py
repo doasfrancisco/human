@@ -20,7 +20,7 @@ You are explaining the block {block}, lines {span}. Ignore all other lines.
 3. effects is a list of short plain phrases: what the block does to the world — file writes, subprocess runs, prints, sleeps, globals it changes. A pure block returns []. An effect belongs to the block that performs it, never to its callers.
 
 Root rules:
-4. The root is the answer line: 12 words or less, counted by spaces. It names the subject and the effect. It is the answer a person keeps, not a description of the code.
+4. The root is the answer line: 15 words or less, counted by spaces. It names the subject and the effect. It is the answer a person keeps, not a description of the code.
 5. Bad root: "compile_block builds the prompt and calls claude for one block." Good root: "One claude call turns a block into root plus body."
 6. The test: a reader who reads only the roots down a call path must know how the program works without opening one body.
 
@@ -70,7 +70,7 @@ Your job is compression through shared vocabulary:
 
 Hard rules:
 - Every term appears verbatim in at least 2 rewritten texts; roots and bodies both count.
-- Every rewritten root is 12 words or less, counted by spaces.
+- Every rewritten root is 15 words or less, counted by spaces.
 - A block whose body was not empty must not come back empty. A block whose body was empty stays empty unless a term truly applies.
 - A name in parentheses on its own, like (cells_of), must stay the name of a block of this file. A step line that starts with "! " keeps its mark.
 - A term meaning may use another term or cite a block name, but the chain must always lead down: no circle of terms, and every cited block is a real block of this file.
@@ -81,7 +81,7 @@ Return one JSON object only, no code fences:
 
 RULES = {
     "SEQ-FIELDS": "takes and gives are non-empty plain phrases and effects is a list of short phrases, empty for a pure block",
-    "ROOT-12": "the root is 12 words or less, counted by spaces",
+    "ROOT-15": "the root is 15 words or less, counted by spaces",
     "LINK-REAL": "a lone name in parentheses is the name of a block of this file",
     "EFFECT-MARK": "bang lines and the effects list agree: a bang line needs a declared effect, an effectful flow body needs a bang line",
     "BODY-KEPT": "a body that was not empty does not come back empty from the vocabulary pass",
@@ -89,7 +89,7 @@ RULES = {
     "TERM-GROUNDED": "a term meaning cites only real blocks of this file and no circle of terms closes",
 }
 
-BLOCK_RULES = ["SEQ-FIELDS", "ROOT-12", "LINK-REAL", "EFFECT-MARK"]
+BLOCK_RULES = ["SEQ-FIELDS", "ROOT-15", "LINK-REAL", "EFFECT-MARK"]
 
 
 CALLS = [0]
@@ -117,8 +117,8 @@ def check_block(m, names):
     assert isinstance(eff, list) and all(isinstance(e, str) and e.strip() for e in eff), \
         "[SEQ-FIELDS] effects must be a list of non-empty phrases, [] is legal"
     root = m.get("root")
-    assert isinstance(root, str) and root.strip(), "[ROOT-12] no root"
-    assert len(root.split()) <= 12, f"[ROOT-12] the root has {len(root.split())} words, the limit is 12"
+    assert isinstance(root, str) and root.strip(), "[ROOT-15] no root"
+    assert len(root.split()) <= 15, f"[ROOT-15] the root has {len(root.split())} words, the limit is 15"
     body = m.get("body")
     assert isinstance(body, str), "the body must be a string, empty is legal"
     for w in sorted(set(NAME_REF.findall(body))):
@@ -183,9 +183,9 @@ def check_vocab(m, done, names):
         assert isinstance(e, dict), f"the block {n} is missing from rewritten"
         root = e.get("root")
         body = e.get("body")
-        assert isinstance(root, str) and root.strip(), f"[ROOT-12] the block {n} needs a root"
-        assert len(root.split()) <= 12, \
-            f"[ROOT-12] the rewritten root of {n} has {len(root.split())} words, the limit is 12"
+        assert isinstance(root, str) and root.strip(), f"[ROOT-15] the block {n} needs a root"
+        assert len(root.split()) <= 15, \
+            f"[ROOT-15] the rewritten root of {n} has {len(root.split())} words, the limit is 15"
         assert isinstance(body, str), f"the body of {n} must be a string, empty is legal"
         if old["body"]:
             assert body.strip(), f"[BODY-KEPT] the body of {n} was not empty, it must not come back empty"
@@ -342,7 +342,7 @@ def compile_block(bl, name, code, ctx, names):
     note = ""
     errs = []
     m = None
-    for attempt in range(8):
+    for attempt in range(4):
         try:
             m = ask_claude(base + note)
             rec = check_block(m, names)
@@ -355,7 +355,7 @@ def compile_block(bl, name, code, ctx, names):
             note = (f"\n\nYour last answer:\n{json.dumps(m)}\n\n"
                     f"It broke a rule: {e}. Repair it and return the full corrected JSON.\n"
                     f"Rules your answers broke so far, do not break them again:\n" + "\n".join(errs))
-    sys.exit(f"no valid pass after 8 tries [{bl['name']}]")
+    sys.exit(f"no valid pass after 4 tries [{bl['name']}]")
 
 
 def vocab_pass(blocks, done, names):
