@@ -5,7 +5,7 @@ description: Explain a code file in the flow shape and map each explanation onto
 
 # decompile-claude
 
-Two operations: **explain** and **map**. The state is one JSON file per code file, `explanation_<file_name>.json`, written next to the code file. The dmap CLI owns that file — never edit it by hand; every operation you need is a dmap command (`map`, `retext`, `undo`, `show`, `lines`). The map grows delta by delta: every map run appends one entry and never changes the entries before it.
+Two operations: **explain** and **map**. The state is one JSON file per code file, `explanation_<file_name>.json`, written next to the code file. The dmap CLI owns that file — never edit it by hand; every operation you need is a dmap command (`map`, `retext`, `undo`, `show`, `lines`, `sync`). The map grows delta by delta: every map run appends one entry and never changes the entries before it.
 
 ## How the user points at things
 
@@ -31,6 +31,12 @@ The rules of the shape:
 - A loop is a header line with indented step lines.
 - Use the real names from the code. Do not invent names.
 - Simple words, one idea per line. A dense clause after the `=` is what makes a flow hard to follow.
+- A word the code coined is not a simple word. Do not write a coined term (sequent, premise, layer height) in a flow line before an indented line defines it — or use plain words instead. The names in parentheses are the only free pass.
+- When a binding exists only to feed one later step, the line must say that purpose: "it exists only so X can Y". A "what" without a "for what" reads as trivia.
+- Compress by dropping the fields the reader does not need yet, never by dropping the verbs. A pile of nouns is short but not simple.
+- For a numbering or naming scheme, give the first two cases and "and so on" instead of the rule.
+- A definition states the permission before the constraint. First what the answer may do — "the answer can name a block in parentheses, like (carve)" — then the rule that binds it. A constraint before its permission reads as noise.
+- When the user says which phrasing made them understand, build the definition from those exact words. Never paraphrase a validated phrasing away.
 - A zoom hangs on one instruction — one line of the parent entry's text. When the user pastes a line, that line is the instruction. The zoom explanation must stay inside the code lines that instruction reaches.
 
 **The question shape.** When a block is a chain of checks — a gate, a validator — the `name = must be ...` form reads badly. Write each check as a question, with its stop error on the right:
@@ -48,6 +54,8 @@ Each question and its answer stay on one line.
 **The format is always the flow shape** for code, even when the user says "explain simpler" — answer with a simpler flow, not with prose. One short read-me line under the flow is fine; paragraphs are not. Prose is right only for questions about the system itself ("what is a part, why do we have parts"), not about code.
 
 Run `dmap lines <code_file>` to see the file with line numbers.
+
+**Reread before you show.** Read each line of the finished flow as a stranger who has not seen the code: does the line use a word the flow has not defined yet? Does a line only say "what" where the reader needs "for what"? Fix those lines before you show the flow.
 
 **Show the explanation, then stop. Do not touch the map until the user gives the word.** This holds even when the user's message sounds like approval in advance ("add it", "what do you recommend?") — show the flow first, map on the next word.
 
@@ -77,7 +85,7 @@ dmap retext <code_file> <id> <<'EOF'
 EOF
 ```
 
-The rewrite must keep every column-0 part name, in order — the mapped lines and the web reader hang on those names. It must also keep every line a child zoom hangs on as its instruction. dmap rejects a text that drops or renames a part, or that drops an instruction line with a child.
+The rewrite must keep every part name, in order — including a name bound inside a loop. The mapped lines and the web reader hang on those names. It must also keep every line a child zoom hangs on as its instruction. dmap rejects a text that drops or renames a part, or that drops an instruction line with a child.
 
 When the user says "rollback" or "undo", remove the last entry:
 
@@ -87,7 +95,20 @@ dmap undo <code_file>
 
 Undo pops the newest entry and recomputes coverage. An entry with children cannot be undone before its children.
 
-## 4. Report
+## 4. Sync after a code change
+
+When the code file changed and the map went stale, run:
+
+```bash
+dmap sync <code_file>
+```
+
+- The old version comes from git `HEAD`. Pass `--old <file>` when the old code lives elsewhere. Commit the code file together with its map, so `HEAD` is always the last synced state.
+- A deterministic pass renumbers every span through the diff and finds the candidate entries. A change that only moves lines ends here — no claude call.
+- One `claude -p` call then repairs the words: it rewrites only the stale lines, adds a part and a flow line for a new bound name, removes the part of a dead name, and keeps every other line verbatim. Gates check the part order, the spans, and the lines child zooms hang on, with retries up to `--tries` (default 4).
+- Read the report: each stale line `old -> new`, the part edits, the moved instructions, and a warning for any inserted line that landed in no part. The coverage number alone cannot catch an inserted line under a coarse span — the warning can.
+
+## 5. Report
 
 After a map run, report to the user in this order:
 

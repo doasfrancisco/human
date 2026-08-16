@@ -1,5 +1,6 @@
 import argparse
 import ast
+import difflib
 import json
 import subprocess
 import sys
@@ -41,13 +42,42 @@ Return one JSON object and nothing else, in this shape:
     "note": "<where these lines belong>"}]}
 
 The rules:
-- One part per left-column name of the text, in the order of the text.
+- One part per bound name of the text, in the order of the text. A name bound inside a loop line is a part too.
 - own_lines are the lines inside block_lines that the part describes.
 - callee_lines hold the full span of every block the part calls, copied verbatim from the block table, plus the blocks those blocks call when the part is the one that reaches them.
 - constant_lines hold the module constants the part uses.
 - A part whose own lines sit outside block_lines gets "outside_within": true and a note that says which entry and part those lines belong to. Only such a part carries these two keys.
 - within points to the one already-mapped part whose lines contain this block. Its instruction is the exact line of that part's text that reaches this block, copied verbatim from the entry's text without its leading spaces. Use null when no mapped part contains it.
 - Map only this text. Do not restate or change the entries already mapped.
+"""
+
+
+SYNC_PROMPT = """A code file changed. Explanation texts were written for the old version of the file. A deterministic tool already renumbered every mapped line span. Your job is only the words and the part structure.
+
+The file is <code_file>. The unified diff of the change:
+
+<diff>
+
+Facts from the tool, in new-file numbering:
+
+<facts>
+
+The candidate entries, each with its flow text and its part names:
+
+<candidates>
+
+The rules:
+- A text line is stale only when the change makes its words wrong. A text whose mapped lines moved but whose words still hold is not stale.
+- A new bound name in the code needs a new flow line, in code order, in the style and alignment of the text, plus a part edit that adds the part with its own lines.
+- A deleted bound name loses its flow line and its part.
+- Rewrite a stale line with the smallest edit. Keep every other line verbatim. Keep the vocabulary, the layout, and the indentation.
+- An entry whose words all still hold needs no text and no edits.
+
+Return one JSON object and nothing else:
+
+{"stale": [{"entry": <id>, "old": "<old line, stripped>", "new": "<new line, stripped, empty when the line dies>"}],
+ "part_edits": [{"entry": <id>, "add": [{"part": "<name>", "own_lines": [[start, end]], "after_part": "<existing part name>"}], "remove": ["<part name>"]}],
+ "texts": {"<entry id>": "<the full corrected text, only for an entry with a changed line>"}}
 """
 
 
@@ -324,9 +354,11 @@ def cmd_map(a):
     print(f"wrote {map_path}")
 
 
-def head_tokens(text):
-    return [head_token(l) for l in text.split("\n")
-            if l.strip() and l[0] not in " \t"]
+def part_line(line, name):
+    if not line.startswith(name):
+        return False
+    rest = line[len(name):]
+    return not rest or not rest[0].isalnum()
 
 
 def load_existing(code_path):
@@ -345,17 +377,15 @@ def cmd_retext(a):
     text = (Path(a.text).read_text() if a.text else sys.stdin.read()).strip()
     if not text:
         sys.exit("no explanation text on stdin or --text")
-    heads = head_tokens(text)
-    if len(heads) != len(entry["parts"]):
-        i = 0
-        for p in entry["parts"]:
-            tok = head_token(p["part"])
-            while i < len(heads) and heads[i] != tok:
-                i += 1
-            if i == len(heads):
-                sys.exit(f"[RETEXT-PARTS] the new text must keep the column-0 part names, in order; "
-                         f"no column-0 line starts with {tok!r} for part {p['part']!r}")
+    ls = [l.strip() for l in text.split("\n") if l.strip()]
+    i = 0
+    for p in entry["parts"]:
+        while i < len(ls) and not part_line(ls[i], p["part"]):
             i += 1
+        if i == len(ls):
+            sys.exit(f"[RETEXT-PARTS] the new text must keep every part name, in order; "
+                     f"no line starts with {p['part']!r}")
+        i += 1
     new_lines = {l.strip() for l in text.split("\n") if l.strip()}
     for k in data["explanations"]:
         w = k.get("within") or {}
@@ -415,6 +445,243 @@ def cmd_lines(a):
     print(numbered(code_path.read_text().splitlines()))
 
 
+def old_lines_of(code_path, old_arg):
+    if old_arg:
+        return Path(old_arg).read_text().splitlines()
+    r = subprocess.run(["git", "-C", str(code_path.parent), "show", f"HEAD:./{code_path.name}"],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.exit(f"no old version of {code_path.name}: commit the file or pass --old "
+                 f"(git: {r.stderr.strip()[-200:]})")
+    return r.stdout.splitlines()
+
+
+def line_map(old, new):
+    sm = difflib.SequenceMatcher(None, old, new, autojunk=False)
+    o2n = {}
+    changed = set()
+    inserted = set()
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "equal":
+            for k in range(i2 - i1):
+                o2n[i1 + k + 1] = j1 + k + 1
+        else:
+            paired = min(i2 - i1, j2 - j1)
+            for k in range(paired):
+                o2n[i1 + k + 1] = j1 + k + 1
+            changed.update(range(i1 + 1, i2 + 1))
+            inserted.update(range(j1 + paired + 1, j2 + 1))
+    return o2n, changed, inserted
+
+
+def shift_spans(spans, o2n, changed, n_old, n_new, hits):
+    def to_new(x, side):
+        if x in o2n:
+            return o2n[x]
+        lo = x
+        while lo > 0 and lo not in o2n:
+            lo -= 1
+        hi = x
+        while hi <= n_old and hi not in o2n:
+            hi += 1
+        if side == "end":
+            return o2n[lo] if lo > 0 else 0
+        return o2n[hi] if hi <= n_old else n_new + 1
+    out = []
+    for a, b in spans:
+        if set(range(a, b + 1)) & changed:
+            hits.append([a, b])
+        na, nb = to_new(a, "start"), to_new(b, "end")
+        if na <= nb:
+            out.append([na, nb])
+    return out
+
+
+def shift_map(data, o2n, changed, inserted, n_old, n_new):
+    cand = set()
+    for e in data["explanations"]:
+        hits = []
+        e["block_lines"] = shift_spans(e["block_lines"], o2n, changed, n_old, n_new, hits)
+        for p in e["parts"]:
+            p["own_lines"] = shift_spans(p["own_lines"], o2n, changed, n_old, n_new, hits)
+            for c in p.get("callee_lines", []):
+                c["lines"] = shift_spans(c["lines"], o2n, changed, n_old, n_new, hits)
+            for c in p.get("constant_lines", []):
+                c["lines"] = shift_spans(c["lines"], o2n, changed, n_old, n_new, hits)
+        if hits or expand(e["block_lines"]) & inserted:
+            cand.add(e["id"])
+    return cand
+
+
+def check_sync(m, data, new_lines, cand):
+    assert isinstance(m, dict), "[SYNC-SHAPE] the answer must be one JSON object"
+    stale = m.get("stale") or []
+    edits = m.get("part_edits") or []
+    texts = m.get("texts") or {}
+    assert isinstance(stale, list) and isinstance(edits, list) and isinstance(texts, dict), \
+        "[SYNC-SHAPE] stale is a list, part_edits is a list, texts is an object"
+    n = len(new_lines)
+    need = set()
+    for s in stale:
+        assert isinstance(s, dict) and s.get("entry") in cand, \
+            f"[SYNC-STALE] every stale record names a candidate entry, got {s}"
+        assert isinstance(s.get("old"), str) and s["old"].strip(), \
+            "[SYNC-STALE] a stale record needs the old line"
+        assert isinstance(s.get("new"), str), \
+            "[SYNC-STALE] a stale record needs the new line, empty when the line dies"
+        need.add(s["entry"])
+    final_names = {}
+    for pe in edits:
+        eid = pe.get("entry")
+        assert eid in cand, f"[SYNC-EDIT] part_edits entry {eid} is not a candidate"
+        e = next(x for x in data["explanations"] if x["id"] == eid)
+        names = final_names.get(eid, [p["part"] for p in e["parts"]])
+        block_set = expand(e["block_lines"])
+        for r in pe.get("remove") or []:
+            assert r in names, f"[SYNC-EDIT] cannot remove {r!r}, entry {eid} has no such part"
+            kids = [k["id"] for k in data["explanations"]
+                    if (k.get("within") or {}).get("explanation") == eid
+                    and k["within"].get("part") == r]
+            assert not kids, f"[SYNC-EDIT] part {r!r} of entry {eid} has child zooms {kids}; undo them first"
+            names.remove(r)
+        for adm in pe.get("add") or []:
+            nm = (adm.get("part") or "").strip()
+            assert nm, "[SYNC-EDIT] an added part needs a name"
+            assert nm not in names, f"[SYNC-EDIT] entry {eid} already has a part {nm!r}"
+            own = check_spans(adm.get("own_lines"), n, "SYNC-EDIT")
+            assert own, f"[SYNC-EDIT] the added part {nm!r} needs own lines"
+            bad = expand(own) - block_set
+            assert not bad, f"[SYNC-EDIT] part {nm!r} has own lines {fmt(bad)} outside entry {eid}"
+            adm["part"] = nm
+            adm["own_lines"] = own
+            after = adm.get("after_part")
+            assert after in names, f"[SYNC-EDIT] after_part {after!r} is not a part of entry {eid}"
+            names.insert(names.index(after) + 1, nm)
+        final_names[eid] = names
+        need.add(eid)
+    for eid in need:
+        assert str(eid) in texts, f"[SYNC-TEXTS] entry {eid} changed, texts must carry its full new text"
+    updates = []
+    for key, text in texts.items():
+        assert str(key).isdigit() and int(key) in cand, \
+            f"[SYNC-TEXTS] texts key {key} is not a candidate entry"
+        eid = int(key)
+        assert isinstance(text, str) and text.strip(), f"[SYNC-TEXTS] the text of entry {eid} is empty"
+        e = next(x for x in data["explanations"] if x["id"] == eid)
+        names = final_names.get(eid, [p["part"] for p in e["parts"]])
+        ls = [l.strip() for l in text.split("\n") if l.strip()]
+        i = 0
+        for nm in names:
+            while i < len(ls) and not part_line(ls[i], nm):
+                i += 1
+            assert i < len(ls), f"[SYNC-PARTS] the new text of entry {eid} must keep every part name, " \
+                                f"in order; no line starts with {nm!r}"
+            i += 1
+        new_set = set(ls)
+        for k in data["explanations"]:
+            w = k.get("within") or {}
+            if w.get("explanation") != eid or not w.get("instruction"):
+                continue
+            instr = w["instruction"]
+            if instr in new_set:
+                continue
+            rec = next((s for s in stale if s["entry"] == eid and s["old"] == instr), None)
+            assert rec and rec["new"].strip() and rec["new"].strip() in new_set, \
+                f"[SYNC-INSTRUCTION] entry {k['id']} hangs on the line {instr!r}; the new text must " \
+                f"keep that line, or a stale record must map it to a line of the new text"
+            updates.append((k["id"], rec["new"].strip()))
+    return stale, edits, texts, updates
+
+
+def cmd_sync(a):
+    code_path = Path(a.code_file).resolve()
+    map_path, data = load_existing(code_path)
+    new_lines = code_path.read_text().splitlines()
+    old = old_lines_of(code_path, a.old)
+    if old == new_lines:
+        print("nothing changed")
+        return
+    o2n, changed, inserted = line_map(old, new_lines)
+    cand = shift_map(data, o2n, changed, inserted, len(old), len(new_lines))
+    print(f"changed old lines: {fmt(changed) if changed else 'none'}; "
+          f"inserted new lines: {fmt(inserted) if inserted else 'none'}")
+    if not cand:
+        missing, blank = recompute(data, new_lines)
+        map_path.write_text(json.dumps(data, indent=2) + "\n")
+        total = len(new_lines) - len(blank)
+        print("spans renumbered, no entry touches the change, no claude call")
+        print(f"covered: {total - len(missing)} of {total} code lines")
+        print(f"wrote {map_path}")
+        return
+    print(f"candidate entries: {', '.join(str(i) for i in sorted(cand))}")
+    facts = [f"deleted old line {i}: {old[i - 1].strip()}" for i in sorted(changed)]
+    facts += [f"inserted new line {i}: {new_lines[i - 1].strip()}" for i in sorted(inserted)]
+    cands = "\n\n".join(
+        f"=== entry {e['id']} (block {e['block']}), parts: {', '.join(p['part'] for p in e['parts'])} ===\n{e['text']}"
+        for e in data["explanations"] if e["id"] in cand)
+    diff = "\n".join(difflib.unified_diff(old, new_lines, "old", "new", lineterm=""))
+    prompt = (SYNC_PROMPT.replace("<code_file>", code_path.name)
+              .replace("<diff>", diff)
+              .replace("<facts>", "\n".join(facts))
+              .replace("<candidates>", cands))
+    got = None
+    last = ""
+    suffix = ""
+    for _ in range(a.tries):
+        try:
+            m = ask_claude(prompt + suffix)
+        except (ValueError, KeyError) as e:
+            last = f"the answer was not one JSON object: {e}"
+            suffix = "\n\nYour previous answer was not one JSON object. Return only the JSON."
+            continue
+        try:
+            got = check_sync(m, data, new_lines, cand)
+            break
+        except AssertionError as e:
+            last = str(e)
+            suffix = f"\n\nYour previous answer:\n{json.dumps(m)}\n\n" \
+                     f"It broke this rule: {last}\nReturn the full corrected JSON object."
+    if got is None:
+        sys.exit(f"the sync failed after {a.tries} tries, last error: {last}")
+    stale, edits, texts, updates = got
+    for pe in edits:
+        e = next(x for x in data["explanations"] if x["id"] == pe["entry"])
+        for r in pe.get("remove") or []:
+            e["parts"] = [p for p in e["parts"] if p["part"] != r]
+            print(f"entry {pe['entry']}: part {r!r} removed")
+        for adm in pe.get("add") or []:
+            idx = next(i for i, p in enumerate(e["parts"]) if p["part"] == adm["after_part"]) + 1
+            e["parts"].insert(idx, {"part": adm["part"], "own_lines": adm["own_lines"],
+                                    "callee_lines": [], "constant_lines": []})
+            print(f"entry {pe['entry']}: part {adm['part']!r} added at lines {fmt(expand(adm['own_lines']))}")
+    for key, text in texts.items():
+        e = next(x for x in data["explanations"] if x["id"] == int(key))
+        e["text"] = text.strip()
+    for kid, instr in updates:
+        e = next(x for x in data["explanations"] if x["id"] == kid)
+        e["within"]["instruction"] = instr
+        print(f"entry {kid}: instruction moved to {instr!r}")
+    for s in stale:
+        print(f"entry {s['entry']}: {s['old']!r} -> {s['new']!r}" if s["new"].strip()
+              else f"entry {s['entry']}: {s['old']!r} removed")
+    missing, blank = recompute(data, new_lines)
+    map_path.write_text(json.dumps(data, indent=2) + "\n")
+    for e in data["explanations"]:
+        inside = expand(e["block_lines"]) & inserted
+        if not inside:
+            continue
+        cov = set()
+        for p in e["parts"]:
+            cov |= part_lines(p)
+        loose = inside - cov
+        if loose:
+            print(f"warning: entry {e['id']} has inserted lines {fmt(loose)} in no part")
+    total = len(new_lines) - len(blank)
+    print(f"covered: {total - len(missing)} of {total} code lines")
+    print(f"not covered: {fmt(missing) if missing else 'nothing'}")
+    print(f"wrote {map_path}")
+
+
 def main():
     ap = argparse.ArgumentParser(prog="dmap")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -435,9 +702,13 @@ def main():
     s.add_argument("code_file")
     l = sub.add_parser("lines")
     l.add_argument("code_file")
+    y = sub.add_parser("sync")
+    y.add_argument("code_file")
+    y.add_argument("--old")
+    y.add_argument("--tries", type=int, default=4)
     a = ap.parse_args()
     {"map": cmd_map, "retext": cmd_retext, "undo": cmd_undo,
-     "show": cmd_show, "lines": cmd_lines}[a.cmd](a)
+     "show": cmd_show, "lines": cmd_lines, "sync": cmd_sync}[a.cmd](a)
 
 
 if __name__ == "__main__":
