@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>decompile — pseudo reader</title>
 <style>
   :root{
@@ -16,33 +16,24 @@
     --ground:#0c0e13; --surface:#14181f; --surface-2:#191e27; --ink:#e7ebf1; --muted:#97a1af;
     --faint:#6c7684; --hair:#262d38; --spec:#3fd0dd; --spec-wash:rgba(63,208,221,.13);
     --spec-wash-2:rgba(63,208,221,.06); --spec-line:rgba(63,208,221,.55); --call:#e0a458; }}
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
-  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  body{margin:0;height:100dvh;display:flex;flex-direction:column;background:var(--surface);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
-  main{height:100%;display:flex;gap:14px;padding:14px;}
-  .pane{background:var(--surface);border:1px solid var(--hair);border-radius:10px;overflow:hidden;}
-  #side{flex:0 0 240px;display:flex;flex-direction:column;gap:10px;}
-  #projbar{display:flex;align-items:center;gap:9px;padding:8px 14px;font-size:13px;cursor:pointer;flex-shrink:0;}
+  #topbar{flex-shrink:0;position:sticky;top:0;z-index:2;background:var(--surface-2);border-bottom:1px solid var(--hair);padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));padding-left:calc(14px + env(safe-area-inset-left));padding-right:calc(14px + env(safe-area-inset-right));display:flex;align-items:center;gap:9px;cursor:pointer;min-height:44px;}
   .caret{color:var(--faint);font-size:15px;line-height:1;}
-  #projname{font-family:var(--mono);color:var(--muted);flex:1;}
-  #projlist{flex-shrink:0;}
-  #projlist .prow{font-family:var(--mono);font-size:13px;padding:6px 14px;cursor:pointer;}
-  #projlist .prow:hover{background:var(--spec-wash);}
-  #treewrap{flex:1;min-height:0;display:flex;flex-direction:column;}
-  #tree{flex:1;min-height:0;}
-  #mappane{flex:1;min-width:0;display:flex;flex-direction:column;}
-  .phead{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--hair);padding:5px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
-  .rows{flex:1;min-height:0;overflow-y:auto;padding:6px 0;}
+  #projname{font-family:var(--mono);font-size:14px;color:var(--muted);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #projcount{font-family:var(--mono);font-size:11px;color:var(--faint);white-space:nowrap;}
+  #projlist{flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--hair);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
+  #projlist .prow{font-family:var(--mono);font-size:14px;padding:12px 14px;min-height:44px;display:flex;align-items:center;cursor:pointer;border-top:1px solid var(--hair);}
+  #projlist .prow.cur{color:var(--spec);}
+  #maprows{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:6px 0;padding-bottom:calc(20px + env(safe-area-inset-bottom));padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
   .divider{border-top:1px solid var(--hair);margin:7px 14px 3px;}
-  .bhead{font-family:var(--mono);font-size:11px;color:var(--muted);padding:10px 14px 2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .12s;}
-  .bhead:hover{color:var(--spec);}
-  .group{font-family:var(--mono);font-size:11px;color:var(--faint);padding:8px 14px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:color .12s;}
-  .group:hover{color:var(--spec);}
-  .pill{font-family:var(--mono);font-size:11px;color:var(--faint);padding:6px 14px;}
-  .trow{display:flex;gap:10px;padding:5px 14px;cursor:pointer;font-size:14px;transition:background .12s;}
-  .trow>span{white-space:pre-line;min-width:0;}
-  .trow.hov{background:var(--spec-wash);}
+  .bhead{font-family:var(--mono);font-size:12px;color:var(--muted);padding:12px 14px 2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .group{font-family:var(--mono);font-size:12px;color:var(--faint);padding:10px 14px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+  .pill{font-family:var(--mono);font-size:12px;color:var(--faint);padding:8px 14px;}
+  .trow{display:flex;gap:10px;padding:10px 14px;min-height:44px;align-items:center;cursor:pointer;font-size:16px;}
+  .trow>span{white-space:pre-line;min-width:0;overflow-wrap:anywhere;word-break:break-word;}
   .trow.rel{background:var(--spec-wash-2);}
   .trow.sel{background:var(--spec-line);color:#fff;}
   .call{color:var(--call);cursor:pointer;border-bottom:1px dashed var(--call);}
@@ -51,44 +42,26 @@
   .term{color:var(--call);cursor:pointer;border-bottom:1px dashed var(--call);}
   .term.on{color:var(--spec);border-bottom-color:var(--spec);}
   .trow.sel .term{color:#fff;border-bottom-color:#fff;}
-  .story{margin:0 14px 8px 28px;padding:2px 0 2px 10px;border-left:2px solid var(--hair);font-size:13px;color:var(--muted);white-space:pre-line;}
-  .termcard{margin:2px 14px 8px 28px;padding:4px 10px;border-left:2px dashed var(--hair);font-size:13px;color:var(--muted);}
+  .story{margin:0 14px 8px 28px;padding:2px 0 2px 10px;border-left:2px solid var(--hair);font-size:14px;color:var(--muted);white-space:pre-line;overflow-wrap:anywhere;}
+  .termcard{margin:2px 14px 8px 28px;padding:6px 10px;border-left:2px dashed var(--hair);font-size:14px;color:var(--muted);overflow-wrap:anywhere;}
   .termcard .tname{color:var(--spec);}
-  .tref{color:var(--call);cursor:pointer;border-bottom:1px dashed var(--call);}
-  .crow.tdef{background:var(--spec-wash);}
-  #codepane{flex:0 0 min(52vw,780px);display:flex;flex-direction:column;}
-  .codewrap{flex:1;min-height:0;overflow:auto;padding:10px 0;}
-  .crow{display:flex;padding:0 14px;font-family:var(--mono);font-size:13px;line-height:1.62;white-space:pre;transition:background .12s;}
-  .crow .ln{display:inline-block;width:4ch;margin-right:14px;text-align:right;color:var(--faint);user-select:none;flex-shrink:0;}
-  .crow.hov{background:var(--spec-wash);}
-  .crow.rel{background:var(--spec-wash-2);}
-  .crow.sel{background:var(--spec-line);color:#fff;}
-  .crow.sel .ln{color:#fff;}
-  .cfold{color:var(--faint);}
-  #msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;}
+  .codecard{margin:2px 14px 8px 20px;background:var(--surface-2);border:1px solid var(--hair);border-radius:8px;overflow-x:auto;padding:6px 0;}
+  .crow{display:flex;padding:0 12px;font-family:var(--mono);font-size:12.5px;line-height:1.62;white-space:pre;}
+  .crow .ln{display:inline-block;width:4ch;margin-right:12px;text-align:right;color:var(--faint);user-select:none;flex-shrink:0;}
+  .cgap{height:9px;}
+  #msg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:15px;padding:20px;text-align:center;}
   #msg[hidden]{display:none;}
-  #viewport{flex:1;min-width:0;display:flex;gap:14px;position:relative;}
 </style>
 </head>
 <body>
-<main>
-  <div id="side">
-    <section class="pane" id="projbar"><span class="caret">‹</span><span id="projname"></span></section>
-    <section class="pane" id="projlist" hidden></section>
-    <section class="pane" id="treewrap"><div id="tree"></div></section>
-  </div>
-  <div id="viewport">
-    <section class="pane" id="mappane"><div class="phead" id="maphead"></div><div class="rows" id="maprows"></div></section>
-    <section class="pane" id="codepane"><div class="phead" id="codehead"></div><div class="codewrap" id="codewrap"></div></section>
-    <div id="msg" hidden></div>
-  </div>
-</main>
+<header id="topbar"><span class="caret">‹</span><span id="projname"></span><span id="projcount"></span></header>
+<div id="projlist" hidden></div>
+<div id="maprows"></div>
+<div id="msg" hidden></div>
 <script type="module">
-import { FileTree } from "./trees.js";
-
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-var projs=[], cur=null, lines=[], byId={}, fnByName={}, fnIds=[], nb={}, revealed={}, cuts={}, roots=[], sel=null, hov=null, ft=null, terms=[], termOpen=null;
-var maprows=document.getElementById("maprows"), codewrap=document.getElementById("codewrap");
+var projs=[], cur=null, lines=[], byId={}, fnByName={}, fnIds=[], nb={}, revealed={}, cuts={}, roots=[], sel=null, terms=[], termOpen=null, codeOpen={};
+var maprows=document.getElementById("maprows");
 
 function msg(t){var el=document.getElementById("msg");el.hidden=!t;el.textContent=t||"";}
 
@@ -101,14 +74,14 @@ fetch("projects.json",{cache:"no-store"}).then(function(r){return r.json();}).th
 }).then(function(ps){
   projs=ps.filter(Boolean);
   if(!projs.length){msg("no maps — serve decompile_v2/ and compile a project");return;}
-  ft=new FileTree({paths:[projs[0].file],initialExpansion:"open",initialSelectedPaths:[projs[0].file]});
-  ft.render({fileTreeContainer:document.getElementById("tree")});
   open(projs[0]);
-}).catch(function(){msg("could not load — serve decompile_v2/ and open /web.html");});
+}).catch(function(){msg("could not load — serve decompile_v2/ and open /web_mobile.html");});
 
-document.getElementById("projbar").addEventListener("click",function(){
+document.getElementById("topbar").addEventListener("click",function(){
   var el=document.getElementById("projlist");
-  el.innerHTML=projs.map(function(p,i){return '<div class="prow" data-i="'+i+'">'+esc(p.name)+'</div>';}).join("");
+  el.innerHTML=projs.map(function(p,i){
+    return '<div class="prow'+(p===cur?" cur":"")+'" data-i="'+i+'">'+esc(p.name)+'</div>';
+  }).join("");
   el.hidden=!el.hidden;
 });
 document.getElementById("projlist").addEventListener("click",function(e){
@@ -116,15 +89,15 @@ document.getElementById("projlist").addEventListener("click",function(e){
   if(!row) return;
   document.getElementById("projlist").hidden=true;
   var p=projs[+row.getAttribute("data-i")];
-  if(p!==cur){ft.resetPaths([p.file]);open(p);}
+  if(p!==cur) open(p);
 });
 
 function open(p){
   cur=p;
   document.getElementById("projname").textContent=p.name;
+  document.getElementById("projcount").textContent="";
   if(!p.m.map.length||p.m.map[0].name===undefined){
-    maprows.innerHTML="";codewrap.innerHTML="";
-    document.getElementById("maphead").textContent="";document.getElementById("codehead").textContent="";
+    maprows.innerHTML="";
     msg("old map format — recompile this project with the block decompiler");
     return;
   }
@@ -134,9 +107,10 @@ function open(p){
     lines=t.replace(/\n$/,"").split("\n");
     buildIndex();
     terms=cur.m.terms||[];
-    sel=null; hov=null; termOpen=null;
+    sel=null; termOpen=null; codeOpen={};
     initView();
     renderAll();
+    maprows.scrollTop=0;
   });
 }
 
@@ -186,23 +160,6 @@ function collapseIn(rf,pid){
     }else keep.push(id);
   });
   cuts[rf]=keep;
-}
-
-function termCard(tt){
-  var h='<div class="termcard"><span class="tname">'+esc(tt.term)+'</span> — '+esc(tt.meaning||tt.text||"");
-  if(tt.defs&&tt.defs.length){
-    h+='<br>defined at '+tt.defs.map(function(d){
-      return '<span class="tref" data-a="'+d[0]+'">'+d[0]+'–'+d[1]+'</span>';
-    }).join(" · ");
-  }
-  return h+'</div>';
-}
-
-function storyHtml(id){
-  if(!byId[id].story) return "";
-  var h='<div class="story" data-id="'+id+'">'+markText(byId[id].story,id)+'</div>';
-  if(termOpen&&termOpen.row==="story:"+id&&terms[termOpen.ti]) h+=termCard(terms[termOpen.ti]);
-  return h;
 }
 
 function cutRows(rf){
@@ -266,6 +223,32 @@ function nonBlank(a,b){
   return k;
 }
 
+function termCard(tt){
+  var h='<div class="termcard"><span class="tname">'+esc(tt.term)+'</span> — '+esc(tt.meaning||tt.text||"");
+  if(tt.defs&&tt.defs.length){
+    h+='<br>defined at '+tt.defs.map(function(d){return d[0]+'–'+d[1];}).join(" · ");
+  }
+  return h+'</div>';
+}
+
+function storyHtml(id){
+  if(!byId[id].story) return "";
+  var h='<div class="story" data-id="'+id+'">'+markText(byId[id].story,id)+'</div>';
+  if(termOpen&&termOpen.row==="story:"+id&&terms[termOpen.ti]) h+=termCard(terms[termOpen.ti]);
+  return h;
+}
+
+function codeCard(id){
+  var html='<div class="codecard">';
+  byId[id].lines.forEach(function(r,si){
+    if(si) html+='<div class="cgap"></div>';
+    for(var n=r[0];n<=r[1];n++){
+      html+='<div class="crow"><span class="ln">'+n+'</span><span>'+(esc(lines[n-1]||"")||" ")+'</span></div>';
+    }
+  });
+  return html+'</div>';
+}
+
 function renderMap(){
   var segs=[];
   Object.keys(revealed).forEach(function(fid){
@@ -287,6 +270,7 @@ function renderMap(){
       });
       html+='<div class="trow" data-id="'+r.id+'"><span>'+markText(byId[r.id].text,s.fid)+'</span></div>';
       if(r.id===s.fid&&s.first) html+=storyHtml(r.id);
+      if(codeOpen[r.id]) html+=codeCard(r.id);
       if(termOpen&&termOpen.row===r.id&&terms[termOpen.ti]) html+=termCard(terms[termOpen.ti]);
       if(r.div) html+='<div class="divider"></div>';
     });
@@ -294,74 +278,19 @@ function renderMap(){
   });
   if(pos<=lines.length&&nonBlank(pos,lines.length)) html+='<div class="pill">▹ '+nonBlank(pos,lines.length)+' hidden lines</div>';
   maprows.innerHTML=html;
-  document.getElementById("maphead").textContent=cur.name+"/"+cur.file+"  ·  "+Object.keys(revealed).length+"/"+fnIds.length+" blocks";
+  document.getElementById("projcount").textContent=Object.keys(revealed).length+"/"+fnIds.length+" blocks";
 }
 
-function renderCode(){
-  var cov={};
-  Object.keys(revealed).forEach(function(fid){
-    byId[fid].lines.forEach(function(r){for(var n=r[0];n<=r[1];n++)cov[n]=1;});
-  });
-  if(termOpen&&terms[termOpen.ti]){
-    (terms[termOpen.ti].defs||[]).forEach(function(r){for(var n=r[0];n<=r[1];n++)cov[n]=1;});
-  }
-  var html="", gap=0, gs=0;
-  for(var n=1;n<=lines.length;n++){
-    if(cov[n]){
-      if(gap){html+='<div class="crow cfold"><span class="ln">⋯</span><span>'+(n-gs)+' lines</span></div>';gap=0;}
-      html+='<div class="crow" data-n="'+n+'"><span class="ln">'+n+'</span><span>'+(esc(lines[n-1])||" ")+'</span></div>';
-    }else if(!gap){gap=1;gs=n;}
-  }
-  if(gap) html+='<div class="crow cfold"><span class="ln">⋯</span><span>'+(lines.length-gs+1)+' lines</span></div>';
-  codewrap.innerHTML=html;
-  document.getElementById("codehead").textContent=cur.name+"/"+cur.file;
-}
-
-function renderAll(){renderMap();renderCode();paintAll();}
+function renderAll(){renderMap();paintAll();}
 
 function near(a,b){return !!(a&&b&&nb[a]&&nb[a][b]);}
 
-function inRanges(id,n){
-  return !!id&&byId[id].lines.some(function(r){return r[0]<=n&&n<=r[1];});
-}
-
 function paintAll(){
-  var hovLink=Object.keys(nb[hov]||{});
   maprows.querySelectorAll(".trow").forEach(function(row){
     var id=row.getAttribute("data-id");
     row.classList.toggle("sel",id===sel);
-    row.classList.toggle("hov",!!hov&&id===hov&&id!==sel);
-    row.classList.toggle("rel",id!==sel&&id!==hov&&(near(sel,id)||near(hov,id)));
+    row.classList.toggle("rel",id!==sel&&near(sel,id));
   });
-  var tset={};
-  if(termOpen&&terms[termOpen.ti]){
-    (terms[termOpen.ti].defs||[]).forEach(function(r){for(var n=r[0];n<=r[1];n++)tset[n]=1;});
-  }
-  codewrap.querySelectorAll(".crow[data-n]").forEach(function(row){
-    var n=+row.getAttribute("data-n");
-    var s=inRanges(sel,n);
-    row.classList.toggle("sel",s);
-    row.classList.toggle("hov",!s&&inRanges(hov,n));
-    row.classList.toggle("rel",!s&&hovLink.some(function(o){return inRanges(o,n);}));
-    row.classList.toggle("tdef",!s&&!!tset[n]);
-  });
-}
-
-function visibleIds(){
-  var out=[];
-  Object.keys(revealed).forEach(function(fid){out=out.concat(cuts[fid]);});
-  return out;
-}
-
-function cutOwner(n){
-  var best=null;
-  visibleIds().forEach(function(id){if(inRanges(id,n))best=id;});
-  return best;
-}
-
-function revealCode(){
-  var first=codewrap.querySelector(".crow.sel");
-  if(first) codewrap.scrollTop=first.offsetTop-codewrap.offsetTop-codewrap.clientHeight/2;
 }
 
 function revealMap(id){
@@ -369,7 +298,7 @@ function revealMap(id){
   if(row) maprows.scrollTop=row.offsetTop-maprows.offsetTop-maprows.clientHeight/3;
 }
 
-document.getElementById("mappane").addEventListener("click",function(e){
+maprows.addEventListener("click",function(e){
   var tm=e.target.closest(".term");
   if(tm){
     var ti=+tm.getAttribute("data-ti");
@@ -378,13 +307,6 @@ document.getElementById("mappane").addEventListener("click",function(e){
     if(termOpen&&termOpen.ti===ti&&termOpen.row===rowId) termOpen=null;
     else termOpen={ti:ti,row:rowId};
     renderAll();
-    return;
-  }
-  var tr=e.target.closest(".tref");
-  if(tr){
-    var tn=+tr.getAttribute("data-a");
-    var trrow=codewrap.querySelector('.crow[data-n="'+tn+'"]');
-    if(trrow) codewrap.scrollTop=trrow.offsetTop-codewrap.offsetTop-codewrap.clientHeight/2;
     return;
   }
   var call=e.target.closest(".call");
@@ -396,8 +318,8 @@ document.getElementById("mappane").addEventListener("click",function(e){
       renderAll();
     }else if(!revealed[fid]){
       revealed[fid]=1; cuts[fid]=[fid];
-      sel=fid; hov=null;
-      renderAll(); revealMap(fid); revealCode();
+      sel=fid;
+      renderAll(); revealMap(fid);
     }
     return;
   }
@@ -405,16 +327,16 @@ document.getElementById("mappane").addEventListener("click",function(e){
   if(bh){
     var bid=bh.getAttribute("data-id");
     cuts[bid]=[bid];
-    sel=bid; hov=null;
-    renderAll(); revealMap(bid); revealCode();
+    sel=bid;
+    renderAll(); revealMap(bid);
     return;
   }
   var g=e.target.closest(".group");
   if(g){
     var pid=g.getAttribute("data-id");
     collapseIn(byId[pid].rf,pid);
-    sel=pid; hov=null;
-    renderAll(); revealCode(); revealMap(pid);
+    sel=pid;
+    renderAll(); revealMap(pid);
     return;
   }
   var row=e.target.closest(".trow");
@@ -422,40 +344,17 @@ document.getElementById("mappane").addEventListener("click",function(e){
   var id=row.getAttribute("data-id");
   if(byId[id].kids.length){
     expandIn(byId[id].rf,id);
-    sel=id; hov=null;
-    renderAll(); revealCode();
+    sel=id;
+    renderAll();
+  }else if(codeOpen[id]){
+    delete codeOpen[id];
+    if(sel===id) sel=null;
+    renderAll();
   }else{
-    sel=sel===id?null:id;
-    paintAll();
-    if(sel) revealCode();
+    codeOpen[id]=1;
+    sel=id;
+    renderAll();
   }
-});
-
-codewrap.addEventListener("click",function(e){
-  var crow=e.target.closest(".crow[data-n]");
-  if(!crow) return;
-  var o=cutOwner(+crow.getAttribute("data-n"));
-  if(!o) return;
-  sel=sel===o?null:o;
-  paintAll();
-  if(sel) revealMap(sel);
-});
-
-document.getElementById("mappane").addEventListener("mouseover",function(e){
-  var row=e.target.closest(".trow,.group,.bhead");
-  var id=row?row.getAttribute("data-id"):null;
-  if(id!==hov){hov=id;paintAll();}
-});
-document.getElementById("mappane").addEventListener("mouseleave",function(){
-  if(hov){hov=null;paintAll();}
-});
-codewrap.addEventListener("mouseover",function(e){
-  var crow=e.target.closest(".crow[data-n]");
-  var id=crow?cutOwner(+crow.getAttribute("data-n")):null;
-  if(id!==hov){hov=id;paintAll();}
-});
-codewrap.addEventListener("mouseleave",function(){
-  if(hov){hov=null;paintAll();}
 });
 </script>
 </body>

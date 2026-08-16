@@ -1,0 +1,14 @@
+flaky_get: root + body, 1 effects
+sum_leaves: root + body, pure
+deep_flag: root + body, pure
+average_scores: root + body, pure
+spread_scores: root + body, pure
+roman: root + body, pure
+luhn_ok: root + body, pure
+fetch_user: root + body, 1 effects
+fetch_orders: root + body, 1 effects
+fetch_prices: root + body, 1 effects
+script: root + body, 2 effects
+vocab retry 1: [TERM-USED] the term "the leaf walk" appears verbatim in 1 texts, it must appear in at least 2
+vocabulary: 3 terms
+11 blocks, 0 silent, 6 pure, 3 terms, 12 links, 13 claude calls -> decompile_v14/example_map.json

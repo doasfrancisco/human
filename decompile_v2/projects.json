@@ -1,3 +1,3 @@
 {
-  "projects": ["decompile_v5", "decompile_v4", "decompile_v3", "sort", "decompile", "decompile_v2", "web", "decompile_legacy"]
+  "projects": ["decompile_v14", "decompile_v13", "decompile_v12", "decompile_v11", "decompile_v10", "decompile_v9", "decompile_v8", "decompile_v7", "decompile_v7_flow", "decompile_v6", "sample", "sample_flow", "decompile_v5", "decompile_v4", "decompile_v3", "sort", "decompile", "decompile_v2", "web", "decompile_legacy"]
 }

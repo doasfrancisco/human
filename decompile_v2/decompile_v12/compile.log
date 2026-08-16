@@ -1,0 +1,19 @@
+ask_claude: root + body
+retry 1 [check_block()]: (parse) is not the name of a block of this file
+check_block: root + body
+retry 1 [carve()]: substring not found
+carve: root + body
+blocks_of.grab: root + body
+calls_of.resolve: root + body
+layers_of.strong: root + body
+layers_of.height: root + body
+links: root + body
+blocks_of: root + body
+calls_of.scan: root + body
+layers_of: root + body
+retry 1 [compile_block()]: (ctx) is not the name of a block of this file
+compile_block: root + body
+calls_of: root + body
+main: root + body
+script: root + body
+15 blocks, 12 links, 18 claude calls -> decompile_v12/map.json

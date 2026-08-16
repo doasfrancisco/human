@@ -1,0 +1,347 @@
+{
+  "file": "decompile.py",
+  "links": [
+    {
+      "name": "PROMPT",
+      "def": "B01",
+      "used": [
+        "B14"
+      ]
+    },
+    {
+      "name": "CALLS",
+      "def": "B01",
+      "used": [
+        "B02",
+        "B15"
+      ]
+    },
+    {
+      "name": "ask_claude",
+      "def": "B02",
+      "used": [
+        "B14"
+      ]
+    },
+    {
+      "name": "NAME_REF",
+      "def": "B01",
+      "used": [
+        "B03"
+      ]
+    },
+    {
+      "name": "check_block",
+      "def": "B03",
+      "used": [
+        "B14"
+      ]
+    },
+    {
+      "name": "carve",
+      "def": "B04",
+      "used": [
+        "B05"
+      ]
+    },
+    {
+      "name": "blocks_of",
+      "def": "B05",
+      "used": [
+        "B15"
+      ]
+    },
+    {
+      "name": "calls_of",
+      "def": "B07",
+      "used": [
+        "B15"
+      ]
+    },
+    {
+      "name": "layers_of",
+      "def": "B10",
+      "used": [
+        "B15"
+      ]
+    },
+    {
+      "name": "links",
+      "def": "B13",
+      "used": [
+        "B15"
+      ]
+    },
+    {
+      "name": "compile_block",
+      "def": "B14",
+      "used": [
+        "B15"
+      ]
+    },
+    {
+      "name": "main",
+      "def": "B15",
+      "used": [
+        "B01"
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B01",
+      "name": "script",
+      "layer": 5,
+      "lines": [
+        [
+          1,
+          55
+        ],
+        [
+          67,
+          67
+        ],
+        [
+          273,
+          274
+        ]
+      ],
+      "calls": [
+        "main"
+      ],
+      "root": "script — holds the prompt Claude answers for one block plus the two values the rest of the file shares, and runs main() when the file is started as a program.",
+      "body": "PROMPT    = the whole instruction sheet for one block, with six holes in it:\n            the file name, the numbered file, which block, which lines,\n            the roots of the callees explained already, and the legal names.\n            The rules ask for one root line and one body, flow shape for a\n            block that mostly calls, example shape for a block that computes,\n            and two gold bodies show both shapes. The holes are filled per\n            block (compile_block), and the filled text goes to Claude (ask_claude).\n\nCALLS     = one number in a list, the count of Claude calls of the run.\n            A list, not a plain number, so ask_claude can add to it from inside.\n\nNAME_REF  = the pattern that finds a bare name in round brackets inside a body,\n            so the checker can refuse a name that is not a block of this file (check_block).\n\nstarted as a program:\n    main()  ->  the file on the command line, explained into map.json beside it\n\nimported instead: nothing runs, and another file gets the parts one at a time.\n\nimports: ast cuts and reads the Python, jedi finds the name links, subprocess\ncalls Claude, re holds the name pattern, json reads and writes the answers."
+    },
+    {
+      "id": "B02",
+      "name": "ask_claude",
+      "layer": 1,
+      "lines": [
+        [
+          58,
+          64
+        ]
+      ],
+      "calls": [],
+      "root": "ask_claude(prompt) -> dict — sends one prompt to the claude command and gives the caller back the JSON object in the answer.",
+      "body": "Example: ask_claude(\"... Return one JSON object only ...\") runs\n\n    claude -p <the prompt> --output-format json\n\nThe command prints its own envelope, and the model's words are the \"result\" string inside it. If that string is `Sure! {\"root\": \"carve(...)\", \"body\": \"...\"} Let me know.`, the block keeps the part from the first { to the last }, reads it as JSON, and returns the two-key dict.\n\nA non-zero exit stops the run with the last 500 characters of stderr, and a call that takes more than 600 seconds stops it too. Text around the object is permitted, but broken JSON inside raises, which is how the caller (compile_block) knows to try again. Each call adds one to CALLS, the counter the last printed line shows."
+    },
+    {
+      "id": "B03",
+      "name": "check_block",
+      "layer": 1,
+      "lines": [
+        [
+          70,
+          77
+        ]
+      ],
+      "calls": [],
+      "root": "check_block(m, names) -> (root, body) — asserts one claude answer is well formed and gives back its two stripped strings, or raises so the caller retries.",
+      "body": "Example: m = {\"root\": \"carve(a, b, minus, lines) -> spans — cuts a span into the pieces nothing else owns.\", \"body\": \"a run of free lines becomes one span (carve)\"} with names = {\"carve\", \"main\"} passes, and returns the pair with the outer whitespace removed.\n\nOnly a single word inside plain parentheses is checked, like (carve); the rest of the body is free text. A word that is not a block of the file fails the assert, and the message quotes that word so the retry note can name it. A missing key, a non-string value, or a blank string fails the same way: this block raises, it never returns a partial answer."
+    },
+    {
+      "id": "B04",
+      "name": "carve",
+      "layer": 1,
+      "lines": [
+        [
+          80,
+          99
+        ]
+      ],
+      "calls": [],
+      "root": "carve(a, b, minus, lines) -> spans — cuts the holes and the blank edges out of a line range, so a block keeps only the lines that belong to it",
+      "body": "Example: lines 1 to 5 of a file\n\n1  def f(x):\n2      def g(y):\n3          return y\n4\n5      return g(x)\n\ncarve(1, 5, [[2, 3]], lines) gives [[1, 1], [5, 5]]. The minus spans take out lines 2 and 3, which breaks the range into the runs [1,1] and [4,5]. Then each run loses its blank lines at the top and at the bottom, so [4,5] becomes [5,5]; a run with only blank lines goes away. A blank line inside a run stays."
+    },
+    {
+      "id": "B05",
+      "name": "blocks_of",
+      "layer": 2,
+      "lines": [
+        [
+          102,
+          104
+        ],
+        [
+          114,
+          124
+        ]
+      ],
+      "calls": [
+        "blocks_of.grab",
+        "carve"
+      ],
+      "root": "blocks_of(path, src, lines) -> blocks — cuts the file into one block per function and class plus a script block for the rest, each holding only the line spans that belong to it",
+      "body": "Example: a six-line file\n\n1  def outer():\n2      def inner():\n3          return 1\n4      return inner()\n5\n6  print(outer())\n\nThe tree walk (grab) fills fns with outer [1,4] and outer.inner [2,3]. Every function then keeps only its own lines (carve): outer becomes [[1,1],[4,4]], outer.inner becomes [[2,3]]. The lines no function claims become the script block, [[6,6]] — line 5 is blank, so it drops out. The blocks come back sorted by first line.\n\nA nested def is a block of its own with a dotted name, and it leaves a hole in its parent. A decorator line counts as the start of the block it decorates. A file that is not Python gets no functions at all, so the whole file is one script block."
+    },
+    {
+      "id": "B06",
+      "name": "blocks_of.grab",
+      "layer": 1,
+      "lines": [
+        [
+          105,
+          112
+        ]
+      ],
+      "calls": [],
+      "root": "grab(node, scope) -> None — walks the syntax tree and appends one entry to fns for every function and class it meets, at any depth",
+      "body": "Example: grab(ast.parse(src), []) on a file whose line 1 is `def outer():` and whose line 3 is an indented `def inner():` inside it, ending at line 4.\n\nThe first call sees `outer` as a child of the module, appends {\"name\": \"outer\", \"span\": [1, 4], \"node\": ...}, then calls itself on `outer` with scope [\"outer\"], which appends {\"name\": \"outer.inner\", \"span\": [3, 4], \"node\": ...}. A nested def is kept as well as its parent, and its name carries the parent names in front of it, joined by dots.\n\nThe span starts at the first decorator line, not at the `def` line, when the block has decorators. A node that is not a def or a class is not appended, but grab still goes down into it with the same scope, so a def inside an `if` is found. The function returns nothing; the result is the fns list it fills."
+    },
+    {
+      "id": "B07",
+      "name": "calls_of",
+      "layer": 3,
+      "lines": [
+        [
+          127,
+          130
+        ],
+        [
+          149,
+          151
+        ]
+      ],
+      "calls": [
+        "calls_of.scan"
+      ],
+      "root": "calls_of(block, body, names) -> sorted list of block names — tells which other blocks of this file this block calls, so a caller can be put after its callees.",
+      "body": "Example: the block layers_of. Its own lines call strong(...) and height(...), and both of those are defs nested inside it.\n\ncalls_of gives [layers_of.height, layers_of.strong].\n\nThe walk (scan) stops at every def and class, so the calls written inside strong() and height() belong to those blocks, not to layers_of. A bare word is matched nearest first up the scope chain: inside layers_of the word strong finds layers_of.strong, and a word that finds the block itself is dropped, so recursion is not a call. The script block has no node, so the walk starts at each top-level statement that is not a def or a class."
+    },
+    {
+      "id": "B08",
+      "name": "calls_of.resolve",
+      "layer": 1,
+      "lines": [
+        [
+          132,
+          137
+        ]
+      ],
+      "calls": [],
+      "root": "resolve(word) -> dotted block name or None — turns a bare name found in the code into the block name it means, by looking outward through the enclosing scopes.",
+      "body": "Example: the scan walk is inside calls_of.scan, so scope is [\"calls_of\", \"scan\"]. resolve(\"resolve\") tries the longest path first, \"calls_of.scan.resolve\", which is not a block name; then \"calls_of.resolve\", which is, and that is the answer.\n\nThe search goes innermost first, so a nested block hides a top-level block of the same name. The last try uses k = 0, the bare word alone, which is the top-level name. A word that names no block — json, ast, a local variable — gives None, and the caller drops it."
+    },
+    {
+      "id": "B09",
+      "name": "calls_of.scan",
+      "layer": 2,
+      "lines": [
+        [
+          139,
+          147
+        ]
+      ],
+      "calls": [
+        "calls_of.resolve"
+      ],
+      "root": "scan(node) -> None — walks the tree under one AST node and adds to out every bare name that means another block of this file.",
+      "body": "Example: scan on the node for\n\n1  def f():\n2      x = carve(1, 2, [], lines)\n3      def g():\n4          y = links(p)\n\nputs carve in out, and nothing more. Line 3 is a def, so scan does not go into it: the names inside g belong to g's own block, and links stays out.\n\nEvery bare name goes to (resolve), which gives the block name it means or None. A name that resolves back to the block now scanned is dropped, so recursion is not a call. Each name counts, not only the names in front of a bracket, so a function given as a value is a call too."
+    },
+    {
+      "id": "B10",
+      "name": "layers_of",
+      "layer": 2,
+      "lines": [
+        [
+          154,
+          156
+        ],
+        [
+          177,
+          185
+        ],
+        [
+          192,
+          192
+        ]
+      ],
+      "calls": [
+        "layers_of.height",
+        "layers_of.strong"
+      ],
+      "root": "layers_of(blocks, calls) -> {name: int} — gives every block a layer number, so a block always sorts after the blocks it calls and the compiler can go bottom up.",
+      "body": "Example: three blocks, main calls carve, and carve calls nothing.\n\ncalls = {\"main\": [\"carve\"], \"carve\": [], \"script\": [\"main\"]}\n\nlayers_of returns {\"carve\": 1, \"main\": 2, \"script\": 3}. Sorted by that number, carve is explained first and main sees the finished root of carve.\n\nThe walk down the call graph puts every block of a cycle into one shared group (strong), so two blocks that call each other get the same number and neither waits for the other. The number of a group is the depth of calls under it (height), not a count of blocks. A block that nothing calls still gets 1, so no block is left out."
+    },
+    {
+      "id": "B11",
+      "name": "layers_of.strong",
+      "layer": 1,
+      "lines": [
+        [
+          158,
+          175
+        ]
+      ],
+      "calls": [],
+      "root": "strong(v) -> None — walks the call graph down from block v and stamps every block of each cycle it closes with one shared group name in comp.",
+      "body": "Example: three blocks, calls = {\"a\": [\"b\"], \"b\": [\"a\", \"c\"], \"c\": []}\n\nstrong(\"a\")   a gets number 0, goes on the stack\n  strong(\"b\") b gets number 1, goes on the stack\n    a has a number already and is still on the stack -> low[\"b\"] = 0\n    strong(\"c\") c gets number 2, calls nobody, low == idx,\n                so c pops alone: comp[\"c\"] = \"c\"\n  low[\"b\"] = 0 is not idx[\"b\"] = 1, so b stays on the stack\nlow[\"a\"] == idx[\"a\"], so the stack pops b and then a:\ncomp[\"b\"] = comp[\"a\"] = \"a\"\n\nThe answer is not returned: it is written into the idx, low, on, st and comp maps that (layers_of) holds around this block. Only a block still on the stack lowers low, so an edge into a group that is closed already is ignored. Blocks that call each other around a cycle end with the same comp value, and a block in no cycle is its own group."
+    },
+    {
+      "id": "B12",
+      "name": "layers_of.height",
+      "layer": 1,
+      "lines": [
+        [
+          187,
+          190
+        ]
+      ],
+      "calls": [],
+      "root": "height(c) -> int — gives the layer number of one component: how many steps of calls stand under it, so a caller always ranks above everything it calls.",
+      "body": "Example: three components in edges, a over b, b over c, and c calls nothing.\n\nheight(c) finds no entry in edges, so max over an empty set is 0 and the answer is 1.\nheight(b) asks height(c) first, gets 1, and answers 2.\nheight(a) asks height(b), gets 2, and answers 3.\n\nThe count is the longest chain under the component, not the number of callees: a component with ten leaf callees is still 2. Each answer is kept in h, so a component shared by many callers is counted one time only. A component that calls itself is not a problem here, because the cycle was already folded into one component before this point."
+    },
+    {
+      "id": "B13",
+      "name": "links",
+      "layer": 1,
+      "lines": [
+        [
+          195,
+          211
+        ]
+      ],
+      "calls": [],
+      "root": "links(path, owner) -> rows of {name, def, used} — reports every top-level name that one block defines and other blocks use, so the reader can jump from a use to the block that holds the definition.",
+      "body": "Example: carve is defined at line 80, and blocks_of uses it at lines 119 and 120. The owner map says line 80 belongs to block B04 and lines 119-120 belong to B05, so the row is {\"name\": \"carve\", \"def\": \"B04\", \"used\": [\"B05\"]}.\n\nAn imported name like ast or json is dropped, because jedi goes to a definition in another file. A name that only its own block uses gives no row, because a use in the defining block is not counted. A file that is not Python gets no rows at all."
+    },
+    {
+      "id": "B14",
+      "name": "compile_block",
+      "layer": 2,
+      "lines": [
+        [
+          214,
+          234
+        ]
+      ],
+      "calls": [
+        "ask_claude",
+        "check_block"
+      ],
+      "root": "compile_block(bl, name, code, ctx, names) -> (root, body) — gets one block's explanation from claude, and gives back the first answer that passes the check, or stops the program after 8 tries.",
+      "body": "label   = the block name with () after it, or \"the top-level script code\" when the block has no node\nspan    = the line ranges of the block, joined as \"214-234\"\nshort   = every block name of the file, last part only, for the list the prompt shows\nbase    = the PROMPT text filled with the file name, the numbered code,\n          the label, the span, the callee roots given as ctx, and the short names\n\nup to 8 tries:\n    base + note -> one answer          (ask_claude)\n    the answer must be well formed     (check_block)\n    good -> print the block name and give root + body back\n    bad  -> note = the last answer, the rule it broke, and every rule\n            broken before, so the next try sees all of them together\n\nafter the eighth bad try the whole program stops with an error."
+    },
+    {
+      "id": "B15",
+      "name": "main",
+      "layer": 4,
+      "lines": [
+        [
+          237,
+          270
+        ]
+      ],
+      "calls": [
+        "blocks_of",
+        "calls_of",
+        "compile_block",
+        "layers_of",
+        "links"
+      ],
+      "root": "main() -> nothing — reads the file named on the command line, gets a checked explanation for every block of it, and writes map.json beside the file.",
+      "body": "path, code = the file named on the command line, a line number in front of every line\nlines      = the same file, one string per line; an empty file stops the program\n\nblocks = one block per function and class plus the script (blocks_of)\ncalls  = for every block, the other blocks of this file it calls (calls_of)\nlay    = a layer number per block, so a block sorts after the blocks it calls (layers_of)\n\nfor each block, bottom up by layer, then by first line:\n    ctx        = the root lines of the callees already finished,\n                 so this block speaks about them at their level\n    root, body = the checked explanation of this block (compile_block)\n    done[name] = root + body\n\nrows     = one record per block in file order: id B01, B02..., name, layer, lines, calls, root, body\nowner    = line number -> block id, for every line of every block\nlinks    = the name links between blocks, found over owner (links)\nmap.json = {file, links, blocks}, written beside the file\n\nThe compile loop goes bottom up, but rows keep the file order. The name set the checker gets holds both the dotted name and the last part of it, so a body may write either one."
+    }
+  ]
+}

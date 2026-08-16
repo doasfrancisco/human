@@ -1,0 +1,23 @@
+retry 1 [ask_claude()]: [EFFECT-MARK] the block has effects and a flow body, so one step line must start with a bang
+ask_claude: root + body, 2 effects
+check_block: root + body, pure
+check_grounded.walk: root + body, 2 effects
+carve: root + body, pure
+blocks_of.grab: root + body, 1 effects
+calls_of.resolve: root + body, pure
+layers_of.strong: root + body, 1 effects
+layers_of.height: root + body, pure
+links: root + body, pure
+check_grounded: root + body, pure
+blocks_of: root + body, pure
+calls_of.scan: root + body, 1 effects
+layers_of: root + body, pure
+compile_block: root + body, 2 effects
+check_vocab: root + body, pure
+calls_of: root + body, pure
+vocab_pass: root + body, 2 effects
+main: root + body, 3 effects
+retry 1 [the top-level script code]: [LINK-REAL] (name) is not the name of a block of this file
+script: root + body, pure
+vocabulary: 5 terms
+19 blocks, 0 silent, 11 pure, 5 terms, 19 links, 22 claude calls -> decompile_v14/map.json

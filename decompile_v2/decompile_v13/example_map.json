@@ -1,0 +1,285 @@
+{
+  "file": "example.py",
+  "links": [
+    {
+      "name": "FAILURES",
+      "def": "B01",
+      "used": [
+        "B02"
+      ]
+    },
+    {
+      "name": "DATA",
+      "def": "B01",
+      "used": [
+        "B02"
+      ]
+    },
+    {
+      "name": "flaky_get",
+      "def": "B02",
+      "used": [
+        "B03",
+        "B04",
+        "B05"
+      ]
+    },
+    {
+      "name": "fetch_user",
+      "def": "B03",
+      "used": [
+        "B01"
+      ]
+    },
+    {
+      "name": "fetch_orders",
+      "def": "B04",
+      "used": [
+        "B01"
+      ]
+    },
+    {
+      "name": "fetch_prices",
+      "def": "B05",
+      "used": [
+        "B01"
+      ]
+    },
+    {
+      "name": "sum_leaves",
+      "def": "B06",
+      "used": [
+        "B01"
+      ]
+    },
+    {
+      "name": "deep_flag",
+      "def": "B07",
+      "used": [
+        "B01"
+      ]
+    },
+    {
+      "name": "average_scores",
+      "def": "B08",
+      "used": [
+        "B01"
+      ]
+    },
+    {
+      "name": "spread_scores",
+      "def": "B09",
+      "used": [
+        "B01"
+      ]
+    },
+    {
+      "name": "roman",
+      "def": "B10",
+      "used": [
+        "B01"
+      ]
+    },
+    {
+      "name": "luhn_ok",
+      "def": "B11",
+      "used": [
+        "B01"
+      ]
+    }
+  ],
+  "terms": [
+    {
+      "term": "the retry dance",
+      "meaning": "Call flaky_get(source) in a loop of a set number of tries, return its data on the first try that answers, and after each ConnectionError sleep the current wait and double it from a set start wait; when the last try also fails, raise RuntimeError, never ConnectionError."
+    },
+    {
+      "term": "the failure counters",
+      "meaning": "FAILURES holds one count per source name; flaky_get raises ConnectionError(source) and takes one off the count while it is above zero, and the count never goes back up in a run, so once a source has paid its failures it answers every call after."
+    },
+    {
+      "term": "the leaf walk",
+      "meaning": "Go down a dict by its values, at any depth, and treat anything that is not a dict as one leaf, whatever its type."
+    },
+    {
+      "term": "the two guards",
+      "meaning": "Raise ValueError if the input is not a list, if the list is empty, or if one member is not a number; a bool passes the number test, because bool is an int in Python."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "B01",
+      "name": "script",
+      "layer": 3,
+      "lines": [
+        [
+          1,
+          8
+        ],
+        [
+          104,
+          113
+        ]
+      ],
+      "calls": [
+        "average_scores",
+        "deep_flag",
+        "fetch_orders",
+        "fetch_prices",
+        "fetch_user",
+        "luhn_ok",
+        "roman",
+        "spread_scores",
+        "sum_leaves"
+      ],
+      "root": "The failure counters and DATA, then a demo run of every block.",
+      "body": "FAILURES and DATA are module state. FAILURES holds the failure counters: user 2, orders 1, prices 2. DATA holds what each source gives once it stops failing, so every retry loop ends.\n\nunder __main__:\n    user   = the user record        (fetch_user)\n    orders = the order list         (fetch_orders)\n    prices = the marked-up prices   (fetch_prices)\n    bill   = sum of prices[sku] * qty over the orders\n    spend  = a small nested dict, written here, not fetched\n\n    print  user name and the bill, rounded\n    print  the total of spend (sum_leaves), and spend with each leaf over 5 (deep_flag)\n    print  the mean (average_scores) and the range (spread_scores) of [3, 4, 5]\n    print  roman(1987) and luhn_ok(79927398713)\n\nThe first three lines are the only real work; the last three lines only show the small blocks at work."
+    },
+    {
+      "id": "B02",
+      "name": "flaky_get",
+      "layer": 1,
+      "lines": [
+        [
+          11,
+          15
+        ]
+      ],
+      "calls": [],
+      "root": "flaky_get spends the failure counters of a source, then returns its data.",
+      "body": "Example: FAILURES[\"orders\"] starts at 1.\n\n    flaky_get(\"orders\")  -> raises ConnectionError(\"orders\"), counter now 0\n    flaky_get(\"orders\")  -> DATA[\"orders\"], the two order dicts\n    flaky_get(\"orders\")  -> the same list, every time after\n\nA source name that is not in FAILURES raises KeyError, not ConnectionError."
+    },
+    {
+      "id": "B03",
+      "name": "fetch_user",
+      "layer": 2,
+      "lines": [
+        [
+          18,
+          26
+        ]
+      ],
+      "calls": [
+        "flaky_get"
+      ],
+      "root": "fetch_user does the retry dance on user, five tries from 0.01 s.",
+      "body": "Example: FAILURES[\"user\"] is 2, so the first two tries raise. The block sleeps 0.01, then 0.02, and the third try returns DATA[\"user\"]. The five waits are 0.01, 0.02, 0.04, 0.08, 0.16. Only ConnectionError is caught."
+    },
+    {
+      "id": "B04",
+      "name": "fetch_orders",
+      "layer": 2,
+      "lines": [
+        [
+          29,
+          37
+        ]
+      ],
+      "calls": [
+        "flaky_get"
+      ],
+      "root": "fetch_orders does the retry dance on orders, four tries from 0.02 s.",
+      "body": "Example: FAILURES[\"orders\"] is 1, so the first try raises, the block sleeps 0.02 s, and the second try returns the order list. The waits are 0.02, 0.04, 0.08."
+    },
+    {
+      "id": "B05",
+      "name": "fetch_prices",
+      "layer": 2,
+      "lines": [
+        [
+          40,
+          49
+        ]
+      ],
+      "calls": [
+        "flaky_get"
+      ],
+      "root": "fetch_prices does the retry dance, then marks every price up 20%.",
+      "body": "Six tries, from a wait of 0.01 s.\n\nExample: flaky_get(\"prices\") gives {\"a1\": 3.5, \"b2\": 10.0}, and fetch_prices returns {\"a1\": 4.2, \"b2\": 12.0} — each price times 1.2, rounded to 2 decimals.\n\nThe markup happens only on the try that gets data, so a caller never sees a raw price and never a partial or empty table."
+    },
+    {
+      "id": "B06",
+      "name": "sum_leaves",
+      "layer": 1,
+      "lines": [
+        [
+          52,
+          55
+        ]
+      ],
+      "calls": [],
+      "root": "sum_leaves adds every leaf of a nested dict, by the leaf walk.",
+      "body": "Example: sum_leaves({\"food\": {\"fruit\": 4, \"bread\": 3}, \"travel\": 12}) gives 19.\n\nBy the leaf walk, a leaf of some other type is added as it is, and breaks the sum."
+    },
+    {
+      "id": "B07",
+      "name": "deep_flag",
+      "layer": 1,
+      "lines": [
+        [
+          58,
+          61
+        ]
+      ],
+      "calls": [],
+      "root": "deep_flag mirrors the dict shape, each leaf becomes leaf > limit.",
+      "body": "Example:\n\ndeep_flag({\"food\": {\"fruit\": 4, \"bread\": 3}, \"travel\": 12}, 5)\n-> {\"food\": {\"fruit\": False, \"bread\": False}, \"travel\": True}\n\nKeys and nesting stay; only the leaves change. The test is strict, so a leaf equal to limit gives False. By the leaf walk, a list is one leaf and is compared whole, so it fails."
+    },
+    {
+      "id": "B08",
+      "name": "average_scores",
+      "layer": 1,
+      "lines": [
+        [
+          64,
+          69
+        ]
+      ],
+      "calls": [],
+      "root": "The mean of a list of numbers, after the two guards.",
+      "body": "Example: average_scores([3, 4, 5]) -> 4.0.\n\nThe two guards come first, so an empty list gives ValueError, not a divide-by-zero."
+    },
+    {
+      "id": "B09",
+      "name": "spread_scores",
+      "layer": 1,
+      "lines": [
+        [
+          72,
+          77
+        ]
+      ],
+      "calls": [],
+      "root": "spread_scores returns max minus min, after the two guards.",
+      "body": "Example: spread_scores([3, 4, 5]) gives 2.\n\nThe two guards are the same guards as in average_scores."
+    },
+    {
+      "id": "B10",
+      "name": "roman",
+      "layer": 1,
+      "lines": [
+        [
+          80,
+          89
+        ]
+      ],
+      "calls": [],
+      "root": "roman turns a number into roman numerals, greedy, biggest value first",
+      "body": "Example: roman(1987) -> \"MCMLXXXVII\"\n\n    1987  take 1000 -> M     rest 987\n     987  take 900  -> CM    rest 87\n      87  take 50   -> L     rest 37\n      37  take 10   -> X X X rest 7\n       7  take 5    -> V     rest 2\n       2  take 1    -> I I   rest 0\n\nThe steps table holds the subtractive pairs (900 CM, 400 CD, 90 XC, 40 XL, 9 IX, 4 IV), so the loop never writes IIII and needs no repair pass after it. Each value repeats while it still fits, then the loop moves down the table and never comes back. roman(0) gives \"\"; a negative number also gives \"\", because no step fits."
+    },
+    {
+      "id": "B11",
+      "name": "luhn_ok",
+      "layer": 1,
+      "lines": [
+        [
+          92,
+          101
+        ]
+      ],
+      "calls": [],
+      "root": "A number passes when its Luhn doubled-digit sum divides by ten.",
+      "body": "Example: luhn_ok(18)\n\nstr(18) -> \"18\", digits reversed -> [8, 1]\ni=0, d=8            -> total 8\ni=1, d=1 doubled=2  -> total 10\n10 % 10 == 0        -> True\n\nThe reversal is what makes the doubling land on every second digit counted from the right, whatever the length. A doubled digit above 9 drops 9, so 8 doubled counts as 7, not 16. The input may be an int or a string, because str(number) takes both, but any character that is not a digit raises."
+    }
+  ]
+}
