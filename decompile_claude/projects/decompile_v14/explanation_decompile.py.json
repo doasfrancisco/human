@@ -444,7 +444,7 @@
         "part": "main",
         "instruction": "main            = the whole run: cut, order, explain bottom up, compress, write map.json    (main)"
       },
-      "text": "path, src, lines = the code file named on the command line, its text, its lines\ncode             = the same text, a line number in front of every line\nblocks           = the file cut into blocks: one per def and class, plus the script block    (blocks_of)\n                       the script block is one block that collects every line outside all defs and classes\n                       here: the imports, the constants, the two patterns, the entry point at the bottom\nbody             = that loose script code, parsed into statements\n                       it exists only so calls_of can scan what the script block calls\nnames            = the block names that are real defs or classes\ncalls            = for each block, the list of blocks it calls    (calls_of)\nlay              = a layer number for each block: a block sits one layer above the blocks it calls    (layers_of)\nok               = every name a text may put in parentheses: the full names and the short names\n\nfor each block, lowest layer first, so a callee is explained before its caller:\n    ctx          = a note for the prompt: one line per callee already explained, what it takes, gives, and does\n    done[name]   = the block's explanation from claude, checked, retried up to 4 times    (compile_block)\n\nterms, done      = one more claude pass: shared terms found, every text rewritten through them    (vocab_pass)\nids              = a label per block: the first block in the file is B01, the next is B02, and so on\nrows             = one output record per block: its id, lines, calls, explanation, rules\nowner            = a table that says, for each code line, which block id owns it\nmap.json         = all of it written to disk, beside the code file    (links)\ntally            = one printed line of counts: blocks, terms, links, claude calls",
+      "text": "path, src, lines = the code file named on the command line, its text, its lines\ncode             = the same text, a line number in front of every line\nblocks           = the file cut into blocks: one per def and class, plus the script block    (blocks_of)\n                       the script block is one block that collects every line outside all defs and classes\n                       here: the imports, the constants, the two patterns, the entry point at the bottom\nbody             = that loose script code, parsed into statements\n                       it exists only so calls_of can scan what the script block calls\nnames            = the block names that are real defs or classes\ncalls            = for each block, the list of blocks it calls    (calls_of)\nlay              = a layer number for each block: a block sits one layer above the blocks it calls    (layers_of)\ndeep             = the highest layer number: how many layers the blocks stack into\nok               = every name a text may put in parentheses: the full names and the short names\n\nfor each block, lowest layer first, so a callee is explained before its caller:\n    ctx          = a note for the prompt: one line per callee already explained, what it takes, gives, and does\n    done[name]   = the block's explanation from claude, checked, retried up to 4 times    (compile_block)\n\nterms, done      = one more claude pass: shared terms found, every text rewritten through them    (vocab_pass)\nids              = a label per block: the first block in the file is B01, the next is B02, and so on\nrows             = one output record per block: its id, lines, calls, explanation, rules\nowner            = a table that says, for each code line, which block id owns it\nmap.json         = all of it written to disk, beside the code file    (links)\ntally            = one printed line of counts: blocks, terms, links, claude calls",
       "parts": [
         {
           "part": "path, src, lines",
@@ -608,7 +608,7 @@
           "constant_lines": []
         },
         {
-          "part": "ok",
+          "part": "deep",
           "own_lines": [
             [
               394,
@@ -619,11 +619,22 @@
           "constant_lines": []
         },
         {
+          "part": "ok",
+          "own_lines": [
+            [
+              395,
+              395
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
           "part": "ctx",
           "own_lines": [
             [
-              396,
-              406
+              397,
+              407
             ]
           ],
           "callee_lines": [],
@@ -633,8 +644,8 @@
           "part": "done[name]",
           "own_lines": [
             [
-              407,
-              407
+              408,
+              408
             ]
           ],
           "callee_lines": [
@@ -672,8 +683,8 @@
           "part": "terms, done",
           "own_lines": [
             [
-              408,
-              408
+              409,
+              409
             ]
           ],
           "callee_lines": [
@@ -720,8 +731,8 @@
           "part": "ids",
           "own_lines": [
             [
-              409,
-              409
+              410,
+              410
             ]
           ],
           "callee_lines": [],
@@ -731,8 +742,8 @@
           "part": "rows",
           "own_lines": [
             [
-              410,
-              418
+              411,
+              419
             ]
           ],
           "callee_lines": [],
@@ -752,8 +763,8 @@
           "part": "owner",
           "own_lines": [
             [
-              419,
-              423
+              420,
+              424
             ]
           ],
           "callee_lines": [],
@@ -763,8 +774,8 @@
           "part": "map.json",
           "own_lines": [
             [
-              424,
-              427
+              425,
+              428
             ]
           ],
           "callee_lines": [
@@ -794,7 +805,7 @@
           "part": "tally",
           "own_lines": [
             [
-              428,
+              429,
               431
             ]
           ],

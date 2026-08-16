@@ -391,6 +391,7 @@ def main():
     names = {b["name"] for b in blocks if b["node"]}
     calls = {b["name"]: calls_of(b, body, names) for b in blocks}
     lay = layers_of(blocks, calls)
+    deep = max(lay.values(), default=0)
     ok = {b["name"] for b in blocks} | {b["name"].split(".")[-1] for b in blocks}
     done = {}
     for bl in sorted(blocks, key=lambda b: (lay[b["name"]], b["lines"][0][0])):
@@ -425,9 +426,8 @@ def main():
          "blocks": rows}
     out = Path(sys.argv[2]) if len(sys.argv) > 2 else path.parent / "map.json"
     out.write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    silent = sum(1 for r in rows if not r["body"])
     pure = sum(1 for r in rows if not r["effects"])
-    print(f"{len(blocks)} blocks, {silent} silent, {pure} pure, {len(terms)} terms, "
+    print(f"{len(blocks)} blocks, {deep} layers, {pure} pure, {len(terms)} terms, "
           f"{len(m['links'])} links, {CALLS[0]} claude calls -> {out}")
 
 
