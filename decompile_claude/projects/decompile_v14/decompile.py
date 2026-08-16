@@ -93,6 +93,7 @@ BLOCK_RULES = ["SEQ-FIELDS", "ROOT-15", "LINK-REAL", "EFFECT-MARK"]
 
 
 CALLS = [0]
+TRIES = 4
 
 
 def ask_claude(prompt):
@@ -342,7 +343,7 @@ def compile_block(bl, name, code, ctx, names):
     note = ""
     errs = []
     m = None
-    for attempt in range(4):
+    for attempt in range(TRIES):
         try:
             m = ask_claude(base + note)
             rec = check_block(m, names)
@@ -355,7 +356,7 @@ def compile_block(bl, name, code, ctx, names):
             note = (f"\n\nYour last answer:\n{json.dumps(m)}\n\n"
                     f"It broke a rule: {e}. Repair it and return the full corrected JSON.\n"
                     f"Rules your answers broke so far, do not break them again:\n" + "\n".join(errs))
-    sys.exit(f"no valid pass after 4 tries [{bl['name']}]")
+    sys.exit(f"no valid pass after {TRIES} tries [{bl['name']}]")
 
 
 def vocab_pass(blocks, done, names):
