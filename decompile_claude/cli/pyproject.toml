@@ -1,6 +1,6 @@
 [project]
 name = "dmap"
-version = "0.3.0"
+version = "0.5.1"
 description = "Map flow-shape explanations onto real code lines, delta by delta"
 requires-python = ">=3.10"
 dependencies = []

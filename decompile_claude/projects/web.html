@@ -180,7 +180,16 @@ function callLinks(h){
   });
 }
 
-function chunkHtml(e,c){
+function kidsOf(e){
+  var m={};
+  Object.keys(childrenOf).forEach(function(k){
+    if(k.split(":")[0]!==String(e.id)) return;
+    childrenOf[k].forEach(function(c){if(c.instruction)m[c.instruction]=c;});
+  });
+  return m;
+}
+
+function chunkHtml(e,c,instrKids){
   var kids=c.part!==null?(childrenOf[e.id+":"+c.part]||[]):[];
   var legacy=kids.filter(function(k){return !k.instruction;})[0]||null;
   var out="", buf=[];
@@ -192,8 +201,7 @@ function chunkHtml(e,c){
     buf=[];
   }
   c.text.split("\n").forEach(function(l){
-    var kid=null;
-    kids.forEach(function(k){if(k.instruction&&k.instruction===l.trim())kid=k;});
+    var kid=instrKids[l.trim()]||null;
     if(kid&&openSet[kid.id]){
       flush();
       out+=expansionHtml(byId[kid.id]);
@@ -201,6 +209,7 @@ function chunkHtml(e,c){
     }
     var h=callLinks(esc(l));
     if(kid) h='<span class="iline" data-child="'+kid.id+'">'+h+'</span>';
+    else if(h.indexOf("data-call")!==-1) h='<span class="iline goline">'+h+'</span>';
     buf.push(h);
   });
   flush();
@@ -209,7 +218,8 @@ function chunkHtml(e,c){
 }
 
 function entryHtml(e){
-  return chunksOf(e).map(function(c){return chunkHtml(e,c);}).join("");
+  var instrKids=kidsOf(e);
+  return chunksOf(e).map(function(c){return chunkHtml(e,c,instrKids);}).join("");
 }
 
 function expansionHtml(e){
@@ -260,6 +270,12 @@ rows.addEventListener("click",function(e){
     render();
     var el=rows.querySelector('[data-open="'+id+'"]')||rows.querySelector('.bhead[data-id="'+id+'"]');
     if(el) el.scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
+  var go=e.target.closest(".iline.goline");
+  if(go){
+    var link=go.querySelector(".call[data-call]");
+    if(link) link.click();
     return;
   }
   var t=e.target.closest(".iline")||e.target.closest(".chunk.x");
