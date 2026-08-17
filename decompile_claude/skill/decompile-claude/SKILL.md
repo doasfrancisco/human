@@ -24,6 +24,8 @@ for each item, bottom up:
 
 **The first explanation of a file covers the whole file.** Its flow is the module layer, top to bottom: the imports, each module binding, one line per function or class with its role — name the block in parentheses at the end of its line, so the map ties the line to the block's span — and the entry point. After the first map run the coverage is the full file. Every later explanation is a zoom.
 
+**Who the reader is.** Write for a reader who does not read code. The reader knows the domain of the file, not the vocabulary of programming. When the user validates a different level, keep that level for the rest of the session.
+
 The rules of the shape:
 
 - One line per bound name. The left column is the name. The line ends with the real function names, in parentheses.
@@ -31,10 +33,12 @@ The rules of the shape:
 - A loop is a header line with indented step lines.
 - Use the real names from the code. Do not invent names.
 - Simple words, one idea per line. A dense clause after the `=` is what makes a flow hard to follow.
-- A word the code coined is not a simple word. Do not write a coined term (sequent, premise, layer height) in a flow line before an indented line defines it — or use plain words instead. The names in parentheses are the only free pass.
+- A word is coined when the reader's world does not contain it. This includes the words of programming itself — parser, argument, flag, table, callback, index — not only the words this project made (sequent, premise, layer height). Do not write a coined word in a flow line before an indented line defines it — or say what the thing does in place of its class: "the reader of what a person types", not "the argument parser". The names in parentheses are the only free pass.
 - When a binding exists only to feed one later step, the line must say that purpose: "it exists only so X can Y". A "what" without a "for what" reads as trivia.
 - Compress by dropping the fields the reader does not need yet, never by dropping the verbs. A pile of nouns is short but not simple.
 - For a numbering or naming scheme, give the first two cases and "and so on" instead of the rule.
+- A value that comes from outside — typed input, a file — gets one real example and what the step keeps from it: `the person types, for example: dmap show notes.py` and then `a remembers two things: the command name "show", and the code file notes.py`.
+- A dispatch from a name to a function is a header line with indented cases — `"show" starts (cmd_show), "map" starts (cmd_map), and so on` — not one dense line that names the data structure. Describe what the step does, not the structure that does it.
 - A definition states the permission before the constraint. First what the answer may do — "the answer can name a block in parentheses, like (carve)" — then the rule that binds it. A constraint before its permission reads as noise.
 - When the user says which phrasing made them understand, build the definition from those exact words. Never paraphrase a validated phrasing away.
 - A zoom hangs on one instruction — one line of the parent entry's text. When the user pastes a line, that line is the instruction. The zoom explanation must stay inside the code lines that instruction reaches.
@@ -55,7 +59,7 @@ Each question and its answer stay on one line.
 
 Run `dmap lines <code_file>` to see the file with line numbers.
 
-**Reread before you show.** Read each line of the finished flow as a stranger who has not seen the code: does the line use a word the flow has not defined yet? Does a line only say "what" where the reader needs "for what"? Fix those lines before you show the flow.
+**Reread before you show.** Read each line of the finished flow as a stranger who has not seen the code: does the line use a word the flow has not defined yet? Does a line use a programming word (parser, argument, table)? Does a line only say "what" where the reader needs "for what"? Does a line name a data structure where the reader needs the action? Fix those lines before you show the flow.
 
 **Show the explanation, then stop. Do not touch the map until the user gives the word.** This holds even when the user's message sounds like approval in advance ("add it", "what do you recommend?") — show the flow first, map on the next word.
 
