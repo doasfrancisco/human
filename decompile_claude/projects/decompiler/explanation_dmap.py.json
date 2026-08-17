@@ -7,17 +7,17 @@
       "block_lines": [
         [
           1,
-          715
+          747
         ]
       ],
-      "text": "imports         = argparse, ast, difflib, json, subprocess, sys, Path\n\nPROMPT          = the ask text for one mapping: the numbered code, the table of blocks, the entries already mapped, the new explanation text, and the shape of the JSON answer to return\n\nSYNC_PROMPT     = the ask text for one sync: the diff of the change, the changed and the inserted lines, the candidate entries with their texts, and the shape of the JSON answer to return\n\nnumbered        = the code with a line number in front of each line    (numbered)\nblock_spans     = each def and class of the file with its start and end line, read from the syntax tree    (block_spans)\nexpand          = a list of start-end line pairs opened into a set of single line numbers    (expand)\npart_lines      = every line one part of an explanation touches: its own lines plus the blocks it calls and the constants it uses    (part_lines)\nfmt             = line numbers pressed into short ranges like 3-7, 9    (fmt)\ncheck_spans     = the gate on a list of line ranges: each item a start-end pair of whole numbers inside the file    (check_spans)\nhead_token      = the first word of a text line, lowercased, with a leading ! dropped    (head_token)\nchunks_of       = an explanation text cut into chunks: one left-margin line with the lines indented under it    (chunks_of)\npart_chunk      = the lines of a parent text that belong to one part, by position when the counts agree, else by the first word    (part_chunk)\ncheck_entry     = the gate on the whole answer from claude: the block name, its lines, each part, and the link to the parent part    (check_entry)\nrecompute       = the fresh coverage: the code lines and the blank lines no entry touches yet    (recompute)\nask_claude      = one claude -p run, the JSON pulled out of the answer    (ask_claude)\nload_map        = the map file read from disk, or an empty map when none exists yet    (load_map)\nparse_within    = the --within option split into an entry id and a part name    (parse_within)\ncmd_map         = the map command: build the ask, ask claude up to --tries times, gate each answer, append one entry, write the map file    (cmd_map)\npart_line       = true when a text line starts with a part name and the name ends there    (part_line)\nload_existing   = the map file of one code file read from disk, or a stop when no map file exists    (load_existing)\ncmd_retext      = the retext command: the text of one entry replaced, its part names and the lines its child zooms hang on kept    (cmd_retext)\ncmd_undo        = the undo command: the last entry removed when no child hangs on it, the coverage counted again    (cmd_undo)\ncmd_show        = the show command: one line per entry plus the coverage    (cmd_show)\ncmd_lines       = the lines command: the numbered code printed    (cmd_lines)\nold_lines_of    = the old version of the code file, from --old or from git HEAD    (old_lines_of)\nline_map        = the old line numbers matched to the new ones, plus the changed old lines and the inserted new lines    (line_map)\nshift_spans     = one list of line ranges moved into the new numbering, with a note when the change touches the range    (shift_spans)\nshift_map       = every span of every entry moved into the new numbering, and the entries the change touches    (shift_map)\ncheck_sync      = the gate on the sync answer from claude: the stale lines, the part edits, the new texts, and the lines the child zooms hang on    (check_sync)\ncmd_sync        = the sync command: renumber every span, ask claude about the words up to --tries times, gate each answer, write the map file    (cmd_sync)\nmain            = the start of the tool: it looks at which command the person typed - map, retext, undo, show, lines, or sync - and starts that one    (main)\n\nentry point     = run main() when the file starts as a program    (main)",
+      "text": "imports         = argparse, ast, difflib, json, re, subprocess, sys, Path\n\nPROMPT          = the ask text for one mapping: the numbered code, the table of blocks, the entries already mapped, the new explanation text, and the shape of the JSON answer to return\n\nSYNC_PROMPT     = the ask text for one sync: the diff of the change, the changed and the inserted lines, the candidate entries with their texts, and the shape of the JSON answer to return\n\nnumbered        = the code with a line number in front of each line    (numbered)\nmd_spans        = each heading of a markdown file with its start and end line, the headings inside a code fence passed over    (md_spans)\nblock_spans     = each def and class of the file with its start and end line, read from the syntax tree, or the headings when the file is markdown    (block_spans)\nexpand          = a list of start-end line pairs opened into a set of single line numbers    (expand)\npart_lines      = every line one part of an explanation touches: its own lines plus the blocks it calls and the constants it uses    (part_lines)\nfmt             = line numbers pressed into short ranges like 3-7, 9    (fmt)\ncheck_spans     = the gate on a list of line ranges: each item a start-end pair of whole numbers inside the file    (check_spans)\nhead_token      = the first word of a text line, lowercased, with a leading ! dropped    (head_token)\nchunks_of       = an explanation text cut into chunks: one left-margin line with the lines indented under it    (chunks_of)\npart_chunk      = the lines of a parent text that belong to one part, by position when the counts agree, else by the first word    (part_chunk)\ncheck_entry     = the gate on the whole answer from claude: the block name, its lines, each part, and the link to the parent part    (check_entry)\nrecompute       = the fresh coverage: the code lines and the blank lines no entry touches yet    (recompute)\nask_claude      = one claude -p run, the JSON pulled out of the answer    (ask_claude)\nload_map        = the map file read from disk, or an empty map when none exists yet    (load_map)\nparse_within    = the --within option split into an entry id and a part name    (parse_within)\ncmd_map         = the map command: build the ask, ask claude up to --tries times, gate each answer, append one entry, write the map file    (cmd_map)\npart_line       = true when a text line starts with a part name and the name ends there    (part_line)\nload_existing   = the map file of one code file read from disk, or a stop when no map file exists    (load_existing)\ncmd_retext      = the retext command: the text of one entry replaced, its part names and the lines its child zooms hang on kept    (cmd_retext)\ncmd_undo        = the undo command: the last entry removed when no child hangs on it, the coverage counted again    (cmd_undo)\ncmd_show        = the show command: one line per entry plus the coverage    (cmd_show)\ncmd_lines       = the lines command: the numbered code printed    (cmd_lines)\nold_lines_of    = the old version of the code file, from --old or from git HEAD    (old_lines_of)\nline_map        = the old line numbers matched to the new ones, plus the changed old lines and the inserted new lines    (line_map)\nshift_spans     = one list of line ranges moved into the new numbering, with a note when the change touches the range    (shift_spans)\nshift_map       = every span of every entry moved into the new numbering, and the entries the change touches    (shift_map)\ncheck_sync      = the gate on the sync answer from claude: the stale lines, the part edits, the new texts, and the lines the child zooms hang on    (check_sync)\ncmd_sync        = the sync command: renumber every span, ask claude about the words up to --tries times, gate each answer, write the map file    (cmd_sync)\nmain            = the start of the tool: it looks at which command the person typed - map, retext, undo, show, lines, or sync - and starts that one    (main)\n\nentry point     = run main() when the file starts as a program    (main)",
       "parts": [
         {
           "part": "imports",
           "own_lines": [
             [
               1,
-              7
+              8
             ]
           ],
           "callee_lines": [],
@@ -27,8 +27,8 @@
           "part": "PROMPT",
           "own_lines": [
             [
-              9,
-              81
+              10,
+              82
             ]
           ],
           "callee_lines": [],
@@ -38,8 +38,8 @@
           "part": "SYNC_PROMPT",
           "own_lines": [
             [
-              55,
-              81
+              56,
+              82
             ]
           ],
           "callee_lines": [],
@@ -49,8 +49,19 @@
           "part": "numbered",
           "own_lines": [
             [
-              84,
-              85
+              85,
+              86
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "md_spans",
+          "own_lines": [
+            [
+              89,
+              115
             ]
           ],
           "callee_lines": [],
@@ -60,8 +71,8 @@
           "part": "block_spans",
           "own_lines": [
             [
-              88,
-              100
+              118,
+              132
             ]
           ],
           "callee_lines": [],
@@ -71,8 +82,8 @@
           "part": "expand",
           "own_lines": [
             [
-              103,
-              107
+              135,
+              139
             ]
           ],
           "callee_lines": [],
@@ -82,8 +93,8 @@
           "part": "part_lines",
           "own_lines": [
             [
-              110,
-              116
+              142,
+              148
             ]
           ],
           "callee_lines": [
@@ -91,8 +102,8 @@
               "name": "expand",
               "lines": [
                 [
-                  103,
-                  107
+                  135,
+                  139
                 ]
               ]
             }
@@ -103,8 +114,8 @@
           "part": "fmt",
           "own_lines": [
             [
-              119,
-              129
+              151,
+              161
             ]
           ],
           "callee_lines": [],
@@ -114,8 +125,8 @@
           "part": "check_spans",
           "own_lines": [
             [
-              132,
-              141
+              164,
+              173
             ]
           ],
           "callee_lines": [],
@@ -125,8 +136,8 @@
           "part": "head_token",
           "own_lines": [
             [
-              144,
-              148
+              176,
+              180
             ]
           ],
           "callee_lines": [],
@@ -136,8 +147,8 @@
           "part": "chunks_of",
           "own_lines": [
             [
-              151,
-              163
+              183,
+              195
             ]
           ],
           "callee_lines": [],
@@ -147,8 +158,8 @@
           "part": "part_chunk",
           "own_lines": [
             [
-              166,
-              176
+              198,
+              208
             ]
           ],
           "callee_lines": [],
@@ -158,8 +169,8 @@
           "part": "check_entry",
           "own_lines": [
             [
-              179,
-              249
+              211,
+              281
             ]
           ],
           "callee_lines": [
@@ -167,8 +178,8 @@
               "name": "check_spans",
               "lines": [
                 [
-                  132,
-                  141
+                  164,
+                  173
                 ]
               ]
             },
@@ -176,8 +187,8 @@
               "name": "expand",
               "lines": [
                 [
-                  103,
-                  107
+                  135,
+                  139
                 ]
               ]
             },
@@ -185,8 +196,8 @@
               "name": "fmt",
               "lines": [
                 [
-                  119,
-                  129
+                  151,
+                  161
                 ]
               ]
             },
@@ -194,8 +205,8 @@
               "name": "part_lines",
               "lines": [
                 [
-                  110,
-                  116
+                  142,
+                  148
                 ]
               ]
             }
@@ -206,8 +217,8 @@
           "part": "recompute",
           "own_lines": [
             [
-              252,
-              261
+              284,
+              293
             ]
           ],
           "callee_lines": [
@@ -215,8 +226,8 @@
               "name": "expand",
               "lines": [
                 [
-                  103,
-                  107
+                  135,
+                  139
                 ]
               ]
             },
@@ -224,8 +235,8 @@
               "name": "part_lines",
               "lines": [
                 [
-                  110,
-                  116
+                  142,
+                  148
                 ]
               ]
             }
@@ -236,8 +247,8 @@
           "part": "ask_claude",
           "own_lines": [
             [
-              264,
-              270
+              296,
+              302
             ]
           ],
           "callee_lines": [],
@@ -247,8 +258,8 @@
           "part": "load_map",
           "own_lines": [
             [
-              273,
-              276
+              305,
+              308
             ]
           ],
           "callee_lines": [],
@@ -258,8 +269,8 @@
           "part": "parse_within",
           "own_lines": [
             [
-              279,
-              283
+              311,
+              315
             ]
           ],
           "callee_lines": [],
@@ -269,8 +280,8 @@
           "part": "cmd_map",
           "own_lines": [
             [
-              286,
-              421
+              318,
+              453
             ]
           ],
           "callee_lines": [
@@ -278,8 +289,8 @@
               "name": "block_spans",
               "lines": [
                 [
-                  88,
-                  100
+                  118,
+                  132
                 ]
               ]
             },
@@ -287,8 +298,8 @@
               "name": "load_map",
               "lines": [
                 [
-                  273,
-                  276
+                  305,
+                  308
                 ]
               ]
             },
@@ -296,8 +307,8 @@
               "name": "parse_within",
               "lines": [
                 [
-                  279,
-                  283
+                  311,
+                  315
                 ]
               ]
             },
@@ -305,8 +316,8 @@
               "name": "numbered",
               "lines": [
                 [
-                  84,
-                  85
+                  85,
+                  86
                 ]
               ]
             },
@@ -314,8 +325,8 @@
               "name": "ask_claude",
               "lines": [
                 [
-                  264,
-                  270
+                  296,
+                  302
                 ]
               ]
             },
@@ -323,8 +334,8 @@
               "name": "check_entry",
               "lines": [
                 [
-                  179,
-                  249
+                  211,
+                  281
                 ]
               ]
             },
@@ -332,8 +343,8 @@
               "name": "check_spans",
               "lines": [
                 [
-                  132,
-                  141
+                  164,
+                  173
                 ]
               ]
             },
@@ -341,8 +352,8 @@
               "name": "recompute",
               "lines": [
                 [
-                  252,
-                  261
+                  284,
+                  293
                 ]
               ]
             },
@@ -350,8 +361,8 @@
               "name": "part_lines",
               "lines": [
                 [
-                  110,
-                  116
+                  142,
+                  148
                 ]
               ]
             },
@@ -359,8 +370,8 @@
               "name": "expand",
               "lines": [
                 [
-                  103,
-                  107
+                  135,
+                  139
                 ]
               ]
             },
@@ -368,8 +379,8 @@
               "name": "fmt",
               "lines": [
                 [
-                  119,
-                  129
+                  151,
+                  161
                 ]
               ]
             }
@@ -379,8 +390,8 @@
               "name": "PROMPT",
               "lines": [
                 [
-                  9,
-                  81
+                  10,
+                  82
                 ]
               ]
             }
@@ -390,8 +401,8 @@
           "part": "part_line",
           "own_lines": [
             [
-              357,
-              361
+              389,
+              393
             ]
           ],
           "callee_lines": [],
@@ -401,8 +412,8 @@
           "part": "load_existing",
           "own_lines": [
             [
-              364,
-              368
+              396,
+              400
             ]
           ],
           "callee_lines": [],
@@ -412,8 +423,8 @@
           "part": "cmd_retext",
           "own_lines": [
             [
-              371,
-              398
+              403,
+              430
             ]
           ],
           "callee_lines": [],
@@ -423,8 +434,8 @@
           "part": "cmd_undo",
           "own_lines": [
             [
-              401,
-              421
+              433,
+              453
             ]
           ],
           "callee_lines": [],
@@ -434,8 +445,8 @@
           "part": "cmd_show",
           "own_lines": [
             [
-              424,
-              440
+              456,
+              472
             ]
           ],
           "callee_lines": [
@@ -443,8 +454,8 @@
               "name": "recompute",
               "lines": [
                 [
-                  252,
-                  261
+                  284,
+                  293
                 ]
               ]
             },
@@ -452,8 +463,8 @@
               "name": "part_lines",
               "lines": [
                 [
-                  110,
-                  116
+                  142,
+                  148
                 ]
               ]
             },
@@ -461,8 +472,8 @@
               "name": "expand",
               "lines": [
                 [
-                  103,
-                  107
+                  135,
+                  139
                 ]
               ]
             },
@@ -470,8 +481,8 @@
               "name": "fmt",
               "lines": [
                 [
-                  119,
-                  129
+                  151,
+                  161
                 ]
               ]
             }
@@ -482,8 +493,8 @@
           "part": "cmd_lines",
           "own_lines": [
             [
-              443,
-              445
+              475,
+              477
             ]
           ],
           "callee_lines": [
@@ -491,8 +502,8 @@
               "name": "numbered",
               "lines": [
                 [
-                  84,
-                  85
+                  85,
+                  86
                 ]
               ]
             }
@@ -503,8 +514,8 @@
           "part": "old_lines_of",
           "own_lines": [
             [
-              448,
-              456
+              480,
+              488
             ]
           ],
           "callee_lines": [],
@@ -514,8 +525,8 @@
           "part": "line_map",
           "own_lines": [
             [
-              459,
-              474
+              491,
+              506
             ]
           ],
           "callee_lines": [],
@@ -525,8 +536,8 @@
           "part": "shift_spans",
           "own_lines": [
             [
-              477,
-              497
+              509,
+              529
             ]
           ],
           "callee_lines": [],
@@ -536,8 +547,8 @@
           "part": "shift_map",
           "own_lines": [
             [
-              500,
-              513
+              532,
+              545
             ]
           ],
           "callee_lines": [],
@@ -547,8 +558,8 @@
           "part": "check_sync",
           "own_lines": [
             [
-              516,
-              593
+              548,
+              625
             ]
           ],
           "callee_lines": [],
@@ -558,8 +569,8 @@
           "part": "cmd_sync",
           "own_lines": [
             [
-              596,
-              682
+              628,
+              714
             ]
           ],
           "callee_lines": [],
@@ -569,8 +580,8 @@
           "part": "main",
           "own_lines": [
             [
-              685,
-              710
+              717,
+              742
             ]
           ],
           "callee_lines": [
@@ -578,8 +589,8 @@
               "name": "cmd_map",
               "lines": [
                 [
-                  286,
-                  421
+                  318,
+                  453
                 ]
               ]
             },
@@ -587,8 +598,8 @@
               "name": "cmd_show",
               "lines": [
                 [
-                  424,
-                  440
+                  456,
+                  472
                 ]
               ]
             },
@@ -596,8 +607,8 @@
               "name": "cmd_lines",
               "lines": [
                 [
-                  443,
-                  445
+                  475,
+                  477
                 ]
               ]
             }
@@ -608,8 +619,8 @@
           "part": "entry point",
           "own_lines": [
             [
-              714,
-              715
+              746,
+              747
             ]
           ],
           "callee_lines": [
@@ -617,8 +628,8 @@
               "name": "main",
               "lines": [
                 [
-                  685,
-                  710
+                  717,
+                  742
                 ]
               ]
             }
@@ -632,8 +643,8 @@
       "block": "main",
       "block_lines": [
         [
-          685,
-          710
+          717,
+          742
         ]
       ],
       "within": {
@@ -647,8 +658,8 @@
           "part": "ap",
           "own_lines": [
             [
-              686,
-              686
+              718,
+              718
             ]
           ],
           "callee_lines": [],
@@ -658,8 +669,8 @@
           "part": "sub",
           "own_lines": [
             [
-              687,
-              687
+              719,
+              719
             ]
           ],
           "callee_lines": [],
@@ -669,8 +680,8 @@
           "part": "m",
           "own_lines": [
             [
-              688,
-              694
+              720,
+              726
             ]
           ],
           "callee_lines": [
@@ -678,8 +689,8 @@
               "name": "cmd_map",
               "lines": [
                 [
-                  286,
-                  421
+                  318,
+                  453
                 ]
               ]
             }
@@ -690,8 +701,8 @@
           "part": "r",
           "own_lines": [
             [
-              695,
-              698
+              727,
+              730
             ]
           ],
           "callee_lines": [],
@@ -701,8 +712,8 @@
           "part": "u",
           "own_lines": [
             [
-              699,
-              700
+              731,
+              732
             ]
           ],
           "callee_lines": [],
@@ -712,8 +723,8 @@
           "part": "s",
           "own_lines": [
             [
-              701,
-              702
+              733,
+              734
             ]
           ],
           "callee_lines": [
@@ -721,8 +732,8 @@
               "name": "cmd_show",
               "lines": [
                 [
-                  424,
-                  440
+                  456,
+                  472
                 ]
               ]
             }
@@ -733,8 +744,8 @@
           "part": "l",
           "own_lines": [
             [
-              703,
-              704
+              735,
+              736
             ]
           ],
           "callee_lines": [
@@ -742,8 +753,8 @@
               "name": "cmd_lines",
               "lines": [
                 [
-                  443,
-                  445
+                  475,
+                  477
                 ]
               ]
             }
@@ -754,8 +765,8 @@
           "part": "y",
           "own_lines": [
             [
-              705,
-              708
+              737,
+              740
             ]
           ],
           "callee_lines": [],
@@ -765,8 +776,8 @@
           "part": "a",
           "own_lines": [
             [
-              709,
-              709
+              741,
+              741
             ]
           ],
           "callee_lines": [],
@@ -776,8 +787,8 @@
           "part": "run",
           "own_lines": [
             [
-              710,
-              710
+              742,
+              742
             ]
           ],
           "callee_lines": [
@@ -785,8 +796,8 @@
               "name": "cmd_map",
               "lines": [
                 [
-                  286,
-                  421
+                  318,
+                  453
                 ]
               ]
             },
@@ -794,8 +805,8 @@
               "name": "cmd_show",
               "lines": [
                 [
-                  424,
-                  440
+                  456,
+                  472
                 ]
               ]
             },
@@ -803,8 +814,8 @@
               "name": "cmd_lines",
               "lines": [
                 [
-                  443,
-                  445
+                  475,
+                  477
                 ]
               ]
             }
@@ -817,88 +828,90 @@
   "not_covered": {
     "code_lines": [],
     "blank_lines": [
-      8,
-      10,
-      12,
-      14,
-      16,
-      18,
-      20,
-      22,
-      24,
-      28,
-      30,
-      32,
-      43,
-      53,
+      9,
+      11,
+      13,
+      15,
+      17,
+      19,
+      21,
+      23,
+      25,
+      29,
+      31,
+      33,
+      44,
       54,
-      56,
-      58,
-      60,
-      62,
-      64,
-      66,
-      68,
-      75,
-      77,
-      82,
+      55,
+      57,
+      59,
+      61,
+      63,
+      65,
+      67,
+      69,
+      76,
+      78,
       83,
-      86,
+      84,
       87,
-      101,
-      102,
-      108,
-      109,
+      88,
+      116,
       117,
-      118,
-      130,
-      131,
-      142,
-      143,
+      133,
+      134,
+      140,
+      141,
       149,
       150,
-      164,
-      165,
-      177,
-      178,
-      250,
-      251,
-      262,
-      263,
-      271,
-      272,
-      277,
-      278,
-      284,
-      285,
-      355,
-      356,
-      362,
-      363,
-      369,
-      370,
-      399,
-      400,
-      422,
-      423,
-      441,
-      442,
-      446,
-      447,
-      457,
-      458,
-      475,
-      476,
-      498,
-      499,
-      514,
-      515,
-      594,
-      595,
-      683,
-      684,
-      712,
-      713
+      162,
+      163,
+      174,
+      175,
+      181,
+      182,
+      196,
+      197,
+      209,
+      210,
+      282,
+      283,
+      294,
+      295,
+      303,
+      304,
+      309,
+      310,
+      316,
+      317,
+      387,
+      388,
+      394,
+      395,
+      401,
+      402,
+      431,
+      432,
+      454,
+      455,
+      473,
+      474,
+      478,
+      479,
+      489,
+      490,
+      507,
+      508,
+      530,
+      531,
+      546,
+      547,
+      626,
+      627,
+      715,
+      716,
+      744,
+      745
     ]
   }
 }

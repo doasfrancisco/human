@@ -83,26 +83,41 @@ function msg(t){var el=document.getElementById("msg");el.hidden=!t;el.textConten
 
 fetch("projects.json",{cache:"no-store"}).then(function(r){return r.json();}).then(function(j){
   return Promise.all((j.projects||[]).map(function(p){
-    return fetch(p.name+"/explanation_"+p.file+".json",{cache:"no-store"})
-      .then(function(r){return r.ok?r.json():null;})
-      .then(function(d){
-        return fetch(p.name+"/"+p.file,{cache:"no-store"})
-          .then(function(r){return r.ok?r.text():null;})
-          .then(function(t){
-            if(t===null) return null;
-            if(!d||!Array.isArray(d.explanations))
-              d={explanations:[],not_covered:{code_lines:[],blank_lines:[]}};
-            return {name:p.name,file:p.file,d:d,code:t};
-          });
-      })
-      .catch(function(){return null;});
+    var names=p.files||(p.file?[p.file]:[]);
+    return Promise.all(names.map(function(f){
+      return fetch(p.name+"/explanation_"+f+".json",{cache:"no-store"})
+        .then(function(r){return r.ok?r.json():null;})
+        .then(function(d){
+          return fetch(p.name+"/"+f,{cache:"no-store"})
+            .then(function(r){return r.ok?r.text():null;})
+            .then(function(t){
+              if(t===null) return null;
+              if(!d||!Array.isArray(d.explanations))
+                d={explanations:[],not_covered:{code_lines:[],blank_lines:[]}};
+              return {file:f,d:d,code:t};
+            });
+        })
+        .catch(function(){return null;});
+    })).then(function(fs){
+      fs=fs.filter(Boolean);
+      return fs.length?{name:p.name,files:fs}:null;
+    });
   }));
 }).then(function(ps){
   projs=ps.filter(Boolean);
   if(!projs.length){msg("no explanations — serve decompile_claude/projects/ and run dmap map");return;}
-  ft=new FileTree({paths:[projs[0].file],initialExpansion:"open",initialSelectedPaths:[projs[0].file]});
+  ft=new FileTree({paths:projs[0].files.map(function(f){return f.file;}),initialExpansion:"open",
+    initialSelectedPaths:[projs[0].files[0].file],
+    onSelectionChange:function(){
+      if(!cur) return;
+      var sel=ft.getSelectedPaths()[0];
+      if(!sel||sel===cur.file) return;
+      var f=null;
+      cur.proj.files.forEach(function(x){if(x.file===sel)f=x;});
+      if(f) open(cur.proj,f);
+    }});
   ft.render({fileTreeContainer:document.getElementById("tree")});
-  open(projs[0]);
+  open(projs[0],projs[0].files[0]);
 }).catch(function(){msg("could not load — serve decompile_claude/projects/ and open /web.html");});
 
 document.getElementById("projbar").addEventListener("click",function(){
@@ -115,21 +130,25 @@ document.getElementById("projlist").addEventListener("click",function(e){
   if(!row) return;
   document.getElementById("projlist").hidden=true;
   var p=projs[+row.getAttribute("data-i")];
-  if(p!==cur){ft.resetPaths([p.file]);open(p);}
+  if(!cur||p!==cur.proj){
+    ft.resetPaths(p.files.map(function(f){return f.file;}));
+    open(p,p.files[0]);
+    ft.selectPath(p.files[0].file);
+  }
 });
 
-function open(p){
-  cur=p;
+function open(p,f){
+  cur={proj:p,name:p.name,file:f.file,d:f.d,code:f.code};
   document.getElementById("projname").textContent=p.name;
-  lines=p.code?p.code.replace(/\n$/,"").split("\n"):[];
+  lines=f.code?f.code.replace(/\n$/,"").split("\n"):[];
   byId={}; blockId={}; childrenOf={}; openSet={};
-  p.d.explanations.forEach(function(e){byId[e.id]=e;blockId[e.block]=e.id;});
-  p.d.explanations.forEach(function(e){
+  f.d.explanations.forEach(function(e){byId[e.id]=e;blockId[e.block]=e.id;});
+  f.d.explanations.forEach(function(e){
     if(!e.within) return;
     var k=e.within.explanation+":"+e.within.part;
     (childrenOf[k]=childrenOf[k]||[]).push({id:e.id,instruction:e.within.instruction||null});
   });
-  tops=p.d.explanations.filter(function(e){return !e.within;});
+  tops=f.d.explanations.filter(function(e){return !e.within;});
   msg("");
   render();
 }
