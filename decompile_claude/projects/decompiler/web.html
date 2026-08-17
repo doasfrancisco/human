@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>decompile_claude — explanation reader</title>
+<style>
+  :root{
+    --ground:#eef1f4; --surface:#fff; --surface-2:#f6f8fa; --ink:#151a22; --muted:#59636f;
+    --faint:#8b95a1; --hair:#dde3e9; --spec:#0e7c86; --spec-wash:rgba(14,124,134,.11);
+    --spec-wash-2:rgba(14,124,134,.05); --spec-line:rgba(14,124,134,.55); --call:#a15c00;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#0c0e13; --surface:#14181f; --surface-2:#191e27; --ink:#e7ebf1; --muted:#97a1af;
+    --faint:#6c7684; --hair:#262d38; --spec:#3fd0dd; --spec-wash:rgba(63,208,221,.13);
+    --spec-wash-2:rgba(63,208,221,.06); --spec-line:rgba(63,208,221,.55); --call:#e0a458; }}
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+  main{height:100%;display:flex;justify-content:center;gap:10px;padding:14px;}
+  #side{flex:0 0 240px;display:flex;flex-direction:column;gap:10px;min-height:0;}
+  #wrap{width:min(720px,100%);display:flex;flex-direction:column;min-height:0;}
+  .pane{background:var(--surface);border:1px solid var(--hair);border-radius:10px;overflow:hidden;}
+  #projbar{display:flex;align-items:center;gap:9px;padding:8px 14px;font-size:13px;cursor:pointer;flex-shrink:0;}
+  .caret{color:var(--faint);font-size:15px;line-height:1;}
+  #projname{font-family:var(--mono);color:var(--muted);flex:1;}
+  #projlist{flex-shrink:0;}
+  #projlist .prow{font-family:var(--mono);font-size:13px;padding:6px 14px;cursor:pointer;}
+  #projlist .prow:hover{background:var(--spec-wash);}
+  #treewrap{flex:1;min-height:0;display:flex;flex-direction:column;}
+  #tree{flex:1;min-height:0;}
+  #reader{flex:1;min-height:0;display:flex;flex-direction:column;}
+  .phead{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--hair);padding:5px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
+  .rows{flex:1;min-height:0;overflow:auto;padding:6px 0;display:grid;grid-auto-rows:min-content;align-content:start;}
+  .bhead{font-family:var(--mono);font-size:11px;color:var(--muted);padding:10px 14px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .12s;}
+  .bhead.closable{cursor:pointer;}
+  .bhead.closable:hover{color:var(--spec);}
+  .pill{font-family:var(--mono);font-size:11px;color:var(--faint);padding:6px 14px;}
+  .chunk{font-family:var(--mono);font-size:13px;line-height:1.62;white-space:pre;padding:2px 14px;transition:background .12s;}
+  .chunk.x{cursor:pointer;}
+  .chunk.x:hover{background:var(--spec-wash);}
+  .chunk.x.on{background:var(--spec-wash-2);}
+  .call{color:var(--call);border-bottom:1px dashed var(--call);}
+  .call[data-call]{cursor:pointer;}
+  .call[data-call]:hover{color:var(--spec);border-bottom-color:var(--spec);}
+  .chunk.on .call,.iline.on .call{color:var(--spec);border-bottom-color:var(--spec);}
+  .inopen{margin:12px 0;}
+  .inopen .bhead{padding-top:0;}
+  .iline{display:inline-block;min-width:100%;cursor:pointer;border-radius:4px;transition:background .12s;}
+  .iline:hover{background:var(--spec-wash);}
+  .iline.on{background:var(--spec-wash-2);}
+  .divider{border-top:1px solid var(--hair);margin:7px 14px 3px;}
+  #msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;}
+  #msg[hidden]{display:none;}
+  #readwrap{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;}
+</style>
+</head>
+<body>
+<main>
+  <div id="side">
+    <section class="pane" id="projbar"><span class="caret">‹</span><span id="projname"></span></section>
+    <section class="pane" id="projlist" hidden></section>
+    <section class="pane" id="treewrap"><div id="tree"></div></section>
+  </div>
+  <div id="wrap">
+    <div id="readwrap">
+      <section class="pane" id="reader"><div class="phead" id="head"></div><div class="rows" id="rows"></div></section>
+      <div id="msg" hidden></div>
+    </div>
+  </div>
+</main>
+<script type="module">
+import { FileTree } from "./trees.js";
+
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+var projs=[], cur=null, byId={}, blockId={}, childrenOf={}, openSet={}, tops=[], lines=[], ft=null;
+var rows=document.getElementById("rows");
+
+function msg(t){var el=document.getElementById("msg");el.hidden=!t;el.textContent=t||"";}
+
+fetch("projects.json",{cache:"no-store"}).then(function(r){return r.json();}).then(function(j){
+  return Promise.all((j.projects||[]).map(function(p){
+    return fetch(p.name+"/explanation_"+p.file+".json",{cache:"no-store"})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(d){
+        return fetch(p.name+"/"+p.file,{cache:"no-store"})
+          .then(function(r){return r.ok?r.text():null;})
+          .then(function(t){
+            if(t===null) return null;
+            if(!d||!Array.isArray(d.explanations))
+              d={explanations:[],not_covered:{code_lines:[],blank_lines:[]}};
+            return {name:p.name,file:p.file,d:d,code:t};
+          });
+      })
+      .catch(function(){return null;});
+  }));
+}).then(function(ps){
+  projs=ps.filter(Boolean);
+  if(!projs.length){msg("no explanations — serve decompile_claude/projects/ and run dmap map");return;}
+  ft=new FileTree({paths:[projs[0].file],initialExpansion:"open",initialSelectedPaths:[projs[0].file]});
+  ft.render({fileTreeContainer:document.getElementById("tree")});
+  open(projs[0]);
+}).catch(function(){msg("could not load — serve decompile_claude/projects/ and open /web.html");});
+
+document.getElementById("projbar").addEventListener("click",function(){
+  var el=document.getElementById("projlist");
+  el.innerHTML=projs.map(function(p,i){return '<div class="prow" data-i="'+i+'">'+esc(p.name)+'</div>';}).join("");
+  el.hidden=!el.hidden;
+});
+document.getElementById("projlist").addEventListener("click",function(e){
+  var row=e.target.closest(".prow");
+  if(!row) return;
+  document.getElementById("projlist").hidden=true;
+  var p=projs[+row.getAttribute("data-i")];
+  if(p!==cur){ft.resetPaths([p.file]);open(p);}
+});
+
+function open(p){
+  cur=p;
+  document.getElementById("projname").textContent=p.name;
+  lines=p.code?p.code.replace(/\n$/,"").split("\n"):[];
+  byId={}; blockId={}; childrenOf={}; openSet={};
+  p.d.explanations.forEach(function(e){byId[e.id]=e;blockId[e.block]=e.id;});
+  p.d.explanations.forEach(function(e){
+    if(!e.within) return;
+    var k=e.within.explanation+":"+e.within.part;
+    (childrenOf[k]=childrenOf[k]||[]).push({id:e.id,instruction:e.within.instruction||null});
+  });
+  tops=p.d.explanations.filter(function(e){return !e.within;});
+  msg("");
+  render();
+}
+
+function startOf(e){return Math.min.apply(null,e.block_lines.map(function(r){return r[0];}));}
+function endOf(e){return Math.max.apply(null,e.block_lines.map(function(r){return r[1];}));}
+
+function fmtSpans(e){
+  return e.block_lines.map(function(r){return r[0]===r[1]?String(r[0]):r[0]+"–"+r[1];}).join(", ");
+}
+
+function nonBlank(a,b){
+  if(!lines.length) return b-a+1;
+  var k=0;
+  for(var n=a;n<=b&&n<=lines.length;n++) if(lines[n-1]&&lines[n-1].trim()) k++;
+  return k;
+}
+
+function firstToken(s){
+  return (s.replace(/^!\s*/,"").trim().split(/\s+/)[0]||"").toLowerCase();
+}
+
+function chunksOf(e){
+  var ls=e.text.split("\n"), raw=[], curc=null;
+  ls.forEach(function(l){
+    var fresh=l.trim()&&l.charAt(0)!==" "&&l.charAt(0)!=="\t";
+    if(fresh&&curc) raw.push(curc), curc=null;
+    if(!curc) curc=[];
+    curc.push(l);
+  });
+  if(curc) raw.push(curc);
+  var parts=e.parts||[], out=[], j=0;
+  raw.forEach(function(c,i){
+    var take=j<parts.length&&(raw.length-i===parts.length-j||firstToken(c[0])===firstToken(parts[j].part));
+    if(take){out.push({lines:c,part:parts[j].part});j++;}
+    else if(out.length) out[out.length-1].lines=out[out.length-1].lines.concat(c);
+    else out.push({lines:c,part:null});
+  });
+  if(j!==parts.length)
+    return raw.map(function(c){return {text:c.join("\n").replace(/\s+$/,""),part:null};});
+  return out.map(function(c){return {text:c.lines.join("\n").replace(/\s+$/,""),part:c.part};});
+}
+
+function callLinks(h){
+  return h.replace(/\(([A-Za-z_][A-Za-z0-9_.]*)\)/g,function(m0,nm){
+    var t=blockId[nm];
+    return t?'(<span class="call" data-call="'+t+'">'+nm+'</span>)':m0;
+  });
+}
+
+function kidsOf(e){
+  var m={};
+  Object.keys(childrenOf).forEach(function(k){
+    if(k.split(":")[0]!==String(e.id)) return;
+    childrenOf[k].forEach(function(c){if(c.instruction)m[c.instruction]=c;});
+  });
+  return m;
+}
+
+function chunkHtml(e,c,instrKids){
+  var kids=c.part!==null?(childrenOf[e.id+":"+c.part]||[]):[];
+  var legacy=kids.filter(function(k){return !k.instruction;})[0]||null;
+  var out="", buf=[];
+  function flush(){
+    if(!buf.length) return;
+    var cls="chunk"+(legacy?" x"+(openSet[legacy.id]?" on":""):"");
+    var attr=legacy?' data-child="'+legacy.id+'"':'';
+    out+='<div class="'+cls+'"'+attr+'>'+buf.join("\n")+'</div>';
+    buf=[];
+  }
+  c.text.split("\n").forEach(function(l){
+    var kid=instrKids[l.trim()]||null;
+    if(kid&&openSet[kid.id]){
+      flush();
+      out+=expansionHtml(byId[kid.id]);
+      return;
+    }
+    var h=callLinks(esc(l));
+    if(kid) h='<span class="iline" data-child="'+kid.id+'">'+h+'</span>';
+    else if(h.indexOf("data-call")!==-1) h='<span class="iline goline">'+h+'</span>';
+    buf.push(h);
+  });
+  flush();
+  if(legacy&&openSet[legacy.id]) out+=expansionHtml(byId[legacy.id]);
+  return out;
+}
+
+function entryHtml(e){
+  var instrKids=kidsOf(e);
+  return chunksOf(e).map(function(c){return chunkHtml(e,c,instrKids);}).join("");
+}
+
+function expansionHtml(e){
+  return '<div class="inopen" data-open="'+e.id+'">'
+    +'<div class="bhead closable" data-id="'+e.id+'">'+esc(e.block)+' · '+fmtSpans(e)+'</div>'
+    +entryHtml(e)
+    +'</div>';
+}
+
+function openPath(id){
+  var e=byId[id];
+  while(e&&e.within){
+    openSet[e.id]=1;
+    e=byId[e.within.explanation];
+  }
+}
+
+function render(){
+  var shown=tops.slice().sort(function(a,b){return startOf(a)-startOf(b);}), html="", pos=1;
+  shown.forEach(function(e,i){
+    var a=startOf(e);
+    if(a>pos&&nonBlank(pos,a-1)) html+='<div class="pill">▹ '+nonBlank(pos,a-1)+' hidden lines</div>';
+    html+='<div class="bhead" data-id="'+e.id+'">'+esc(e.block)+' · '+fmtSpans(e)+'</div>';
+    html+=entryHtml(e);
+    if(i<shown.length-1) html+='<div class="divider"></div>';
+    pos=Math.max(pos,endOf(e)+1);
+  });
+  if(lines.length&&pos<=lines.length&&nonBlank(pos,lines.length))
+    html+='<div class="pill">▹ '+nonBlank(pos,lines.length)+' hidden lines</div>';
+  rows.innerHTML=html;
+  var count=shown.length+Object.keys(openSet).length;
+  document.getElementById("head").textContent=
+    cur.name+"/"+cur.file+"  ·  "+count+"/"+cur.d.explanations.length+" explanations";
+}
+
+function closeTree(id){
+  delete openSet[id];
+  Object.keys(childrenOf).forEach(function(k){
+    if(k.split(":")[0]===String(id)) childrenOf[k].forEach(function(c){closeTree(c.id);});
+  });
+}
+
+rows.addEventListener("click",function(e){
+  var call=e.target.closest(".call[data-call]");
+  if(call){
+    var id=+call.getAttribute("data-call");
+    openPath(id);
+    render();
+    var el=rows.querySelector('[data-open="'+id+'"]')||rows.querySelector('.bhead[data-id="'+id+'"]');
+    if(el) el.scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
+  var go=e.target.closest(".iline.goline");
+  if(go){
+    var link=go.querySelector(".call[data-call]");
+    if(link) link.click();
+    return;
+  }
+  var t=e.target.closest(".iline")||e.target.closest(".chunk.x");
+  if(t){
+    var cid=+t.getAttribute("data-child");
+    if(openSet[cid]) closeTree(cid);
+    else openSet[cid]=1;
+    render();
+    return;
+  }
+  var bh=e.target.closest(".bhead.closable");
+  if(bh){
+    closeTree(+bh.getAttribute("data-id"));
+    render();
+  }
+});
+</script>
+</body>
+</html>
