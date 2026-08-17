@@ -59,6 +59,10 @@ Each question and its answer stay on one line.
 
 **A markdown file.** The blocks of a `.md` file are its headings — dmap reads their spans the way it reads a `def`'s. The grammar shifts one level up: a section is the analog of a function, and a rule is the analog of a step inside a zoom. The first flow of a document is one line per section — a short label on the left, the section's one job after it, the real heading in parentheses at the end of the line. A zoom expands one section into its rules, one line per rule. For a document the label ends with a comma in place of the equals sign; the user validated that form. Every label must stay unique across the whole text — when two sections want the same natural label ("the run"), give each a distinct one. The flow stays one text: blank lines group it; never split it into pieces with markdown headers between them.
 
+**A web page.** A `.html` file holds three languages, so its blocks come from two places: every tag that appears once — `head`, `style`, `body`, `main`, `script` — and every named function inside a `<script>`, nested ones too. The first flow of a page is one line per region: the colors and the shapes (`style`), the empty frame the page starts with (`main`), the program that fills it (`script`). A zoom on the program is normal code — one line per bound name. A zoom on the look has no bound names, so the grammar shifts: one line per visual role — the colors, the two panes, the flow text, the links — and the color names at the top of the file (`--spec`, `--call`) are its constants. Say what the reader sees, never how the rule finds its target: "the flow text sits in one column of even letters", not "the selector for the chunk class".
+
+**A plainer flow.** When the user says the whole-file flow is still too hard, write a shorter flow of the same file — one line per stage of the tool, six to eight lines — and map it with `--over <id>` on the entry it makes simpler. A plainer flow is not a zoom: it covers the same code or more, never less, so it takes no `--within` and no `--at`. It keeps the real names in parentheses, and it drops fields, never verbs. In the reader the plainer flow stands in the place of the entry it covers: one line under it opens the detailed flow in that same place, and the block header above the text brings the plainer flow back.
+
 Run `dmap lines <code_file>` to see the file with line numbers.
 
 **Reread before you show.** Read each line of the finished flow as a stranger who has not seen the code: does the line use a word the flow has not defined yet? Does a line use a programming word (parser, argument, table)? Does a line only say "what" where the reader needs "for what"? Does a line name a data structure where the reader needs the action? Fix those lines before you show the flow.
@@ -78,7 +82,8 @@ EOF
 - `--block` is the block the text explains. Omit it when unsure; the mapper infers it.
 - `--within` names the parent entry and part when this explanation expands one part of an earlier entry, for example `--within 1:layers`. Omit it for the first entry of a file.
 - `--at` gives the instruction: the exact line of the parent part's text that this zoom expands, without its leading spaces. Every zoom carries one — dmap rejects a zoom without it. The mapper can find the instruction alone, but pass `--at` when the user pointed at a line.
-- **Everything after the first entry is a zoom.** The first entry of a file is the whole-file flow and the only top-level entry. Every other explanation hangs with `--within` on the part, and through its instruction on the line, that reaches it — even when the user asked about a block by name. In the reader a zoom folds under its instruction line; a top-level entry always shows and never folds.
+- `--over` names the entry this text makes simpler. Use it only for a plainer flow of a whole entry. It cannot go with `--within` or `--at`, and dmap rejects it when the new flow covers less code than the entry it sits over, when that entry is a zoom, or when another plainer flow already sits over it.
+- **Everything after the first entry is a zoom or a plainer flow.** The first entry of a file is the whole-file flow. Every explanation that goes deeper hangs with `--within` on the part, and through its instruction on the line, that reaches it — even when the user asked about a block by name. Every explanation that goes plainer sits with `--over` on the entry it simplifies. In the reader a zoom folds under its instruction line, a covered entry opens in the place of the plainer flow, and one flow of the file always shows.
 - dmap runs `claude -p` for the mapping, checks the answer up to 8 times, appends one entry, recomputes coverage, and writes the file. It returns a delta only.
 
 ## 3. Rewrite and rollback
@@ -99,7 +104,7 @@ When the user says "rollback" or "undo", remove the last entry:
 dmap undo <code_file>
 ```
 
-Undo pops the newest entry and recomputes coverage. An entry with children cannot be undone before its children.
+Undo pops the newest entry and recomputes coverage. An entry with children cannot be undone before its children, and an entry with a plainer flow over it cannot be undone before that flow.
 
 ## 4. Sync after a code change
 
@@ -118,7 +123,7 @@ dmap sync <code_file>
 
 After a map run, report to the user in this order:
 
-1. The new entry: id, block, lines, part names, and its `within` parent if it has one.
+1. The new entry: id, block, lines, part names, and its `within` parent, or the entry it sits `over`, if it has one.
 2. Coverage: covered code lines out of total code lines.
 3. The lines that are not covered. Say what each missing range is: the imports, the entry point, or a block with no explanation yet.
 4. Offer to take the next explanation.
