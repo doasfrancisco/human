@@ -7,20 +7,30 @@
       "block_lines": [
         [
           1,
-          126
+          131
         ]
       ],
-      "text": "the opening,    four lines give the guide's name and when to open it    (decompile-claude)\nthe map,        the record this guide builds: it ties each sentence of an explanation to the exact file lines the sentence talks about    (decompile-claude)\n                one helper tool, named dmap, is the only thing that writes it - it only grows, and what is in it never changes\npointing,       the person points by pasting the words themselves - the assistant finds what the pasted words belong to and works on that    (How the user points at things)\n\nthe shape,      one line per step, simple words, the real name from the file at the end in parentheses    (1. Explain)\nthe first,      the first explanation walks the whole file - every later one is a closer look under one line of an earlier one    (1. Explain)\nthe reader,     a person who does not read code - define every strange word before it appears, or say what the thing does instead    (1. Explain)\nthen stop,      show the explanation and wait - pin nothing until the person gives the word    (1. Explain)\n\nthe map run,    when the person says \"map it\", pass the text to dmap word for word - dmap finds the lines each sentence covers    (2. Map)\nthe result,     one new explanation at the end of the map, and a short report of what changed    (2. Map)\n\nrewrite,        an approved rewording replaces the text where it stands - it must keep every step name and every line a closer look hangs on    (3. Rewrite and rollback)\nrollback,       \"undo\" removes the newest explanation - one with closer looks under it cannot go before they do    (3. Rewrite and rollback)\n\nthe sync run,   one dmap run slides every pin through the change, then rewrites only the sentences that went stale    (4. Sync after a code change)\nthe warning,    watch for a new file line that landed under no step - the numbers alone cannot see it, the warning can    (4. Sync after a code change)\n\nafter a map,    tell what is new, how much of the file is explained, and what is not explained yet - then offer the next explanation    (5. Report)\nafter the rest, tell what changed and confirm with dmap's own display    (5. Report)",
+      "text": "the opening,    four lines give the guide's name and when to open it    (decompile-claude)\nthe map,        the record this guide builds: it ties each sentence of an explanation to the exact file lines the sentence talks about    (decompile-claude)\n                one helper tool, named dmap, is the only thing that writes it - it only grows, and what is in it never changes\npointing,       the person points by pasting the words themselves - the assistant finds what the pasted words belong to and works on that    (How the user points at things)\n\nthe shape,      one line per step, simple words, the real name from the file at the end in parentheses    (1. Explain)\nthe first,      the first explanation walks the whole file - every later one is a closer look under one line of an earlier one, or a plainer telling of a whole earlier one    (1. Explain)\nthe reader,     a person who does not read code - define every strange word before it appears, or say what the thing does instead    (1. Explain)\na document,     a written guide is explained the same way - each of its headings is one step of the flow, and the name on the left ends with a comma in place of the equals sign    (1. Explain)\na web page,     a page a person opens in a browser is explained region by region - the colors and the shapes, the empty frame the page starts with, the program that fills it - and each line says what the person sees, not how the page finds it    (1. Explain)\na plainer flow, when the first explanation is still too hard, a shorter one of the same file stands in its place, and one line under it opens the harder one back    (1. Explain)\nthen stop,      show the explanation and wait - pin nothing until the person gives the word    (1. Explain)\n\nthe map run,    when the person says \"map it\", pass the text to dmap word for word - dmap finds the lines each sentence covers    (2. Map)\nthe result,     one new explanation at the end of the map, and a short report of what changed    (2. Map)\n\nrewrite,        an approved rewording replaces the text where it stands - it must keep every step name and every line a closer look hangs on    (3. Rewrite and rollback)\nrollback,       \"undo\" removes the newest explanation - one with closer looks under it cannot go before they do    (3. Rewrite and rollback)\n\nthe sync run,   one dmap run slides every pin through the change, then rewrites only the sentences that went stale    (4. Sync after a code change)\nthe warning,    watch for a new file line that landed under no step - the numbers alone cannot see it, the warning can    (4. Sync after a code change)\n\nafter a map,    tell what is new, how much of the file is explained, and what is not explained yet - then offer the next explanation    (5. Report)\nafter the rest, tell what changed and confirm with dmap's own display    (5. Report)",
       "parts": [
         {
           "part": "the opening",
           "own_lines": [
             [
               1,
-              5
+              4
             ]
           ],
-          "callee_lines": [],
+          "callee_lines": [
+            {
+              "name": "decompile-claude",
+              "lines": [
+                [
+                  6,
+                  131
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
@@ -31,7 +41,17 @@
               9
             ]
           ],
-          "callee_lines": [],
+          "callee_lines": [
+            {
+              "name": "decompile-claude",
+              "lines": [
+                [
+                  6,
+                  131
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
@@ -64,7 +84,11 @@
             ],
             [
               29,
-              63
+              59
+            ],
+            [
+              66,
+              67
             ]
           ],
           "callee_lines": [
@@ -73,7 +97,7 @@
               "lines": [
                 [
                   14,
-                  67
+                  71
                 ]
               ]
             }
@@ -94,7 +118,7 @@
               "lines": [
                 [
                   14,
-                  67
+                  71
                 ]
               ]
             }
@@ -107,10 +131,6 @@
             [
               27,
               28
-            ],
-            [
-              64,
-              65
             ]
           ],
           "callee_lines": [
@@ -119,7 +139,7 @@
               "lines": [
                 [
                   14,
-                  67
+                  71
                 ]
               ]
             }
@@ -127,11 +147,11 @@
           "constant_lines": []
         },
         {
-          "part": "then stop",
+          "part": "a document",
           "own_lines": [
             [
-              66,
-              67
+              60,
+              61
             ]
           ],
           "callee_lines": [
@@ -140,7 +160,60 @@
               "lines": [
                 [
                   14,
-                  67
+                  71
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "a web page",
+          "own_lines": [
+            [
+              62,
+              63
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "1. Explain",
+              "lines": [
+                [
+                  14,
+                  71
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "a plainer flow",
+          "own_lines": [
+            [
+              64,
+              64
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "then stop",
+          "own_lines": [
+            [
+              68,
+              71
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "1. Explain",
+              "lines": [
+                [
+                  14,
+                  71
                 ]
               ]
             }
@@ -151,8 +224,8 @@
           "part": "the map run",
           "own_lines": [
             [
-              68,
-              81
+              72,
+              85
             ]
           ],
           "callee_lines": [
@@ -160,8 +233,8 @@
               "name": "2. Map",
               "lines": [
                 [
-                  68,
-                  83
+                  72,
+                  88
                 ]
               ]
             }
@@ -172,8 +245,8 @@
           "part": "the result",
           "own_lines": [
             [
-              82,
-              83
+              87,
+              88
             ]
           ],
           "callee_lines": [
@@ -181,8 +254,8 @@
               "name": "2. Map",
               "lines": [
                 [
-                  68,
-                  83
+                  72,
+                  88
                 ]
               ]
             }
@@ -193,8 +266,8 @@
           "part": "rewrite",
           "own_lines": [
             [
-              84,
-              95
+              89,
+              100
             ]
           ],
           "callee_lines": [
@@ -202,8 +275,8 @@
               "name": "3. Rewrite and rollback",
               "lines": [
                 [
-                  84,
-                  103
+                  89,
+                  108
                 ]
               ]
             }
@@ -214,8 +287,8 @@
           "part": "rollback",
           "own_lines": [
             [
-              96,
-              103
+              101,
+              108
             ]
           ],
           "callee_lines": [
@@ -223,8 +296,8 @@
               "name": "3. Rewrite and rollback",
               "lines": [
                 [
-                  84,
-                  103
+                  89,
+                  108
                 ]
               ]
             }
@@ -235,8 +308,8 @@
           "part": "the sync run",
           "own_lines": [
             [
-              104,
-              114
+              109,
+              119
             ]
           ],
           "callee_lines": [
@@ -244,8 +317,8 @@
               "name": "4. Sync after a code change",
               "lines": [
                 [
-                  104,
-                  116
+                  109,
+                  121
                 ]
               ]
             }
@@ -256,8 +329,8 @@
           "part": "the warning",
           "own_lines": [
             [
-              115,
-              116
+              120,
+              121
             ]
           ],
           "callee_lines": [
@@ -265,8 +338,8 @@
               "name": "4. Sync after a code change",
               "lines": [
                 [
-                  104,
-                  116
+                  109,
+                  121
                 ]
               ]
             }
@@ -277,8 +350,8 @@
           "part": "after a map",
           "own_lines": [
             [
-              117,
-              124
+              122,
+              129
             ]
           ],
           "callee_lines": [
@@ -286,8 +359,8 @@
               "name": "5. Report",
               "lines": [
                 [
-                  117,
-                  126
+                  122,
+                  131
                 ]
               ]
             }
@@ -298,8 +371,8 @@
           "part": "after the rest",
           "own_lines": [
             [
-              125,
-              126
+              130,
+              131
             ]
           ],
           "callee_lines": [
@@ -307,8 +380,8 @@
               "name": "5. Report",
               "lines": [
                 [
-                  117,
-                  126
+                  122,
+                  131
                 ]
               ]
             }
@@ -345,22 +418,24 @@
       67,
       69,
       71,
-      77,
-      83,
-      85,
-      87,
-      93,
-      95,
-      97,
-      101,
-      103,
-      105,
-      107,
-      111,
+      73,
+      75,
+      81,
+      88,
+      90,
+      92,
+      98,
+      100,
+      102,
+      106,
+      108,
+      110,
+      112,
       116,
-      118,
-      120,
-      125
+      121,
+      123,
+      125,
+      130
     ]
   }
 }

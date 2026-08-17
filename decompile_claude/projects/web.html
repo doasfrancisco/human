@@ -39,6 +39,8 @@
   .bhead.closable{cursor:pointer;}
   .bhead.closable:hover{color:var(--spec);}
   .pill{font-family:var(--mono);font-size:11px;color:var(--faint);padding:6px 14px;}
+  .pill.deep{cursor:pointer;color:var(--muted);transition:color .12s;}
+  .pill.deep:hover{color:var(--spec);}
   .chunk{font-family:var(--mono);font-size:13px;line-height:1.62;white-space:pre;padding:2px 14px;transition:background .12s;}
   .chunk.x{cursor:pointer;}
   .chunk.x:hover{background:var(--spec-wash);}
@@ -76,7 +78,7 @@
 import { FileTree } from "./trees.js";
 
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-var projs=[], cur=null, byId={}, blockId={}, childrenOf={}, openSet={}, tops=[], lines=[], ft=null;
+var projs=[], cur=null, byId={}, blockId={}, childrenOf={}, openSet={}, covered={}, tops=[], lines=[], ft=null;
 var rows=document.getElementById("rows");
 
 function msg(t){var el=document.getElementById("msg");el.hidden=!t;el.textContent=t||"";}
@@ -141,14 +143,18 @@ function open(p,f){
   cur={proj:p,name:p.name,file:f.file,d:f.d,code:f.code};
   document.getElementById("projname").textContent=p.name;
   lines=f.code?f.code.replace(/\n$/,"").split("\n"):[];
-  byId={}; blockId={}; childrenOf={}; openSet={};
-  f.d.explanations.forEach(function(e){byId[e.id]=e;blockId[e.block]=e.id;});
+  byId={}; blockId={}; childrenOf={}; openSet={}; covered={};
+  f.d.explanations.forEach(function(e){
+    byId[e.id]=e;
+    if(!(e.block in blockId)) blockId[e.block]=e.id;
+    if(e.over) covered[e.over]=e.id;
+  });
   f.d.explanations.forEach(function(e){
     if(!e.within) return;
     var k=e.within.explanation+":"+e.within.part;
     (childrenOf[k]=childrenOf[k]||[]).push({id:e.id,instruction:e.within.instruction||null});
   });
-  tops=f.d.explanations.filter(function(e){return !e.within;});
+  tops=f.d.explanations.filter(function(e){return !e.within&&!covered[e.id];});
   msg("");
   render();
 }
@@ -250,32 +256,43 @@ function expansionHtml(e){
 
 function openPath(id){
   var e=byId[id];
-  while(e&&e.within){
-    openSet[e.id]=1;
-    e=byId[e.within.explanation];
+  while(e){
+    if(e.within){openSet[e.id]=1;e=byId[e.within.explanation];continue;}
+    if(covered[e.id]){openSet[e.id]=1;e=byId[covered[e.id]];continue;}
+    break;
   }
+}
+
+function deepest(e){
+  while(e.over&&byId[e.over]&&openSet[e.over]) e=byId[e.over];
+  return e;
 }
 
 function render(){
   var shown=tops.slice().sort(function(a,b){return startOf(a)-startOf(b);}), html="", pos=1;
   shown.forEach(function(e,i){
-    var a=startOf(e);
+    var a=startOf(e), d=deepest(e);
     if(a>pos&&nonBlank(pos,a-1)) html+='<div class="pill">▹ '+nonBlank(pos,a-1)+' hidden lines</div>';
-    html+='<div class="bhead" data-id="'+e.id+'">'+esc(e.block)+' · '+fmtSpans(e)+'</div>';
-    html+=entryHtml(e);
+    html+='<div class="bhead'+(d===e?'':' closable')+'" data-id="'+d.id+'">'
+      +esc(d.block)+' · '+fmtSpans(d)+'</div>';
+    html+=entryHtml(d);
+    if(d.over&&byId[d.over])
+      html+='<div class="pill deep" data-child="'+d.over+'">▸ the same flow in detail</div>';
     if(i<shown.length-1) html+='<div class="divider"></div>';
     pos=Math.max(pos,endOf(e)+1);
   });
   if(lines.length&&pos<=lines.length&&nonBlank(pos,lines.length))
     html+='<div class="pill">▹ '+nonBlank(pos,lines.length)+' hidden lines</div>';
   rows.innerHTML=html;
-  var count=shown.length+Object.keys(openSet).length;
+  var count=shown.length+Object.keys(openSet).filter(function(k){
+    return byId[k]&&byId[k].within;}).length;
   document.getElementById("head").textContent=
     cur.name+"/"+cur.file+"  ·  "+count+"/"+cur.d.explanations.length+" explanations";
 }
 
 function closeTree(id){
   delete openSet[id];
+  if(byId[id]&&byId[id].over) closeTree(byId[id].over);
   Object.keys(childrenOf).forEach(function(k){
     if(k.split(":")[0]===String(id)) childrenOf[k].forEach(function(c){closeTree(c.id);});
   });
@@ -297,7 +314,7 @@ rows.addEventListener("click",function(e){
     if(link) link.click();
     return;
   }
-  var t=e.target.closest(".iline")||e.target.closest(".chunk.x");
+  var t=e.target.closest(".iline")||e.target.closest(".chunk.x")||e.target.closest(".pill.deep");
   if(t){
     var cid=+t.getAttribute("data-child");
     if(openSet[cid]) closeTree(cid);

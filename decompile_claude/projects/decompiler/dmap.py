@@ -27,7 +27,7 @@ The new explanation text:
 <text>
 ---
 
-Hints from the user: block = <block_hint>, within = <within_hint>.
+Hints from the user: block = <block_hint>, within = <within_hint>, over = <over_hint>.
 
 Return one JSON object and nothing else, in this shape:
 
@@ -49,6 +49,7 @@ The rules:
 - constant_lines hold the module constants the part uses.
 - A part whose own lines sit outside block_lines gets "outside_within": true and a note that says which entry and part those lines belong to. Only such a part carries these two keys.
 - within points to the one already-mapped part whose lines contain this block. Its instruction is the exact line of that part's text that reaches this block, copied verbatim from the entry's text without its leading spaces. Use null when no mapped part contains it.
+- When the over hint names an entry, the text is a plainer flow of that whole entry, not a zoom: within is null, and block_lines cover every line of that entry.
 - Map only this text. Do not restate or change the entries already mapped.
 """
 
@@ -115,9 +116,105 @@ def md_spans(path, lines):
     return spans
 
 
+def tag_spans(lines):
+    first, count = {}, {}
+    for i, l in enumerate(lines, 1):
+        m = re.match(r"\s*<([a-zA-Z][\w-]*)", l)
+        if not m:
+            continue
+        name = m.group(1)
+        count[name] = count.get(name, 0) + 1
+        first.setdefault(name, i)
+    spans = {}
+    for name, i in first.items():
+        if count[name] != 1:
+            continue
+        if re.search(rf"</{name}\s*>", lines[i - 1]):
+            spans[name] = [i, i]
+            continue
+        for j in range(i + 1, len(lines) + 1):
+            if re.match(rf"\s*</{name}\s*>", lines[j - 1]):
+                spans[name] = [i, j]
+                break
+    return spans
+
+
+def brace_delta(line):
+    depth, quote, i = 0, None, 0
+    while i < len(line):
+        c = line[i]
+        if quote:
+            if c == "\\":
+                i += 2
+                continue
+            if c == quote:
+                quote = None
+        elif c in "\"'`":
+            quote = c
+        elif c == "/" and line[i:i + 2] == "//":
+            break
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+        i += 1
+    return depth
+
+
+def script_regions(lines):
+    regions, start = [], None
+    for i, l in enumerate(lines, 1):
+        if start is None and re.search(r"<script\b", l):
+            start = i
+            if re.search(r"</script\s*>", l):
+                regions.append((i, i))
+                start = None
+            continue
+        if start is not None and re.search(r"</script\s*>", l):
+            regions.append((start, i))
+            start = None
+    if start is not None:
+        regions.append((start, len(lines)))
+    return regions
+
+
+def js_spans(path, lines, regions):
+    spans = {}
+    for lo, hi in regions:
+        depth, stack = 0, []
+        for i in range(lo, hi + 1):
+            line = lines[i - 1]
+            m = re.match(r"\s*function\s+([A-Za-z_$][\w$]*)\s*\(", line)
+            if m:
+                stack.append((m.group(1), i, depth))
+            depth += brace_delta(line)
+            while stack and depth <= stack[-1][2]:
+                name, start, _ = stack.pop()
+                if name in spans:
+                    sys.exit(f"duplicate function {name!r} in {path.name}; "
+                             f"names must be unique to serve as block names")
+                spans[name] = [start, i]
+        for name, start, _ in stack:
+            if name not in spans:
+                spans[name] = [start, hi]
+    return spans
+
+
+def html_spans(path, lines):
+    spans = tag_spans(lines)
+    for name, span in js_spans(path, lines, script_regions(lines)).items():
+        if name in spans:
+            sys.exit(f"the function {name!r} in {path.name} has the name of a tag; "
+                     f"names must be unique to serve as block names")
+        spans[name] = span
+    return spans
+
+
 def block_spans(path, lines):
     if path.suffix == ".md":
         return md_spans(path, lines)
+    if path.suffix in (".html", ".htm"):
+        return html_spans(path, lines)
     if path.suffix != ".py":
         return {}
     try:
@@ -278,6 +375,19 @@ def check_entry(m, data, lines, spans):
             f"[WITHIN-INSTRUCTION] {instr!r} is not a line of part {ppart['part']!r} " \
             f"in explanation {parent['id']}"
         out["within"] = {"explanation": parent["id"], "part": ppart["part"], "instruction": instr}
+    over = m.get("over")
+    if over is not None:
+        assert "within" not in out, "[OVER-WITHIN] an entry is a zoom or a plainer flow, not both"
+        target = next((e for e in data["explanations"] if e["id"] == over), None)
+        assert target, f"[OVER-REAL] explanation {over} does not exist"
+        assert not target.get("within"), \
+            f"[OVER-TOP] explanation {over} is a zoom; it hangs on one line and cannot be covered"
+        taken = next((e["id"] for e in data["explanations"] if e.get("over") == over), None)
+        assert taken is None, f"[OVER-FREE] explanation {taken} is already over explanation {over}"
+        bad = expand(target["block_lines"]) - block_set
+        assert not bad, f"[OVER-BOUNDS] lines {fmt(bad)} of explanation {over} are outside this flow; " \
+                        "a plainer flow covers the same code or more"
+        out["over"] = over
     return out
 
 
@@ -324,6 +434,8 @@ def cmd_map(a):
     text = (Path(a.text).read_text() if a.text else sys.stdin.read()).strip()
     if not text:
         sys.exit("no explanation text on stdin or --text")
+    if a.over is not None and a.within:
+        sys.exit("--over and --within cannot both be given: an entry is a zoom or a plainer flow")
     within_arg = parse_within(a.within) if a.within else None
     if within_arg and a.at:
         within_arg["instruction"] = a.at.strip()
@@ -340,7 +452,8 @@ def cmd_map(a):
               .replace("<existing>", json.dumps(existing) if existing else "none")
               .replace("<text>", text)
               .replace("<block_hint>", a.block or "none")
-              .replace("<within_hint>", a.within or "none"))
+              .replace("<within_hint>", a.within or "none")
+              .replace("<over_hint>", str(a.over) if a.over is not None else "none"))
     entry = None
     last = ""
     suffix = ""
@@ -355,6 +468,9 @@ def cmd_map(a):
             m["block"] = a.block
         if within_arg:
             m["within"] = {**(m.get("within") or {}), **within_arg}
+        if a.over is not None:
+            m["over"] = a.over
+            m.pop("within", None)
         try:
             entry = check_entry(m, data, lines, spans)
             break
@@ -368,6 +484,8 @@ def cmd_map(a):
     record = {"id": eid, "block": entry["block"], "block_lines": entry["block_lines"]}
     if "within" in entry:
         record["within"] = entry["within"]
+    if "over" in entry:
+        record["over"] = entry["over"]
     record["text"] = text
     record["parts"] = entry["parts"]
     data["explanations"].append(record)
@@ -377,6 +495,8 @@ def cmd_map(a):
     tail = f", within {w['explanation']}:{w['part']}" if w else ""
     if w and w.get("instruction"):
         tail += f" @ {w['instruction']}"
+    if record.get("over") is not None:
+        tail += f", over {record['over']}"
     print(f"entry {eid}: {record['block']}, lines {fmt(expand(record['block_lines']))}, "
           f"{len(record['parts'])} parts{tail}")
     print("parts: " + ", ".join(p["part"] for p in record["parts"]))
@@ -440,12 +560,17 @@ def cmd_undo(a):
             if (e.get("within") or {}).get("explanation") == last["id"]]
     if kids:
         sys.exit(f"entry {last['id']} has children {kids}; undo them first")
+    cover = [e["id"] for e in data["explanations"] if e.get("over") == last["id"]]
+    if cover:
+        sys.exit(f"entry {last['id']} carries the plainer flow {cover}; undo it first")
     data["explanations"].pop()
     lines = code_path.read_text().splitlines()
     missing, blank = recompute(data, lines)
     map_path.write_text(json.dumps(data, indent=2) + "\n")
     w = last.get("within")
     tail = f", within {w['explanation']}:{w['part']}" if w else ""
+    if last.get("over") is not None:
+        tail += f", over {last['over']}"
     print(f"removed entry {last['id']}: {last['block']}, "
           f"lines {fmt(expand(last['block_lines']))}{tail}")
     total = len(lines) - len(blank)
@@ -464,6 +589,8 @@ def cmd_show(a):
     for e in data["explanations"]:
         w = e.get("within")
         tail = f"  within {w['explanation']}:{w['part']}" if w else ""
+        if e.get("over") is not None:
+            tail += f"  over {e['over']}"
         print(f"{e['id']:3}  {e['block']:<20} {fmt(expand(e['block_lines'])):<18} "
               f"{len(e['parts'])} parts{tail}")
     missing, blank = recompute(data, lines)
@@ -721,6 +848,7 @@ def main():
     m.add_argument("code_file")
     m.add_argument("--block")
     m.add_argument("--within")
+    m.add_argument("--over", type=int)
     m.add_argument("--at")
     m.add_argument("--text")
     m.add_argument("--tries", type=int, default=8)

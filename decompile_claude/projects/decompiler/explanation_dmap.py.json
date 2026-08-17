@@ -7,10 +7,10 @@
       "block_lines": [
         [
           1,
-          747
+          875
         ]
       ],
-      "text": "imports         = argparse, ast, difflib, json, re, subprocess, sys, Path\n\nPROMPT          = the ask text for one mapping: the numbered code, the table of blocks, the entries already mapped, the new explanation text, and the shape of the JSON answer to return\n\nSYNC_PROMPT     = the ask text for one sync: the diff of the change, the changed and the inserted lines, the candidate entries with their texts, and the shape of the JSON answer to return\n\nnumbered        = the code with a line number in front of each line    (numbered)\nmd_spans        = each heading of a markdown file with its start and end line, the headings inside a code fence passed over    (md_spans)\nblock_spans     = each def and class of the file with its start and end line, read from the syntax tree, or the headings when the file is markdown    (block_spans)\nexpand          = a list of start-end line pairs opened into a set of single line numbers    (expand)\npart_lines      = every line one part of an explanation touches: its own lines plus the blocks it calls and the constants it uses    (part_lines)\nfmt             = line numbers pressed into short ranges like 3-7, 9    (fmt)\ncheck_spans     = the gate on a list of line ranges: each item a start-end pair of whole numbers inside the file    (check_spans)\nhead_token      = the first word of a text line, lowercased, with a leading ! dropped    (head_token)\nchunks_of       = an explanation text cut into chunks: one left-margin line with the lines indented under it    (chunks_of)\npart_chunk      = the lines of a parent text that belong to one part, by position when the counts agree, else by the first word    (part_chunk)\ncheck_entry     = the gate on the whole answer from claude: the block name, its lines, each part, and the link to the parent part    (check_entry)\nrecompute       = the fresh coverage: the code lines and the blank lines no entry touches yet    (recompute)\nask_claude      = one claude -p run, the JSON pulled out of the answer    (ask_claude)\nload_map        = the map file read from disk, or an empty map when none exists yet    (load_map)\nparse_within    = the --within option split into an entry id and a part name    (parse_within)\ncmd_map         = the map command: build the ask, ask claude up to --tries times, gate each answer, append one entry, write the map file    (cmd_map)\npart_line       = true when a text line starts with a part name and the name ends there    (part_line)\nload_existing   = the map file of one code file read from disk, or a stop when no map file exists    (load_existing)\ncmd_retext      = the retext command: the text of one entry replaced, its part names and the lines its child zooms hang on kept    (cmd_retext)\ncmd_undo        = the undo command: the last entry removed when no child hangs on it, the coverage counted again    (cmd_undo)\ncmd_show        = the show command: one line per entry plus the coverage    (cmd_show)\ncmd_lines       = the lines command: the numbered code printed    (cmd_lines)\nold_lines_of    = the old version of the code file, from --old or from git HEAD    (old_lines_of)\nline_map        = the old line numbers matched to the new ones, plus the changed old lines and the inserted new lines    (line_map)\nshift_spans     = one list of line ranges moved into the new numbering, with a note when the change touches the range    (shift_spans)\nshift_map       = every span of every entry moved into the new numbering, and the entries the change touches    (shift_map)\ncheck_sync      = the gate on the sync answer from claude: the stale lines, the part edits, the new texts, and the lines the child zooms hang on    (check_sync)\ncmd_sync        = the sync command: renumber every span, ask claude about the words up to --tries times, gate each answer, write the map file    (cmd_sync)\nmain            = the start of the tool: it looks at which command the person typed - map, retext, undo, show, lines, or sync - and starts that one    (main)\n\nentry point     = run main() when the file starts as a program    (main)",
+      "text": "imports         = argparse, ast, difflib, json, re, subprocess, sys, Path\n\nPROMPT          = the ask text for one mapping: the numbered code, the table of blocks, the entries already mapped, the new explanation text, and the shape of the JSON answer to return\n\nSYNC_PROMPT     = the ask text for one sync: the diff of the change, the changed and the inserted lines, the candidate entries with their texts, and the shape of the JSON answer to return\n\nnumbered        = the code with a line number in front of each line    (numbered)\nmd_spans        = each heading of a markdown file with its start and end line, the headings inside a code fence passed over    (md_spans)\ntag_spans       = each tag of an html file that appears one time only, with its start and end line    (tag_spans)\nbrace_delta     = the braces opened minus the braces closed on one line, the text in quotes and after // passed over    (brace_delta)\nscript_regions  = the start and end line of each script part of an html file    (script_regions)\njs_spans        = each function inside the script parts with its start and end line, found from the brace count    (js_spans)\nhtml_spans      = each tag and each function of an html file with its start and end line    (html_spans)\nblock_spans     = each def and class of the file with its start and end line, read from the syntax tree, or the headings when the file is markdown, or the tags and the functions when the file is html    (block_spans)\nexpand          = a list of start-end line pairs opened into a set of single line numbers    (expand)\npart_lines      = every line one part of an explanation touches: its own lines plus the blocks it calls and the constants it uses    (part_lines)\nfmt             = line numbers pressed into short ranges like 3-7, 9    (fmt)\ncheck_spans     = the gate on a list of line ranges: each item a start-end pair of whole numbers inside the file    (check_spans)\nhead_token      = the first word of a text line, lowercased, with a leading ! dropped    (head_token)\nchunks_of       = an explanation text cut into chunks: one left-margin line with the lines indented under it    (chunks_of)\npart_chunk      = the lines of a parent text that belong to one part, by position when the counts agree, else by the first word    (part_chunk)\ncheck_entry     = the gate on the whole answer from claude: the block name, its lines, each part, the link to the parent part, and the entry a plainer flow covers    (check_entry)\nrecompute       = the fresh coverage: the code lines and the blank lines no entry touches yet    (recompute)\nask_claude      = one claude -p run, the JSON pulled out of the answer    (ask_claude)\nload_map        = the map file read from disk, or an empty map when none exists yet    (load_map)\nparse_within    = the --within option split into an entry id and a part name    (parse_within)\ncmd_map         = the map command: build the ask, ask claude up to --tries times, gate each answer, append one entry, write the map file    (cmd_map)\npart_line       = true when a text line starts with a part name and the name ends there    (part_line)\nload_existing   = the map file of one code file read from disk, or a stop when no map file exists    (load_existing)\ncmd_retext      = the retext command: the text of one entry replaced, its part names and the lines its child zooms hang on kept    (cmd_retext)\ncmd_undo        = the undo command: the last entry removed when no child hangs on it and no plainer flow covers it, the coverage counted again    (cmd_undo)\ncmd_show        = the show command: one line per entry plus the coverage    (cmd_show)\ncmd_lines       = the lines command: the numbered code printed    (cmd_lines)\nold_lines_of    = the old version of the code file, from --old or from git HEAD    (old_lines_of)\nline_map        = the old line numbers matched to the new ones, plus the changed old lines and the inserted new lines    (line_map)\nshift_spans     = one list of line ranges moved into the new numbering, with a note when the change touches the range    (shift_spans)\nshift_map       = every span of every entry moved into the new numbering, and the entries the change touches    (shift_map)\ncheck_sync      = the gate on the sync answer from claude: the stale lines, the part edits, the new texts, and the lines the child zooms hang on    (check_sync)\ncmd_sync        = the sync command: renumber every span, ask claude about the words up to --tries times, gate each answer, write the map file    (cmd_sync)\nmain            = the start of the tool: it looks at which command the person typed - map, retext, undo, show, lines, or sync - and starts that one    (main)\n\nentry point     = run main() when the file starts as a program    (main)",
       "parts": [
         {
           "part": "imports",
@@ -28,7 +28,7 @@
           "own_lines": [
             [
               10,
-              82
+              54
             ]
           ],
           "callee_lines": [],
@@ -38,8 +38,8 @@
           "part": "SYNC_PROMPT",
           "own_lines": [
             [
-              56,
-              82
+              57,
+              83
             ]
           ],
           "callee_lines": [],
@@ -49,8 +49,8 @@
           "part": "numbered",
           "own_lines": [
             [
-              85,
-              86
+              86,
+              87
             ]
           ],
           "callee_lines": [],
@@ -60,30 +60,151 @@
           "part": "md_spans",
           "own_lines": [
             [
-              89,
-              115
+              90,
+              116
             ]
           ],
           "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "tag_spans",
+          "own_lines": [
+            [
+              119,
+              139
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "brace_delta",
+          "own_lines": [
+            [
+              142,
+              161
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "script_regions",
+          "own_lines": [
+            [
+              164,
+              178
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "js_spans",
+          "own_lines": [
+            [
+              181,
+              200
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "brace_delta",
+              "lines": [
+                [
+                  142,
+                  161
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "html_spans",
+          "own_lines": [
+            [
+              203,
+              210
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "tag_spans",
+              "lines": [
+                [
+                  119,
+                  139
+                ]
+              ]
+            },
+            {
+              "name": "js_spans",
+              "lines": [
+                [
+                  181,
+                  200
+                ]
+              ]
+            },
+            {
+              "name": "script_regions",
+              "lines": [
+                [
+                  164,
+                  178
+                ]
+              ]
+            },
+            {
+              "name": "brace_delta",
+              "lines": [
+                [
+                  142,
+                  161
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
           "part": "block_spans",
           "own_lines": [
             [
-              118,
-              132
+              213,
+              229
             ]
           ],
-          "callee_lines": [],
+          "callee_lines": [
+            {
+              "name": "md_spans",
+              "lines": [
+                [
+                  90,
+                  116
+                ]
+              ]
+            },
+            {
+              "name": "html_spans",
+              "lines": [
+                [
+                  203,
+                  210
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
           "part": "expand",
           "own_lines": [
             [
-              135,
-              139
+              232,
+              236
             ]
           ],
           "callee_lines": [],
@@ -93,8 +214,8 @@
           "part": "part_lines",
           "own_lines": [
             [
-              142,
-              148
+              239,
+              245
             ]
           ],
           "callee_lines": [
@@ -102,8 +223,8 @@
               "name": "expand",
               "lines": [
                 [
-                  135,
-                  139
+                  232,
+                  236
                 ]
               ]
             }
@@ -114,8 +235,8 @@
           "part": "fmt",
           "own_lines": [
             [
-              151,
-              161
+              248,
+              258
             ]
           ],
           "callee_lines": [],
@@ -125,8 +246,8 @@
           "part": "check_spans",
           "own_lines": [
             [
-              164,
-              173
+              261,
+              270
             ]
           ],
           "callee_lines": [],
@@ -136,8 +257,8 @@
           "part": "head_token",
           "own_lines": [
             [
-              176,
-              180
+              273,
+              277
             ]
           ],
           "callee_lines": [],
@@ -147,8 +268,8 @@
           "part": "chunks_of",
           "own_lines": [
             [
-              183,
-              195
+              280,
+              292
             ]
           ],
           "callee_lines": [],
@@ -158,19 +279,38 @@
           "part": "part_chunk",
           "own_lines": [
             [
-              198,
-              208
+              295,
+              305
             ]
           ],
-          "callee_lines": [],
+          "callee_lines": [
+            {
+              "name": "chunks_of",
+              "lines": [
+                [
+                  280,
+                  292
+                ]
+              ]
+            },
+            {
+              "name": "head_token",
+              "lines": [
+                [
+                  273,
+                  277
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
           "part": "check_entry",
           "own_lines": [
             [
-              211,
-              281
+              308,
+              391
             ]
           ],
           "callee_lines": [
@@ -178,8 +318,8 @@
               "name": "check_spans",
               "lines": [
                 [
-                  164,
-                  173
+                  261,
+                  270
                 ]
               ]
             },
@@ -187,8 +327,8 @@
               "name": "expand",
               "lines": [
                 [
-                  135,
-                  139
+                  232,
+                  236
                 ]
               ]
             },
@@ -196,8 +336,8 @@
               "name": "fmt",
               "lines": [
                 [
-                  151,
-                  161
+                  248,
+                  258
                 ]
               ]
             },
@@ -205,8 +345,17 @@
               "name": "part_lines",
               "lines": [
                 [
-                  142,
-                  148
+                  239,
+                  245
+                ]
+              ]
+            },
+            {
+              "name": "part_chunk",
+              "lines": [
+                [
+                  295,
+                  305
                 ]
               ]
             }
@@ -217,8 +366,8 @@
           "part": "recompute",
           "own_lines": [
             [
-              284,
-              293
+              394,
+              403
             ]
           ],
           "callee_lines": [
@@ -226,8 +375,8 @@
               "name": "expand",
               "lines": [
                 [
-                  135,
-                  139
+                  232,
+                  236
                 ]
               ]
             },
@@ -235,8 +384,8 @@
               "name": "part_lines",
               "lines": [
                 [
-                  142,
-                  148
+                  239,
+                  245
                 ]
               ]
             }
@@ -247,8 +396,8 @@
           "part": "ask_claude",
           "own_lines": [
             [
-              296,
-              302
+              406,
+              412
             ]
           ],
           "callee_lines": [],
@@ -258,8 +407,8 @@
           "part": "load_map",
           "own_lines": [
             [
-              305,
-              308
+              415,
+              418
             ]
           ],
           "callee_lines": [],
@@ -269,8 +418,8 @@
           "part": "parse_within",
           "own_lines": [
             [
-              311,
-              315
+              421,
+              425
             ]
           ],
           "callee_lines": [],
@@ -280,8 +429,8 @@
           "part": "cmd_map",
           "own_lines": [
             [
-              318,
-              453
+              428,
+              506
             ]
           ],
           "callee_lines": [
@@ -289,8 +438,8 @@
               "name": "block_spans",
               "lines": [
                 [
-                  118,
-                  132
+                  213,
+                  229
                 ]
               ]
             },
@@ -298,8 +447,8 @@
               "name": "load_map",
               "lines": [
                 [
-                  305,
-                  308
+                  415,
+                  418
                 ]
               ]
             },
@@ -307,8 +456,8 @@
               "name": "parse_within",
               "lines": [
                 [
-                  311,
-                  315
+                  421,
+                  425
                 ]
               ]
             },
@@ -316,8 +465,8 @@
               "name": "numbered",
               "lines": [
                 [
-                  85,
-                  86
+                  86,
+                  87
                 ]
               ]
             },
@@ -325,8 +474,8 @@
               "name": "ask_claude",
               "lines": [
                 [
-                  296,
-                  302
+                  406,
+                  412
                 ]
               ]
             },
@@ -334,17 +483,8 @@
               "name": "check_entry",
               "lines": [
                 [
-                  211,
-                  281
-                ]
-              ]
-            },
-            {
-              "name": "check_spans",
-              "lines": [
-                [
-                  164,
-                  173
+                  308,
+                  391
                 ]
               ]
             },
@@ -352,26 +492,8 @@
               "name": "recompute",
               "lines": [
                 [
-                  284,
-                  293
-                ]
-              ]
-            },
-            {
-              "name": "part_lines",
-              "lines": [
-                [
-                  142,
-                  148
-                ]
-              ]
-            },
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  135,
-                  139
+                  394,
+                  403
                 ]
               ]
             },
@@ -379,8 +501,17 @@
               "name": "fmt",
               "lines": [
                 [
-                  151,
-                  161
+                  248,
+                  258
+                ]
+              ]
+            },
+            {
+              "name": "expand",
+              "lines": [
+                [
+                  232,
+                  236
                 ]
               ]
             }
@@ -391,7 +522,7 @@
               "lines": [
                 [
                   10,
-                  82
+                  54
                 ]
               ]
             }
@@ -401,8 +532,8 @@
           "part": "part_line",
           "own_lines": [
             [
-              389,
-              393
+              509,
+              513
             ]
           ],
           "callee_lines": [],
@@ -412,8 +543,8 @@
           "part": "load_existing",
           "own_lines": [
             [
-              396,
-              400
+              516,
+              520
             ]
           ],
           "callee_lines": [],
@@ -423,57 +554,56 @@
           "part": "cmd_retext",
           "own_lines": [
             [
-              403,
-              430
+              523,
+              550
             ]
           ],
-          "callee_lines": [],
+          "callee_lines": [
+            {
+              "name": "load_existing",
+              "lines": [
+                [
+                  516,
+                  520
+                ]
+              ]
+            },
+            {
+              "name": "part_line",
+              "lines": [
+                [
+                  509,
+                  513
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
           "part": "cmd_undo",
           "own_lines": [
             [
-              433,
-              453
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "cmd_show",
-          "own_lines": [
-            [
-              456,
-              472
+              553,
+              578
             ]
           ],
           "callee_lines": [
             {
+              "name": "load_existing",
+              "lines": [
+                [
+                  516,
+                  520
+                ]
+              ]
+            },
+            {
               "name": "recompute",
               "lines": [
                 [
-                  284,
-                  293
-                ]
-              ]
-            },
-            {
-              "name": "part_lines",
-              "lines": [
-                [
-                  142,
-                  148
-                ]
-              ]
-            },
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  135,
-                  139
+                  394,
+                  403
                 ]
               ]
             },
@@ -481,8 +611,56 @@
               "name": "fmt",
               "lines": [
                 [
-                  151,
-                  161
+                  248,
+                  258
+                ]
+              ]
+            },
+            {
+              "name": "expand",
+              "lines": [
+                [
+                  232,
+                  236
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "cmd_show",
+          "own_lines": [
+            [
+              581,
+              599
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "recompute",
+              "lines": [
+                [
+                  394,
+                  403
+                ]
+              ]
+            },
+            {
+              "name": "fmt",
+              "lines": [
+                [
+                  248,
+                  258
+                ]
+              ]
+            },
+            {
+              "name": "expand",
+              "lines": [
+                [
+                  232,
+                  236
                 ]
               ]
             }
@@ -493,8 +671,8 @@
           "part": "cmd_lines",
           "own_lines": [
             [
-              475,
-              477
+              602,
+              604
             ]
           ],
           "callee_lines": [
@@ -502,8 +680,8 @@
               "name": "numbered",
               "lines": [
                 [
-                  85,
-                  86
+                  86,
+                  87
                 ]
               ]
             }
@@ -514,8 +692,8 @@
           "part": "old_lines_of",
           "own_lines": [
             [
-              480,
-              488
+              607,
+              615
             ]
           ],
           "callee_lines": [],
@@ -525,8 +703,8 @@
           "part": "line_map",
           "own_lines": [
             [
-              491,
-              506
+              618,
+              633
             ]
           ],
           "callee_lines": [],
@@ -536,52 +714,228 @@
           "part": "shift_spans",
           "own_lines": [
             [
-              509,
-              529
+              636,
+              656
             ]
           ],
-          "callee_lines": [],
+          "callee_lines": [
+            {
+              "name": "to_new",
+              "lines": [
+                [
+                  637,
+                  648
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
           "part": "shift_map",
           "own_lines": [
             [
-              532,
-              545
+              659,
+              672
             ]
           ],
-          "callee_lines": [],
+          "callee_lines": [
+            {
+              "name": "shift_spans",
+              "lines": [
+                [
+                  636,
+                  656
+                ]
+              ]
+            },
+            {
+              "name": "to_new",
+              "lines": [
+                [
+                  637,
+                  648
+                ]
+              ]
+            },
+            {
+              "name": "expand",
+              "lines": [
+                [
+                  232,
+                  236
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
           "part": "check_sync",
           "own_lines": [
             [
-              548,
-              625
+              675,
+              752
             ]
           ],
-          "callee_lines": [],
+          "callee_lines": [
+            {
+              "name": "expand",
+              "lines": [
+                [
+                  232,
+                  236
+                ]
+              ]
+            },
+            {
+              "name": "check_spans",
+              "lines": [
+                [
+                  261,
+                  270
+                ]
+              ]
+            },
+            {
+              "name": "fmt",
+              "lines": [
+                [
+                  248,
+                  258
+                ]
+              ]
+            },
+            {
+              "name": "part_line",
+              "lines": [
+                [
+                  509,
+                  513
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
           "part": "cmd_sync",
           "own_lines": [
             [
-              628,
-              714
+              755,
+              841
             ]
           ],
-          "callee_lines": [],
-          "constant_lines": []
+          "callee_lines": [
+            {
+              "name": "load_existing",
+              "lines": [
+                [
+                  516,
+                  520
+                ]
+              ]
+            },
+            {
+              "name": "old_lines_of",
+              "lines": [
+                [
+                  607,
+                  615
+                ]
+              ]
+            },
+            {
+              "name": "line_map",
+              "lines": [
+                [
+                  618,
+                  633
+                ]
+              ]
+            },
+            {
+              "name": "shift_map",
+              "lines": [
+                [
+                  659,
+                  672
+                ]
+              ]
+            },
+            {
+              "name": "ask_claude",
+              "lines": [
+                [
+                  406,
+                  412
+                ]
+              ]
+            },
+            {
+              "name": "check_sync",
+              "lines": [
+                [
+                  675,
+                  752
+                ]
+              ]
+            },
+            {
+              "name": "recompute",
+              "lines": [
+                [
+                  394,
+                  403
+                ]
+              ]
+            },
+            {
+              "name": "fmt",
+              "lines": [
+                [
+                  248,
+                  258
+                ]
+              ]
+            },
+            {
+              "name": "expand",
+              "lines": [
+                [
+                  232,
+                  236
+                ]
+              ]
+            },
+            {
+              "name": "part_lines",
+              "lines": [
+                [
+                  239,
+                  245
+                ]
+              ]
+            }
+          ],
+          "constant_lines": [
+            {
+              "name": "SYNC_PROMPT",
+              "lines": [
+                [
+                  57,
+                  83
+                ]
+              ]
+            }
+          ]
         },
         {
           "part": "main",
           "own_lines": [
             [
-              717,
-              742
+              844,
+              871
             ]
           ],
           "callee_lines": [
@@ -589,8 +943,26 @@
               "name": "cmd_map",
               "lines": [
                 [
-                  318,
-                  453
+                  428,
+                  506
+                ]
+              ]
+            },
+            {
+              "name": "cmd_retext",
+              "lines": [
+                [
+                  523,
+                  550
+                ]
+              ]
+            },
+            {
+              "name": "cmd_undo",
+              "lines": [
+                [
+                  553,
+                  578
                 ]
               ]
             },
@@ -598,8 +970,8 @@
               "name": "cmd_show",
               "lines": [
                 [
-                  456,
-                  472
+                  581,
+                  599
                 ]
               ]
             },
@@ -607,8 +979,17 @@
               "name": "cmd_lines",
               "lines": [
                 [
-                  475,
-                  477
+                  602,
+                  604
+                ]
+              ]
+            },
+            {
+              "name": "cmd_sync",
+              "lines": [
+                [
+                  755,
+                  841
                 ]
               ]
             }
@@ -619,8 +1000,8 @@
           "part": "entry point",
           "own_lines": [
             [
-              746,
-              747
+              874,
+              875
             ]
           ],
           "callee_lines": [
@@ -628,8 +1009,8 @@
               "name": "main",
               "lines": [
                 [
-                  717,
-                  742
+                  844,
+                  871
                 ]
               ]
             }
@@ -643,8 +1024,8 @@
       "block": "main",
       "block_lines": [
         [
-          717,
-          742
+          844,
+          871
         ]
       ],
       "within": {
@@ -652,14 +1033,14 @@
         "part": "main",
         "instruction": "main            = the start of the tool: it looks at which command the person typed - map, retext, undo, show, lines, or sync - and starts that one    (main)"
       },
-      "text": "ap      = the reader of what a person types after the word \"dmap\" - it exists only so the six commands below can be added to it\nsub     = the rule that the person must type one command name: map, retext, undo, show, lines, or sync\nm       = the map command and what it accepts: the code file, --block, --within, --at, --text, and --tries, 8 by default    (cmd_map)\nr       = the retext command and what it accepts: the code file, the entry id, and --text    (cmd_retext)\nu       = the undo command, it accepts one thing: the code file    (cmd_undo)\ns       = the show command, it accepts one thing: the code file    (cmd_show)\nl       = the lines command, it accepts one thing: the code file    (cmd_lines)\ny       = the sync command and what it accepts: the code file, --old, and --tries, 4 by default    (cmd_sync)\na       = the typed command after ap reads it\n            the person types, for example: dmap show notes.py\n            a then remembers two things: the command name \"show\", and the code file notes.py\nrun     = the step that starts the right work for the command name inside a\n            \"show\" starts (cmd_show), \"map\" starts (cmd_map), and so on\n            the started work receives a, so it knows the code file and the options",
+      "text": "ap      = the reader of what a person types after the word \"dmap\" - it exists only so the six commands below can be added to it\nsub     = the rule that the person must type one command name: map, retext, undo, show, lines, or sync\nm       = the map command and what it accepts: the code file, --block, --within, --over, --at, --text, and --tries, 8 by default    (cmd_map)\nr       = the retext command and what it accepts: the code file, the entry id, and --text    (cmd_retext)\nu       = the undo command, it accepts one thing: the code file    (cmd_undo)\ns       = the show command, it accepts one thing: the code file    (cmd_show)\nl       = the lines command, it accepts one thing: the code file    (cmd_lines)\ny       = the sync command and what it accepts: the code file, --old, and --tries, 4 by default    (cmd_sync)\na       = the typed command after ap reads it\n            the person types, for example: dmap show notes.py\n            a then remembers two things: the command name \"show\", and the code file notes.py\nrun     = the step that starts the right work for the command name inside a\n            \"show\" starts (cmd_show), \"map\" starts (cmd_map), and so on\n            the started work receives a, so it knows the code file and the options",
       "parts": [
         {
           "part": "ap",
           "own_lines": [
             [
-              718,
-              718
+              845,
+              845
             ]
           ],
           "callee_lines": [],
@@ -669,8 +1050,8 @@
           "part": "sub",
           "own_lines": [
             [
-              719,
-              719
+              846,
+              846
             ]
           ],
           "callee_lines": [],
@@ -680,8 +1061,8 @@
           "part": "m",
           "own_lines": [
             [
-              720,
-              726
+              847,
+              854
             ]
           ],
           "callee_lines": [
@@ -689,8 +1070,8 @@
               "name": "cmd_map",
               "lines": [
                 [
-                  318,
-                  453
+                  428,
+                  506
                 ]
               ]
             }
@@ -701,30 +1082,50 @@
           "part": "r",
           "own_lines": [
             [
-              727,
-              730
+              855,
+              858
             ]
           ],
-          "callee_lines": [],
+          "callee_lines": [
+            {
+              "name": "cmd_retext",
+              "lines": [
+                [
+                  523,
+                  550
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
           "part": "u",
           "own_lines": [
             [
-              731,
-              732
+              859,
+              860
             ]
           ],
-          "callee_lines": [],
+          "callee_lines": [
+            {
+              "name": "cmd_undo",
+              "lines": [
+                [
+                  553,
+                  578
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
           "part": "s",
           "own_lines": [
             [
-              733,
-              734
+              861,
+              862
             ]
           ],
           "callee_lines": [
@@ -732,8 +1133,8 @@
               "name": "cmd_show",
               "lines": [
                 [
-                  456,
-                  472
+                  581,
+                  599
                 ]
               ]
             }
@@ -744,8 +1145,8 @@
           "part": "l",
           "own_lines": [
             [
-              735,
-              736
+              863,
+              864
             ]
           ],
           "callee_lines": [
@@ -753,8 +1154,8 @@
               "name": "cmd_lines",
               "lines": [
                 [
-                  475,
-                  477
+                  602,
+                  604
                 ]
               ]
             }
@@ -765,19 +1166,29 @@
           "part": "y",
           "own_lines": [
             [
-              737,
-              740
+              865,
+              868
             ]
           ],
-          "callee_lines": [],
+          "callee_lines": [
+            {
+              "name": "cmd_sync",
+              "lines": [
+                [
+                  755,
+                  841
+                ]
+              ]
+            }
+          ],
           "constant_lines": []
         },
         {
           "part": "a",
           "own_lines": [
             [
-              741,
-              741
+              869,
+              869
             ]
           ],
           "callee_lines": [],
@@ -787,8 +1198,8 @@
           "part": "run",
           "own_lines": [
             [
-              742,
-              742
+              870,
+              871
             ]
           ],
           "callee_lines": [
@@ -796,8 +1207,26 @@
               "name": "cmd_map",
               "lines": [
                 [
-                  318,
-                  453
+                  428,
+                  506
+                ]
+              ]
+            },
+            {
+              "name": "cmd_retext",
+              "lines": [
+                [
+                  523,
+                  550
+                ]
+              ]
+            },
+            {
+              "name": "cmd_undo",
+              "lines": [
+                [
+                  553,
+                  578
                 ]
               ]
             },
@@ -805,8 +1234,8 @@
               "name": "cmd_show",
               "lines": [
                 [
-                  456,
-                  472
+                  581,
+                  599
                 ]
               ]
             },
@@ -814,13 +1243,519 @@
               "name": "cmd_lines",
               "lines": [
                 [
-                  475,
-                  477
+                  602,
+                  604
+                ]
+              ]
+            },
+            {
+              "name": "cmd_sync",
+              "lines": [
+                [
+                  755,
+                  841
                 ]
               ]
             }
           ],
           "constant_lines": []
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "block": "dmap.py",
+      "block_lines": [
+        [
+          1,
+          875
+        ]
+      ],
+      "over": 1,
+      "text": "the start        = the person types, for example: dmap map dmap.py - the tool keeps two things, the job name \"map\" and the code file dmap.py, and starts that job    (main, parse_within)\nthe blocks       = every block of the code with its first and last line - a named piece of a python file, a heading of a document, a tag or a named piece of a web page - they exist only so the answer can name a real block and point at real lines    (block_spans, md_spans, html_spans, tag_spans, script_regions, js_spans, brace_delta)\nthe map so far   = the explanations already written for this file, read from the file that sits beside the code, or an empty one when this is the first    (load_map, load_existing)\nthe ask          = the ask text for claude, built from all of that: the code with a number in front of every line, the blocks with their lines, the explanations already written, and the new text    (numbered, cmd_map)\nthe answer       = claude says which lines each name of the new text covers, and a gate reads that answer - the lines must sit inside the file and inside the block, every named block must be real, and the line the new text hangs on must be a real line of the parent - a broken rule goes back to claude with the rule named, up to eight times    (ask_claude, check_entry, check_spans, part_chunk, chunks_of, head_token, part_lines, expand)\nthe writing      = the new explanation added at the end, the code lines no explanation touches yet counted, the whole map written back to disk    (recompute, fmt, cmd_map)\nthe other jobs   = show lists the explanations and how much of the code they cover, lines prints the numbered code, retext replaces the words of one explanation while keeping its names, undo removes the last one    (cmd_show, cmd_lines, cmd_retext, cmd_undo, part_line)\nafter a change   = sync matches the old lines of the code to the new ones, moves every line number of the map onto the new lines, then asks claude to repair only the words the change made wrong    (cmd_sync, old_lines_of, line_map, shift_map, shift_spans, check_sync)",
+      "parts": [
+        {
+          "part": "the start",
+          "own_lines": [
+            [
+              421,
+              425
+            ],
+            [
+              844,
+              875
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "main",
+              "lines": [
+                [
+                  844,
+                  871
+                ]
+              ]
+            },
+            {
+              "name": "parse_within",
+              "lines": [
+                [
+                  421,
+                  425
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the blocks",
+          "own_lines": [
+            [
+              90,
+              229
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "block_spans",
+              "lines": [
+                [
+                  213,
+                  229
+                ]
+              ]
+            },
+            {
+              "name": "md_spans",
+              "lines": [
+                [
+                  90,
+                  116
+                ]
+              ]
+            },
+            {
+              "name": "html_spans",
+              "lines": [
+                [
+                  203,
+                  210
+                ]
+              ]
+            },
+            {
+              "name": "tag_spans",
+              "lines": [
+                [
+                  119,
+                  139
+                ]
+              ]
+            },
+            {
+              "name": "script_regions",
+              "lines": [
+                [
+                  164,
+                  178
+                ]
+              ]
+            },
+            {
+              "name": "js_spans",
+              "lines": [
+                [
+                  181,
+                  200
+                ]
+              ]
+            },
+            {
+              "name": "brace_delta",
+              "lines": [
+                [
+                  142,
+                  161
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the map so far",
+          "own_lines": [
+            [
+              415,
+              418
+            ],
+            [
+              516,
+              520
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "load_map",
+              "lines": [
+                [
+                  415,
+                  418
+                ]
+              ]
+            },
+            {
+              "name": "load_existing",
+              "lines": [
+                [
+                  516,
+                  520
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the ask",
+          "own_lines": [
+            [
+              1,
+              8
+            ],
+            [
+              10,
+              54
+            ],
+            [
+              86,
+              87
+            ],
+            [
+              428,
+              456
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "numbered",
+              "lines": [
+                [
+                  86,
+                  87
+                ]
+              ]
+            },
+            {
+              "name": "cmd_map",
+              "lines": [
+                [
+                  428,
+                  506
+                ]
+              ]
+            }
+          ],
+          "constant_lines": [
+            {
+              "name": "PROMPT",
+              "lines": [
+                [
+                  10,
+                  54
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "part": "the answer",
+          "own_lines": [
+            [
+              232,
+              245
+            ],
+            [
+              261,
+              305
+            ],
+            [
+              308,
+              391
+            ],
+            [
+              406,
+              412
+            ],
+            [
+              457,
+              482
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "ask_claude",
+              "lines": [
+                [
+                  406,
+                  412
+                ]
+              ]
+            },
+            {
+              "name": "check_entry",
+              "lines": [
+                [
+                  308,
+                  391
+                ]
+              ]
+            },
+            {
+              "name": "check_spans",
+              "lines": [
+                [
+                  261,
+                  270
+                ]
+              ]
+            },
+            {
+              "name": "part_chunk",
+              "lines": [
+                [
+                  295,
+                  305
+                ]
+              ]
+            },
+            {
+              "name": "chunks_of",
+              "lines": [
+                [
+                  280,
+                  292
+                ]
+              ]
+            },
+            {
+              "name": "head_token",
+              "lines": [
+                [
+                  273,
+                  277
+                ]
+              ]
+            },
+            {
+              "name": "part_lines",
+              "lines": [
+                [
+                  239,
+                  245
+                ]
+              ]
+            },
+            {
+              "name": "expand",
+              "lines": [
+                [
+                  232,
+                  236
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the writing",
+          "own_lines": [
+            [
+              248,
+              258
+            ],
+            [
+              394,
+              403
+            ],
+            [
+              483,
+              506
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "recompute",
+              "lines": [
+                [
+                  394,
+                  403
+                ]
+              ]
+            },
+            {
+              "name": "fmt",
+              "lines": [
+                [
+                  248,
+                  258
+                ]
+              ]
+            },
+            {
+              "name": "cmd_map",
+              "lines": [
+                [
+                  428,
+                  506
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the other jobs",
+          "own_lines": [
+            [
+              509,
+              513
+            ],
+            [
+              523,
+              604
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "cmd_show",
+              "lines": [
+                [
+                  581,
+                  599
+                ]
+              ]
+            },
+            {
+              "name": "cmd_lines",
+              "lines": [
+                [
+                  602,
+                  604
+                ]
+              ]
+            },
+            {
+              "name": "cmd_retext",
+              "lines": [
+                [
+                  523,
+                  550
+                ]
+              ]
+            },
+            {
+              "name": "cmd_undo",
+              "lines": [
+                [
+                  553,
+                  578
+                ]
+              ]
+            },
+            {
+              "name": "part_line",
+              "lines": [
+                [
+                  509,
+                  513
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "after a change",
+          "own_lines": [
+            [
+              57,
+              83
+            ],
+            [
+              607,
+              841
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "cmd_sync",
+              "lines": [
+                [
+                  755,
+                  841
+                ]
+              ]
+            },
+            {
+              "name": "old_lines_of",
+              "lines": [
+                [
+                  607,
+                  615
+                ]
+              ]
+            },
+            {
+              "name": "line_map",
+              "lines": [
+                [
+                  618,
+                  633
+                ]
+              ]
+            },
+            {
+              "name": "shift_map",
+              "lines": [
+                [
+                  659,
+                  672
+                ]
+              ]
+            },
+            {
+              "name": "shift_spans",
+              "lines": [
+                [
+                  636,
+                  656
+                ]
+              ]
+            },
+            {
+              "name": "check_sync",
+              "lines": [
+                [
+                  675,
+                  752
+                ]
+              ]
+            }
+          ],
+          "constant_lines": [
+            {
+              "name": "SYNC_PROMPT",
+              "lines": [
+                [
+                  57,
+                  83
+                ]
+              ]
+            }
+          ]
         }
       ]
     }
@@ -841,77 +1776,87 @@
       31,
       33,
       44,
-      54,
       55,
-      57,
-      59,
-      61,
-      63,
-      65,
-      67,
-      69,
-      76,
-      78,
-      83,
+      56,
+      58,
+      60,
+      62,
+      64,
+      66,
+      68,
+      70,
+      77,
+      79,
       84,
-      87,
+      85,
       88,
-      116,
+      89,
       117,
-      133,
-      134,
+      118,
       140,
       141,
-      149,
-      150,
       162,
       163,
-      174,
-      175,
-      181,
-      182,
-      196,
-      197,
-      209,
-      210,
-      282,
-      283,
+      179,
+      180,
+      201,
+      202,
+      211,
+      212,
+      230,
+      231,
+      237,
+      238,
+      246,
+      247,
+      259,
+      260,
+      271,
+      272,
+      278,
+      279,
+      293,
       294,
-      295,
-      303,
-      304,
-      309,
-      310,
-      316,
-      317,
-      387,
-      388,
-      394,
-      395,
-      401,
-      402,
-      431,
-      432,
-      454,
-      455,
-      473,
-      474,
-      478,
-      479,
-      489,
-      490,
+      306,
+      307,
+      392,
+      393,
+      404,
+      405,
+      413,
+      414,
+      419,
+      420,
+      426,
+      427,
       507,
       508,
-      530,
-      531,
-      546,
-      547,
-      626,
-      627,
-      715,
-      716,
-      744,
-      745
+      514,
+      515,
+      521,
+      522,
+      551,
+      552,
+      579,
+      580,
+      600,
+      601,
+      605,
+      606,
+      616,
+      617,
+      634,
+      635,
+      657,
+      658,
+      673,
+      674,
+      753,
+      754,
+      842,
+      843,
+      872,
+      873
     ]
   }
 }
