@@ -1,1 +1,1 @@
-{"projects": [{"name": "decompiler", "file": "dmap.py"}, {"name": "decompile_v14", "file": "decompile.py"}, {"name": "deploy", "file": "deploy.py"}]}
+{"projects": [{"name": "decompiler", "files": ["dmap.py", "SKILL.md"]}, {"name": "decompile_v14", "file": "decompile.py"}, {"name": "deploy", "file": "deploy.py"}]}

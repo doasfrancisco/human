@@ -2,6 +2,7 @@ import argparse
 import ast
 import difflib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -85,7 +86,38 @@ def numbered(lines):
     return "\n".join(f"{i:4} {l}" for i, l in enumerate(lines, 1))
 
 
+def md_spans(path, lines):
+    spans = {}
+    stack = []
+    fence = None
+    for i, l in enumerate(lines, 1):
+        t = l.strip()
+        if fence:
+            if t.startswith(fence):
+                fence = None
+            continue
+        if t.startswith("```") or t.startswith("~~~"):
+            fence = t[:3]
+            continue
+        m = re.match(r"(#{1,6})\s+(.+?)\s*#*\s*$", l)
+        if not m:
+            continue
+        level, name = len(m.group(1)), m.group(2)
+        while stack and stack[-1][0] >= level:
+            lv, nm, st = stack.pop()
+            spans[nm] = [st, i - 1]
+        if name in spans or any(nm == name for lv, nm, st in stack):
+            sys.exit(f"duplicate heading {name!r} in {path.name}; "
+                     f"headings must be unique to serve as block names")
+        stack.append((level, name, i))
+    for lv, nm, st in stack:
+        spans[nm] = [st, len(lines)]
+    return spans
+
+
 def block_spans(path, lines):
+    if path.suffix == ".md":
+        return md_spans(path, lines)
     if path.suffix != ".py":
         return {}
     try:

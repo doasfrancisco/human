@@ -57,6 +57,8 @@ Each question and its answer stay on one line.
 
 **The format is always the flow shape** for code, even when the user says "explain simpler" — answer with a simpler flow, not with prose. One short read-me line under the flow is fine; paragraphs are not. Prose is right only for questions about the system itself ("what is a part, why do we have parts"), not about code.
 
+**A markdown file.** The blocks of a `.md` file are its headings — dmap reads their spans the way it reads a `def`'s. The grammar shifts one level up: a section is the analog of a function, and a rule is the analog of a step inside a zoom. The first flow of a document is one line per section — a short label on the left, the section's one job after it, the real heading in parentheses at the end of the line. A zoom expands one section into its rules, one line per rule. For a document the label ends with a comma in place of the equals sign; the user validated that form. Every label must stay unique across the whole text — when two sections want the same natural label ("the run"), give each a distinct one. The flow stays one text: blank lines group it; never split it into pieces with markdown headers between them.
+
 Run `dmap lines <code_file>` to see the file with line numbers.
 
 **Reread before you show.** Read each line of the finished flow as a stranger who has not seen the code: does the line use a word the flow has not defined yet? Does a line use a programming word (parser, argument, table)? Does a line only say "what" where the reader needs "for what"? Does a line name a data structure where the reader needs the action? Fix those lines before you show the flow.

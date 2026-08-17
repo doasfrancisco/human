@@ -1,0 +1,366 @@
+{
+  "code_file": "SKILL.md",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "SKILL.md",
+      "block_lines": [
+        [
+          1,
+          126
+        ]
+      ],
+      "text": "the opening,    four lines give the guide's name and when to open it    (decompile-claude)\nthe map,        the record this guide builds: it ties each sentence of an explanation to the exact file lines the sentence talks about    (decompile-claude)\n                one helper tool, named dmap, is the only thing that writes it - it only grows, and what is in it never changes\npointing,       the person points by pasting the words themselves - the assistant finds what the pasted words belong to and works on that    (How the user points at things)\n\nthe shape,      one line per step, simple words, the real name from the file at the end in parentheses    (1. Explain)\nthe first,      the first explanation walks the whole file - every later one is a closer look under one line of an earlier one    (1. Explain)\nthe reader,     a person who does not read code - define every strange word before it appears, or say what the thing does instead    (1. Explain)\nthen stop,      show the explanation and wait - pin nothing until the person gives the word    (1. Explain)\n\nthe map run,    when the person says \"map it\", pass the text to dmap word for word - dmap finds the lines each sentence covers    (2. Map)\nthe result,     one new explanation at the end of the map, and a short report of what changed    (2. Map)\n\nrewrite,        an approved rewording replaces the text where it stands - it must keep every step name and every line a closer look hangs on    (3. Rewrite and rollback)\nrollback,       \"undo\" removes the newest explanation - one with closer looks under it cannot go before they do    (3. Rewrite and rollback)\n\nthe sync run,   one dmap run slides every pin through the change, then rewrites only the sentences that went stale    (4. Sync after a code change)\nthe warning,    watch for a new file line that landed under no step - the numbers alone cannot see it, the warning can    (4. Sync after a code change)\n\nafter a map,    tell what is new, how much of the file is explained, and what is not explained yet - then offer the next explanation    (5. Report)\nafter the rest, tell what changed and confirm with dmap's own display    (5. Report)",
+      "parts": [
+        {
+          "part": "the opening",
+          "own_lines": [
+            [
+              1,
+              5
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "the map",
+          "own_lines": [
+            [
+              6,
+              9
+            ]
+          ],
+          "callee_lines": [],
+          "constant_lines": []
+        },
+        {
+          "part": "pointing",
+          "own_lines": [
+            [
+              10,
+              13
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "How the user points at things",
+              "lines": [
+                [
+                  10,
+                  13
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the shape",
+          "own_lines": [
+            [
+              14,
+              24
+            ],
+            [
+              29,
+              63
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "1. Explain",
+              "lines": [
+                [
+                  14,
+                  67
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the first",
+          "own_lines": [
+            [
+              25,
+              26
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "1. Explain",
+              "lines": [
+                [
+                  14,
+                  67
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the reader",
+          "own_lines": [
+            [
+              27,
+              28
+            ],
+            [
+              64,
+              65
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "1. Explain",
+              "lines": [
+                [
+                  14,
+                  67
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "then stop",
+          "own_lines": [
+            [
+              66,
+              67
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "1. Explain",
+              "lines": [
+                [
+                  14,
+                  67
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the map run",
+          "own_lines": [
+            [
+              68,
+              81
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "2. Map",
+              "lines": [
+                [
+                  68,
+                  83
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the result",
+          "own_lines": [
+            [
+              82,
+              83
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "2. Map",
+              "lines": [
+                [
+                  68,
+                  83
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "rewrite",
+          "own_lines": [
+            [
+              84,
+              95
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "3. Rewrite and rollback",
+              "lines": [
+                [
+                  84,
+                  103
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "rollback",
+          "own_lines": [
+            [
+              96,
+              103
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "3. Rewrite and rollback",
+              "lines": [
+                [
+                  84,
+                  103
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the sync run",
+          "own_lines": [
+            [
+              104,
+              114
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "4. Sync after a code change",
+              "lines": [
+                [
+                  104,
+                  116
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "the warning",
+          "own_lines": [
+            [
+              115,
+              116
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "4. Sync after a code change",
+              "lines": [
+                [
+                  104,
+                  116
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "after a map",
+          "own_lines": [
+            [
+              117,
+              124
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "5. Report",
+              "lines": [
+                [
+                  117,
+                  126
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        },
+        {
+          "part": "after the rest",
+          "own_lines": [
+            [
+              125,
+              126
+            ]
+          ],
+          "callee_lines": [
+            {
+              "name": "5. Report",
+              "lines": [
+                [
+                  117,
+                  126
+                ]
+              ]
+            }
+          ],
+          "constant_lines": []
+        }
+      ]
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": [
+      5,
+      7,
+      9,
+      11,
+      13,
+      15,
+      17,
+      20,
+      24,
+      26,
+      28,
+      30,
+      45,
+      47,
+      53,
+      55,
+      57,
+      59,
+      61,
+      63,
+      65,
+      67,
+      69,
+      71,
+      77,
+      83,
+      85,
+      87,
+      93,
+      95,
+      97,
+      101,
+      103,
+      105,
+      107,
+      111,
+      116,
+      118,
+      120,
+      125
+    ]
+  }
+}
