@@ -8,3 +8,14 @@
 - (i'm not sure yet) but the internal node mapping of the text to their corresponding code. it shouldn't be complex if i don't allow editing the text through the web. and if the AI or the human modifies the text, the compiler is capable of restructuring properly.
 - when the compiler can throw error. example: i copy and paste the parent's text into the child text. what happens there? does the compiler throw or does it try to create code about it?
 - what rules does the compiler create or form based on the language used by the human?
+
+5. this link: https://xavierleroy.org/control-structures/book/index.html
+
+6. https://www.cs.unibo.it/~martini/PP/bohm-jac.pdf
+
+7. Böhm and Jacopini, 1966 theorem
+https://en.wikipedia.org/wiki/Structured_program_theorem
+
+8. https://www.researchgate.net/publication/225114059_The_Bohm-Jacopini_Theorem_Is_False_Propositionally
+
+9. https://fx.sh/ unix like agent

@@ -7,1757 +7,149 @@
       "block_lines": [
         [
           1,
-          875
+          775
         ]
       ],
-      "text": "imports         = argparse, ast, difflib, json, re, subprocess, sys, Path\n\nPROMPT          = the ask text for one mapping: the numbered code, the table of blocks, the entries already mapped, the new explanation text, and the shape of the JSON answer to return\n\nSYNC_PROMPT     = the ask text for one sync: the diff of the change, the changed and the inserted lines, the candidate entries with their texts, and the shape of the JSON answer to return\n\nnumbered        = the code with a line number in front of each line    (numbered)\nmd_spans        = each heading of a markdown file with its start and end line, the headings inside a code fence passed over    (md_spans)\ntag_spans       = each tag of an html file that appears one time only, with its start and end line    (tag_spans)\nbrace_delta     = the braces opened minus the braces closed on one line, the text in quotes and after // passed over    (brace_delta)\nscript_regions  = the start and end line of each script part of an html file    (script_regions)\njs_spans        = each function inside the script parts with its start and end line, found from the brace count    (js_spans)\nhtml_spans      = each tag and each function of an html file with its start and end line    (html_spans)\nblock_spans     = each def and class of the file with its start and end line, read from the syntax tree, or the headings when the file is markdown, or the tags and the functions when the file is html    (block_spans)\nexpand          = a list of start-end line pairs opened into a set of single line numbers    (expand)\npart_lines      = every line one part of an explanation touches: its own lines plus the blocks it calls and the constants it uses    (part_lines)\nfmt             = line numbers pressed into short ranges like 3-7, 9    (fmt)\ncheck_spans     = the gate on a list of line ranges: each item a start-end pair of whole numbers inside the file    (check_spans)\nhead_token      = the first word of a text line, lowercased, with a leading ! dropped    (head_token)\nchunks_of       = an explanation text cut into chunks: one left-margin line with the lines indented under it    (chunks_of)\npart_chunk      = the lines of a parent text that belong to one part, by position when the counts agree, else by the first word    (part_chunk)\ncheck_entry     = the gate on the whole answer from claude: the block name, its lines, each part, the link to the parent part, and the entry a plainer flow covers    (check_entry)\nrecompute       = the fresh coverage: the code lines and the blank lines no entry touches yet    (recompute)\nask_claude      = one claude -p run, the JSON pulled out of the answer    (ask_claude)\nload_map        = the map file read from disk, or an empty map when none exists yet    (load_map)\nparse_within    = the --within option split into an entry id and a part name    (parse_within)\ncmd_map         = the map command: build the ask, ask claude up to --tries times, gate each answer, append one entry, write the map file    (cmd_map)\npart_line       = true when a text line starts with a part name and the name ends there    (part_line)\nload_existing   = the map file of one code file read from disk, or a stop when no map file exists    (load_existing)\ncmd_retext      = the retext command: the text of one entry replaced, its part names and the lines its child zooms hang on kept    (cmd_retext)\ncmd_undo        = the undo command: the last entry removed when no child hangs on it and no plainer flow covers it, the coverage counted again    (cmd_undo)\ncmd_show        = the show command: one line per entry plus the coverage    (cmd_show)\ncmd_lines       = the lines command: the numbered code printed    (cmd_lines)\nold_lines_of    = the old version of the code file, from --old or from git HEAD    (old_lines_of)\nline_map        = the old line numbers matched to the new ones, plus the changed old lines and the inserted new lines    (line_map)\nshift_spans     = one list of line ranges moved into the new numbering, with a note when the change touches the range    (shift_spans)\nshift_map       = every span of every entry moved into the new numbering, and the entries the change touches    (shift_map)\ncheck_sync      = the gate on the sync answer from claude: the stale lines, the part edits, the new texts, and the lines the child zooms hang on    (check_sync)\ncmd_sync        = the sync command: renumber every span, ask claude about the words up to --tries times, gate each answer, write the map file    (cmd_sync)\nmain            = the start of the tool: it looks at which command the person typed - map, retext, undo, show, lines, or sync - and starts that one    (main)\n\nentry point     = run main() when the file starts as a program    (main)",
-      "parts": [
+      "text": "\u25cf  you ask for something                                       ([main](main))\n  \u2502     You type:   dmap map dmap.py --text flow.txt\n  \u2502     The tool keeps three things: the command \"map\", the path\n  \u2502     to the code file dmap.py, and the path to flow.txt \u2014\n  \u2502     the file where the abstraction sits.\n  \u2502\n  \u25cf  the tool finds the pieces of the file               ([block_spans](block_spans))\n  \u2502     It reads the file top to bottom and notes every named piece.\n  \u2502     A piece is a part of the file that carries its own name,\n  \u2502     the way a chapter of a book carries a title.\n  \u2502     For each piece the tool notes where it starts and where it stops.\n  \u2502     It does this for one reason only: so the abstraction later\n  \u2502     must point at a real piece, and cannot point anywhere it likes.\n  \u2502\n  \u25cf  the tool picks up what is abstracted already           ([load_map](load_map))\n  \u2502     Beside the code file sits a second file. It holds every\n  \u2502     abstraction written so far. On the first run it is empty.\n  \u2502\n  \u25cf  the tool checks every pin in the abstraction      ([build_anchors](build_anchors))\n  \u2502     A pin ties a few words of the abstraction to one piece\n  \u2502     of the code file. It looks like this:\n  \u2502\n  \u2502         [the start](main)\n  \u2502\n  \u2502     the words \"the start\", pinned to the piece called main.\n  \u2502     A pin can also point into an earlier abstraction instead.\n  \u2502     The tool takes the pins one by one and checks three things:\n  \u2502         the piece it names is really in the file\n  \u2502         its words appear only once in the abstraction\n  \u2502         the earlier abstraction it points into really exists\n  \u2502     One bad pin stops the run, and the tool says which check failed.\n  \u2502     Nobody is asked and nothing is guessed. The run is instant.\n  \u2502\n  \u25cf  the second file grows                                  ([cmd_map](cmd_map))\n        Your abstraction is added to the others, tied to specific\n        lines on the file. The tool counts the lines that still\n        have no abstraction, and saves everything.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  when your code changes                                   ([cmd_sync](cmd_sync))\n     The old abstractions now point at the wrong lines, because the\n     lines moved. The tool holds the old file next to the new one,\n     sees where each line went, and carries every abstraction and\n     every pin to its new place. When the change touches no\n     abstraction, it stops right there. Otherwise it asks claude for\n     one thing only: mend the words the change made untrue.\n\n       claude answers \u2500\u2500\u25b6 the tool checks every pin \u2500\u2500\u25b6 kept\n                               \u2502\n                          one is wrong\n                               \u2570\u2500\u2500\u25b6 ask again, and say which\n                                    rule broke   (four tries)\n\n  when you reword one abstraction under another        ([repair_stale](repair_stale))\n     One abstraction can stand on another: a simpler telling that\n     points into a more detailed one. When you reword the detailed\n     one, the tool marks the simpler one stale and waits.\n     On your word, claude reads the old words and the new words,\n     and mends only the sentences that went wrong.\n\n  other things you can ask for                             ([cmd_show](cmd_show))\n     show     every abstraction, a warning for each pin that no\n              longer fits, and how much of the file is left\n     lines    the file with a number in front of every line\n     retext   new words for one abstraction\n     undo     take the last abstraction back",
+      "anchors": [
         {
-          "part": "imports",
-          "own_lines": [
+          "words": "main",
+          "block": "main",
+          "lines": [
             [
-              1,
-              8
+              747,
+              771
             ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
+          ]
         },
         {
-          "part": "PROMPT",
-          "own_lines": [
+          "words": "block_spans",
+          "block": "block_spans",
+          "lines": [
             [
-              10,
-              54
+              200,
+              216
             ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
+          ]
         },
         {
-          "part": "SYNC_PROMPT",
-          "own_lines": [
+          "words": "load_map",
+          "block": "load_map",
+          "lines": [
             [
-              57,
-              83
+              334,
+              339
             ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
+          ]
         },
         {
-          "part": "numbered",
-          "own_lines": [
+          "words": "build_anchors",
+          "block": "build_anchors",
+          "lines": [
             [
-              86,
-              87
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "md_spans",
-          "own_lines": [
-            [
-              90,
-              116
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "tag_spans",
-          "own_lines": [
-            [
-              119,
-              139
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "brace_delta",
-          "own_lines": [
-            [
-              142,
-              161
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "script_regions",
-          "own_lines": [
-            [
-              164,
-              178
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "js_spans",
-          "own_lines": [
-            [
-              181,
-              200
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "brace_delta",
-              "lines": [
-                [
-                  142,
-                  161
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "html_spans",
-          "own_lines": [
-            [
-              203,
-              210
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "tag_spans",
-              "lines": [
-                [
-                  119,
-                  139
-                ]
-              ]
-            },
-            {
-              "name": "js_spans",
-              "lines": [
-                [
-                  181,
-                  200
-                ]
-              ]
-            },
-            {
-              "name": "script_regions",
-              "lines": [
-                [
-                  164,
-                  178
-                ]
-              ]
-            },
-            {
-              "name": "brace_delta",
-              "lines": [
-                [
-                  142,
-                  161
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "block_spans",
-          "own_lines": [
-            [
-              213,
-              229
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "md_spans",
-              "lines": [
-                [
-                  90,
-                  116
-                ]
-              ]
-            },
-            {
-              "name": "html_spans",
-              "lines": [
-                [
-                  203,
-                  210
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "expand",
-          "own_lines": [
-            [
-              232,
-              236
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "part_lines",
-          "own_lines": [
-            [
-              239,
-              245
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  232,
-                  236
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "fmt",
-          "own_lines": [
-            [
-              248,
-              258
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "check_spans",
-          "own_lines": [
-            [
-              261,
+              246,
               270
             ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
+          ]
         },
         {
-          "part": "head_token",
-          "own_lines": [
+          "words": "the start",
+          "block": "main",
+          "lines": [
             [
-              273,
-              277
+              747,
+              771
             ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
+          ]
         },
         {
-          "part": "chunks_of",
-          "own_lines": [
+          "words": "cmd_map",
+          "block": "cmd_map",
+          "lines": [
             [
-              280,
-              292
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "part_chunk",
-          "own_lines": [
-            [
-              295,
-              305
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "chunks_of",
-              "lines": [
-                [
-                  280,
-                  292
-                ]
-              ]
-            },
-            {
-              "name": "head_token",
-              "lines": [
-                [
-                  273,
-                  277
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "check_entry",
-          "own_lines": [
-            [
-              308,
-              391
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "check_spans",
-              "lines": [
-                [
-                  261,
-                  270
-                ]
-              ]
-            },
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  232,
-                  236
-                ]
-              ]
-            },
-            {
-              "name": "fmt",
-              "lines": [
-                [
-                  248,
-                  258
-                ]
-              ]
-            },
-            {
-              "name": "part_lines",
-              "lines": [
-                [
-                  239,
-                  245
-                ]
-              ]
-            },
-            {
-              "name": "part_chunk",
-              "lines": [
-                [
-                  295,
-                  305
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "recompute",
-          "own_lines": [
-            [
-              394,
-              403
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  232,
-                  236
-                ]
-              ]
-            },
-            {
-              "name": "part_lines",
-              "lines": [
-                [
-                  239,
-                  245
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "ask_claude",
-          "own_lines": [
-            [
-              406,
+              389,
               412
             ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "load_map",
-          "own_lines": [
-            [
-              415,
-              418
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "parse_within",
-          "own_lines": [
-            [
-              421,
-              425
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "cmd_map",
-          "own_lines": [
-            [
-              428,
-              506
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "block_spans",
-              "lines": [
-                [
-                  213,
-                  229
-                ]
-              ]
-            },
-            {
-              "name": "load_map",
-              "lines": [
-                [
-                  415,
-                  418
-                ]
-              ]
-            },
-            {
-              "name": "parse_within",
-              "lines": [
-                [
-                  421,
-                  425
-                ]
-              ]
-            },
-            {
-              "name": "numbered",
-              "lines": [
-                [
-                  86,
-                  87
-                ]
-              ]
-            },
-            {
-              "name": "ask_claude",
-              "lines": [
-                [
-                  406,
-                  412
-                ]
-              ]
-            },
-            {
-              "name": "check_entry",
-              "lines": [
-                [
-                  308,
-                  391
-                ]
-              ]
-            },
-            {
-              "name": "recompute",
-              "lines": [
-                [
-                  394,
-                  403
-                ]
-              ]
-            },
-            {
-              "name": "fmt",
-              "lines": [
-                [
-                  248,
-                  258
-                ]
-              ]
-            },
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  232,
-                  236
-                ]
-              ]
-            }
-          ],
-          "constant_lines": [
-            {
-              "name": "PROMPT",
-              "lines": [
-                [
-                  10,
-                  54
-                ]
-              ]
-            }
           ]
         },
         {
-          "part": "part_line",
-          "own_lines": [
+          "words": "cmd_sync",
+          "block": "cmd_sync",
+          "lines": [
             [
-              509,
-              513
+              662,
+              744
             ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "load_existing",
-          "own_lines": [
-            [
-              516,
-              520
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "cmd_retext",
-          "own_lines": [
-            [
-              523,
-              550
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "load_existing",
-              "lines": [
-                [
-                  516,
-                  520
-                ]
-              ]
-            },
-            {
-              "name": "part_line",
-              "lines": [
-                [
-                  509,
-                  513
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "cmd_undo",
-          "own_lines": [
-            [
-              553,
-              578
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "load_existing",
-              "lines": [
-                [
-                  516,
-                  520
-                ]
-              ]
-            },
-            {
-              "name": "recompute",
-              "lines": [
-                [
-                  394,
-                  403
-                ]
-              ]
-            },
-            {
-              "name": "fmt",
-              "lines": [
-                [
-                  248,
-                  258
-                ]
-              ]
-            },
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  232,
-                  236
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "cmd_show",
-          "own_lines": [
-            [
-              581,
-              599
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "recompute",
-              "lines": [
-                [
-                  394,
-                  403
-                ]
-              ]
-            },
-            {
-              "name": "fmt",
-              "lines": [
-                [
-                  248,
-                  258
-                ]
-              ]
-            },
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  232,
-                  236
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "cmd_lines",
-          "own_lines": [
-            [
-              602,
-              604
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "numbered",
-              "lines": [
-                [
-                  86,
-                  87
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "old_lines_of",
-          "own_lines": [
-            [
-              607,
-              615
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "line_map",
-          "own_lines": [
-            [
-              618,
-              633
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "shift_spans",
-          "own_lines": [
-            [
-              636,
-              656
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "to_new",
-              "lines": [
-                [
-                  637,
-                  648
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "shift_map",
-          "own_lines": [
-            [
-              659,
-              672
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "shift_spans",
-              "lines": [
-                [
-                  636,
-                  656
-                ]
-              ]
-            },
-            {
-              "name": "to_new",
-              "lines": [
-                [
-                  637,
-                  648
-                ]
-              ]
-            },
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  232,
-                  236
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "check_sync",
-          "own_lines": [
-            [
-              675,
-              752
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  232,
-                  236
-                ]
-              ]
-            },
-            {
-              "name": "check_spans",
-              "lines": [
-                [
-                  261,
-                  270
-                ]
-              ]
-            },
-            {
-              "name": "fmt",
-              "lines": [
-                [
-                  248,
-                  258
-                ]
-              ]
-            },
-            {
-              "name": "part_line",
-              "lines": [
-                [
-                  509,
-                  513
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "cmd_sync",
-          "own_lines": [
-            [
-              755,
-              841
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "load_existing",
-              "lines": [
-                [
-                  516,
-                  520
-                ]
-              ]
-            },
-            {
-              "name": "old_lines_of",
-              "lines": [
-                [
-                  607,
-                  615
-                ]
-              ]
-            },
-            {
-              "name": "line_map",
-              "lines": [
-                [
-                  618,
-                  633
-                ]
-              ]
-            },
-            {
-              "name": "shift_map",
-              "lines": [
-                [
-                  659,
-                  672
-                ]
-              ]
-            },
-            {
-              "name": "ask_claude",
-              "lines": [
-                [
-                  406,
-                  412
-                ]
-              ]
-            },
-            {
-              "name": "check_sync",
-              "lines": [
-                [
-                  675,
-                  752
-                ]
-              ]
-            },
-            {
-              "name": "recompute",
-              "lines": [
-                [
-                  394,
-                  403
-                ]
-              ]
-            },
-            {
-              "name": "fmt",
-              "lines": [
-                [
-                  248,
-                  258
-                ]
-              ]
-            },
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  232,
-                  236
-                ]
-              ]
-            },
-            {
-              "name": "part_lines",
-              "lines": [
-                [
-                  239,
-                  245
-                ]
-              ]
-            }
-          ],
-          "constant_lines": [
-            {
-              "name": "SYNC_PROMPT",
-              "lines": [
-                [
-                  57,
-                  83
-                ]
-              ]
-            }
           ]
         },
         {
-          "part": "main",
-          "own_lines": [
+          "words": "repair_stale",
+          "block": "repair_stale",
+          "lines": [
             [
-              844,
-              871
+              603,
+              659
             ]
-          ],
-          "callee_lines": [
-            {
-              "name": "cmd_map",
-              "lines": [
-                [
-                  428,
-                  506
-                ]
-              ]
-            },
-            {
-              "name": "cmd_retext",
-              "lines": [
-                [
-                  523,
-                  550
-                ]
-              ]
-            },
-            {
-              "name": "cmd_undo",
-              "lines": [
-                [
-                  553,
-                  578
-                ]
-              ]
-            },
-            {
-              "name": "cmd_show",
-              "lines": [
-                [
-                  581,
-                  599
-                ]
-              ]
-            },
-            {
-              "name": "cmd_lines",
-              "lines": [
-                [
-                  602,
-                  604
-                ]
-              ]
-            },
-            {
-              "name": "cmd_sync",
-              "lines": [
-                [
-                  755,
-                  841
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
+          ]
         },
         {
-          "part": "entry point",
-          "own_lines": [
+          "words": "cmd_show",
+          "block": "cmd_show",
+          "lines": [
             [
-              874,
-              875
+              465,
+              505
             ]
-          ],
-          "callee_lines": [
-            {
-              "name": "main",
-              "lines": [
-                [
-                  844,
-                  871
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
+          ]
         }
       ]
     },
     {
       "id": 2,
-      "block": "main",
+      "block": "cmd_map",
       "block_lines": [
         [
-          844,
-          871
+          389,
+          412
         ]
       ],
-      "within": {
-        "explanation": 1,
-        "part": "main",
-        "instruction": "main            = the start of the tool: it looks at which command the person typed - map, retext, undo, show, lines, or sync - and starts that one    (main)"
-      },
-      "text": "ap      = the reader of what a person types after the word \"dmap\" - it exists only so the six commands below can be added to it\nsub     = the rule that the person must type one command name: map, retext, undo, show, lines, or sync\nm       = the map command and what it accepts: the code file, --block, --within, --over, --at, --text, and --tries, 8 by default    (cmd_map)\nr       = the retext command and what it accepts: the code file, the entry id, and --text    (cmd_retext)\nu       = the undo command, it accepts one thing: the code file    (cmd_undo)\ns       = the show command, it accepts one thing: the code file    (cmd_show)\nl       = the lines command, it accepts one thing: the code file    (cmd_lines)\ny       = the sync command and what it accepts: the code file, --old, and --tries, 4 by default    (cmd_sync)\na       = the typed command after ap reads it\n            the person types, for example: dmap show notes.py\n            a then remembers two things: the command name \"show\", and the code file notes.py\nrun     = the step that starts the right work for the command name inside a\n            \"show\" starts (cmd_show), \"map\" starts (cmd_map), and so on\n            the started work receives a, so it knows the code file and the options",
-      "parts": [
+      "text": "The tool numbers the abstractions.\n  The first one it ever saved is number 1, the next is\n  number 2, and so on. The new one gets the next number.\n\n  The number is how you point at it later.\n  You say \"reword number 3\" or \"take number 3 back\",\n  and the tool knows which one you mean.\n  A simpler abstraction points into number 3 the same way.\n\n  With the abstraction, the tool saves three things:\n      the words, exactly as written\n      the pins inside those words\n      for each pin, the lines of code it points at\n\n  Then the tool reads the whole file once more and counts\n  the lines of code that no abstraction points at yet.\n  It writes all of this into the second file \u2014 the record\n  that sits beside your code file; for dmap.py it is named\n  explanation_dmap.py.json. The code file itself is never\n  touched. Then the tool tells you what it saved and how\n  many lines are still bare.",
+      "anchors": []
+    },
+    {
+      "id": 3,
+      "block": "block_spans",
+      "block_lines": [
+        [
+          200,
+          216
+        ]
+      ],
+      "text": "The tool first looks at the end of the file's name,\n  because each kind of file names its pieces its own way.\n\n  A code file, ending in .py:\n      a piece is a part of the code with a name of its own \u2014\n      a function definition, or a class.\n      The tool does not read the code by itself. It hands the\n      file to a library: a ready-made helper that ships with\n      the language. The library looks at the code without\n      running it, and it knows the grammar of the language,\n      so it finds every function and every class, where each\n      one starts, where it ends, and what sits inside what.\n      That is why the pieces are exact, never guessed.\n      A file the library cannot read gives no pieces.\n\n  A document, ending in .md:\n      a piece is a section under a heading.\n      It runs until the next heading of its rank or higher.\n      A heading inside a [fenced example](md_spans) does not count.\n      Two headings with the same words are refused,\n      because a name must hold one thing only.\n\n  A web page, ending in .html:\n      the pieces come from two places.\n      A tag that appears one time only \u2014 head, style, body \u2014\n      is a piece, from where it opens to where it closes.\n      And every named function inside a script is a piece,\n      the nested ones too, found by counting the braces\n      that open and close around them.\n      A function that carries the name of a tag is refused.\n\n  Any other kind of file gives no pieces at all.",
+      "anchors": [
         {
-          "part": "ap",
-          "own_lines": [
+          "words": "fenced example",
+          "block": "md_spans",
+          "lines": [
             [
-              845,
-              845
+              77,
+              103
             ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "sub",
-          "own_lines": [
-            [
-              846,
-              846
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "m",
-          "own_lines": [
-            [
-              847,
-              854
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "cmd_map",
-              "lines": [
-                [
-                  428,
-                  506
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "r",
-          "own_lines": [
-            [
-              855,
-              858
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "cmd_retext",
-              "lines": [
-                [
-                  523,
-                  550
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "u",
-          "own_lines": [
-            [
-              859,
-              860
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "cmd_undo",
-              "lines": [
-                [
-                  553,
-                  578
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "s",
-          "own_lines": [
-            [
-              861,
-              862
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "cmd_show",
-              "lines": [
-                [
-                  581,
-                  599
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "l",
-          "own_lines": [
-            [
-              863,
-              864
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "cmd_lines",
-              "lines": [
-                [
-                  602,
-                  604
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "y",
-          "own_lines": [
-            [
-              865,
-              868
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "cmd_sync",
-              "lines": [
-                [
-                  755,
-                  841
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "a",
-          "own_lines": [
-            [
-              869,
-              869
-            ]
-          ],
-          "callee_lines": [],
-          "constant_lines": []
-        },
-        {
-          "part": "run",
-          "own_lines": [
-            [
-              870,
-              871
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "cmd_map",
-              "lines": [
-                [
-                  428,
-                  506
-                ]
-              ]
-            },
-            {
-              "name": "cmd_retext",
-              "lines": [
-                [
-                  523,
-                  550
-                ]
-              ]
-            },
-            {
-              "name": "cmd_undo",
-              "lines": [
-                [
-                  553,
-                  578
-                ]
-              ]
-            },
-            {
-              "name": "cmd_show",
-              "lines": [
-                [
-                  581,
-                  599
-                ]
-              ]
-            },
-            {
-              "name": "cmd_lines",
-              "lines": [
-                [
-                  602,
-                  604
-                ]
-              ]
-            },
-            {
-              "name": "cmd_sync",
-              "lines": [
-                [
-                  755,
-                  841
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
+          ]
         }
       ]
     },
     {
-      "id": 3,
-      "block": "dmap.py",
+      "id": 4,
+      "block": "md_spans",
       "block_lines": [
         [
-          1,
-          875
+          77,
+          103
         ]
       ],
-      "over": 1,
-      "text": "the start        = the person types, for example: dmap map dmap.py - the tool keeps two things, the job name \"map\" and the code file dmap.py, and starts that job    (main, parse_within)\nthe blocks       = every block of the code with its first and last line - a named piece of a python file, a heading of a document, a tag or a named piece of a web page - they exist only so the answer can name a real block and point at real lines    (block_spans, md_spans, html_spans, tag_spans, script_regions, js_spans, brace_delta)\nthe map so far   = the explanations already written for this file, read from the file that sits beside the code, or an empty one when this is the first    (load_map, load_existing)\nthe ask          = the ask text for claude, built from all of that: the code with a number in front of every line, the blocks with their lines, the explanations already written, and the new text    (numbered, cmd_map)\nthe answer       = claude says which lines each name of the new text covers, and a gate reads that answer - the lines must sit inside the file and inside the block, every named block must be real, and the line the new text hangs on must be a real line of the parent - a broken rule goes back to claude with the rule named, up to eight times    (ask_claude, check_entry, check_spans, part_chunk, chunks_of, head_token, part_lines, expand)\nthe writing      = the new explanation added at the end, the code lines no explanation touches yet counted, the whole map written back to disk    (recompute, fmt, cmd_map)\nthe other jobs   = show lists the explanations and how much of the code they cover, lines prints the numbered code, retext replaces the words of one explanation while keeping its names, undo removes the last one    (cmd_show, cmd_lines, cmd_retext, cmd_undo, part_line)\nafter a change   = sync matches the old lines of the code to the new ones, moves every line number of the map onto the new lines, then asks claude to repair only the words the change made wrong    (cmd_sync, old_lines_of, line_map, shift_map, shift_spans, check_sync)",
-      "parts": [
-        {
-          "part": "the start",
-          "own_lines": [
-            [
-              421,
-              425
-            ],
-            [
-              844,
-              875
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "main",
-              "lines": [
-                [
-                  844,
-                  871
-                ]
-              ]
-            },
-            {
-              "name": "parse_within",
-              "lines": [
-                [
-                  421,
-                  425
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "the blocks",
-          "own_lines": [
-            [
-              90,
-              229
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "block_spans",
-              "lines": [
-                [
-                  213,
-                  229
-                ]
-              ]
-            },
-            {
-              "name": "md_spans",
-              "lines": [
-                [
-                  90,
-                  116
-                ]
-              ]
-            },
-            {
-              "name": "html_spans",
-              "lines": [
-                [
-                  203,
-                  210
-                ]
-              ]
-            },
-            {
-              "name": "tag_spans",
-              "lines": [
-                [
-                  119,
-                  139
-                ]
-              ]
-            },
-            {
-              "name": "script_regions",
-              "lines": [
-                [
-                  164,
-                  178
-                ]
-              ]
-            },
-            {
-              "name": "js_spans",
-              "lines": [
-                [
-                  181,
-                  200
-                ]
-              ]
-            },
-            {
-              "name": "brace_delta",
-              "lines": [
-                [
-                  142,
-                  161
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "the map so far",
-          "own_lines": [
-            [
-              415,
-              418
-            ],
-            [
-              516,
-              520
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "load_map",
-              "lines": [
-                [
-                  415,
-                  418
-                ]
-              ]
-            },
-            {
-              "name": "load_existing",
-              "lines": [
-                [
-                  516,
-                  520
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "the ask",
-          "own_lines": [
-            [
-              1,
-              8
-            ],
-            [
-              10,
-              54
-            ],
-            [
-              86,
-              87
-            ],
-            [
-              428,
-              456
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "numbered",
-              "lines": [
-                [
-                  86,
-                  87
-                ]
-              ]
-            },
-            {
-              "name": "cmd_map",
-              "lines": [
-                [
-                  428,
-                  506
-                ]
-              ]
-            }
-          ],
-          "constant_lines": [
-            {
-              "name": "PROMPT",
-              "lines": [
-                [
-                  10,
-                  54
-                ]
-              ]
-            }
-          ]
-        },
-        {
-          "part": "the answer",
-          "own_lines": [
-            [
-              232,
-              245
-            ],
-            [
-              261,
-              305
-            ],
-            [
-              308,
-              391
-            ],
-            [
-              406,
-              412
-            ],
-            [
-              457,
-              482
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "ask_claude",
-              "lines": [
-                [
-                  406,
-                  412
-                ]
-              ]
-            },
-            {
-              "name": "check_entry",
-              "lines": [
-                [
-                  308,
-                  391
-                ]
-              ]
-            },
-            {
-              "name": "check_spans",
-              "lines": [
-                [
-                  261,
-                  270
-                ]
-              ]
-            },
-            {
-              "name": "part_chunk",
-              "lines": [
-                [
-                  295,
-                  305
-                ]
-              ]
-            },
-            {
-              "name": "chunks_of",
-              "lines": [
-                [
-                  280,
-                  292
-                ]
-              ]
-            },
-            {
-              "name": "head_token",
-              "lines": [
-                [
-                  273,
-                  277
-                ]
-              ]
-            },
-            {
-              "name": "part_lines",
-              "lines": [
-                [
-                  239,
-                  245
-                ]
-              ]
-            },
-            {
-              "name": "expand",
-              "lines": [
-                [
-                  232,
-                  236
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "the writing",
-          "own_lines": [
-            [
-              248,
-              258
-            ],
-            [
-              394,
-              403
-            ],
-            [
-              483,
-              506
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "recompute",
-              "lines": [
-                [
-                  394,
-                  403
-                ]
-              ]
-            },
-            {
-              "name": "fmt",
-              "lines": [
-                [
-                  248,
-                  258
-                ]
-              ]
-            },
-            {
-              "name": "cmd_map",
-              "lines": [
-                [
-                  428,
-                  506
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "the other jobs",
-          "own_lines": [
-            [
-              509,
-              513
-            ],
-            [
-              523,
-              604
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "cmd_show",
-              "lines": [
-                [
-                  581,
-                  599
-                ]
-              ]
-            },
-            {
-              "name": "cmd_lines",
-              "lines": [
-                [
-                  602,
-                  604
-                ]
-              ]
-            },
-            {
-              "name": "cmd_retext",
-              "lines": [
-                [
-                  523,
-                  550
-                ]
-              ]
-            },
-            {
-              "name": "cmd_undo",
-              "lines": [
-                [
-                  553,
-                  578
-                ]
-              ]
-            },
-            {
-              "name": "part_line",
-              "lines": [
-                [
-                  509,
-                  513
-                ]
-              ]
-            }
-          ],
-          "constant_lines": []
-        },
-        {
-          "part": "after a change",
-          "own_lines": [
-            [
-              57,
-              83
-            ],
-            [
-              607,
-              841
-            ]
-          ],
-          "callee_lines": [
-            {
-              "name": "cmd_sync",
-              "lines": [
-                [
-                  755,
-                  841
-                ]
-              ]
-            },
-            {
-              "name": "old_lines_of",
-              "lines": [
-                [
-                  607,
-                  615
-                ]
-              ]
-            },
-            {
-              "name": "line_map",
-              "lines": [
-                [
-                  618,
-                  633
-                ]
-              ]
-            },
-            {
-              "name": "shift_map",
-              "lines": [
-                [
-                  659,
-                  672
-                ]
-              ]
-            },
-            {
-              "name": "shift_spans",
-              "lines": [
-                [
-                  636,
-                  656
-                ]
-              ]
-            },
-            {
-              "name": "check_sync",
-              "lines": [
-                [
-                  675,
-                  752
-                ]
-              ]
-            }
-          ],
-          "constant_lines": [
-            {
-              "name": "SYNC_PROMPT",
-              "lines": [
-                [
-                  57,
-                  83
-                ]
-              ]
-            }
-          ]
-        }
-      ]
+      "text": "A document can hold an example: a stretch of text shown\n  exactly as it is, the way a book quotes a letter.\n  A fence marks it: a line of three marks \u2014 ``` or ~~~ \u2014\n  opens the example, and the same line of marks closes it.\n\n  Inside the fences, nothing is really said \u2014 it is only\n  shown. A line in there that looks like a heading is just\n  a picture of a heading. So the tool passes over it: it\n  does not become a piece, and it does not end the section\n  it sits in.\n\n  The tool reads the document line by line. At an opening\n  fence it stops taking headings, and at the closing fence\n  it takes them again.",
+      "anchors": []
     }
   ],
   "not_covered": {
@@ -1772,91 +164,98 @@
       21,
       23,
       25,
-      29,
-      31,
-      33,
-      44,
+      35,
+      37,
+      41,
+      43,
+      45,
+      49,
+      51,
       55,
-      56,
-      58,
-      60,
-      62,
-      64,
+      57,
+      61,
       66,
       68,
-      70,
-      77,
-      79,
-      84,
-      85,
-      88,
-      89,
-      117,
-      118,
-      140,
-      141,
-      162,
-      163,
-      179,
-      180,
-      201,
-      202,
-      211,
-      212,
-      230,
-      231,
+      71,
+      72,
+      75,
+      76,
+      104,
+      105,
+      127,
+      128,
+      149,
+      150,
+      166,
+      167,
+      188,
+      189,
+      198,
+      199,
+      217,
+      218,
+      224,
+      225,
       237,
       238,
-      246,
-      247,
-      259,
-      260,
+      244,
+      245,
       271,
       272,
-      278,
-      279,
-      293,
-      294,
-      306,
-      307,
-      392,
-      393,
-      404,
-      405,
+      286,
+      287,
+      291,
+      292,
+      296,
+      297,
+      304,
+      305,
+      317,
+      318,
+      326,
+      327,
+      332,
+      333,
+      340,
+      341,
+      349,
+      350,
+      357,
+      358,
+      364,
+      365,
+      369,
+      370,
+      375,
+      376,
+      387,
+      388,
       413,
       414,
-      419,
-      420,
-      426,
-      427,
+      445,
+      446,
+      463,
+      464,
+      506,
       507,
-      508,
-      514,
-      515,
-      521,
+      511,
+      512,
       522,
-      551,
-      552,
-      579,
-      580,
-      600,
+      523,
+      540,
+      541,
+      548,
+      549,
+      567,
+      568,
       601,
-      605,
-      606,
-      616,
-      617,
-      634,
-      635,
-      657,
-      658,
-      673,
-      674,
-      753,
-      754,
-      842,
-      843,
-      872,
-      873
+      602,
+      660,
+      661,
+      745,
+      746,
+      772,
+      773
     ]
   }
 }

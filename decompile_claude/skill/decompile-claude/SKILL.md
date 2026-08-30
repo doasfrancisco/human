@@ -1,6 +1,6 @@
 ---
 name: decompile-claude
-description: Explain a code file in the flow shape and map each explanation onto real code lines with the dmap CLI. Use when the user invokes /decompile-claude, asks for a flow-shape explanation of code, or says "map it" / "map this explanation".
+description: Explain a code file in the flow shape, tie the words to real code with inline anchors, and register each explanation with the dmap CLI. Use when the user invokes /decompile-claude, asks for a flow-shape explanation of code, or says "map it" / "map this explanation".
 ---
 
 # decompile-claude
@@ -9,86 +9,89 @@ Two operations: **explain** and **map**. The state is one JSON file per code fil
 
 ## How the user points at things
 
-The user pastes text — a whole entry, a fragment, or one line — instead of naming entry ids or parts. Find what the pasted text belongs to in the map file, then act on that entry or part. When the paste is one flow line, it names a part; "go deeper" on it means a new zoom entry inside that part's lines.
+The user pastes text — a whole entry, a fragment, or one line — instead of naming entry ids. Find what the pasted text belongs to in the map file, then act on that entry or anchor. When the paste contains an anchor, that anchor is what the user points at.
 
-## 1. Explain
+## 1. Anchors
+
+An explanation ties itself to real things with inline anchors, written like a Markdown link:
+
+- `[the tool checks](check_entry)` — the words point at a **block** of the code file: a function, a class, a heading of a document, a once-only tag or a named function of a web page.
+- `[the checking](e1:the tool checks)` — the words point at an **anchor of an earlier explanation**: entry 1's anchor whose bracketed words are `the tool checks`.
+
+The rules:
+
+- Anchor the words that name the thing. The rest of the line stays plain text.
+- Anchor words are unique inside one text. Two anchors cannot share the same bracketed words.
+- A block target must be a real block of the file. dmap refuses a dead name.
+- An `e<id>:` target must name an existing entry and existing anchor words inside it. It cannot make a circle.
+- Everything else in the text is free. The layout carries no meaning: drawings, arrows, boxes, and rules between groups are all allowed, because the anchors — not the columns — carry the structure.
+
+Layering runs one way: a plainer explanation anchors into a more detailed one with `e<id>:` targets, and holds no line numbers of its own — it inherits them through the chain. The detailed explanation anchors into the code with block targets. So the map reads: explanation → anchor → block → lines.
+
+In the reader, the entry nothing points at stands on top. A click on an `e<id>:` anchor opens the more detailed explanation **in the place of** the plainer one, and the block header above the text is the way back. A click on a block anchor whose block has its own entry opens that entry **inline under the line**, and its header closes it. An anchor with no entry behind it shows muted and does not react.
+
+## 2. Explain
 
 When the user asks how a file or a block works, read the file and write the explanation in the flow shape:
 
 ```
-name            = what the step binds, in simple words    (helper_one)
-
-for each item, bottom up:
-    one line per inner step    (helper_two)
+name            = what the step binds, in simple words
 ```
 
-**The first explanation of a file covers the whole file.** Its flow is the module layer, top to bottom: the imports, each module binding, one line per function or class with its role — name the block in parentheses at the end of its line, so the map ties the line to the block's span — and the entry point. After the first map run the coverage is the full file. Every later explanation is a zoom.
+**The first explanation of a file covers the whole file.** Its flow is the module layer, top to bottom: the imports, each module binding, one line per function or class with its role — anchor the name of the step to its block, `[the start](main) = ...` — and the entry point. Every later explanation is a zoom on one block or a plainer layer over the whole.
 
 **Who the reader is.** Write for a reader who does not read code. The reader knows the domain of the file, not the vocabulary of programming. When the user validates a different level, keep that level for the rest of the session.
 
 The rules of the shape:
 
-- One line per bound name. The left column is the name. The line ends with the real function names, in parentheses.
-- One step is one physical line. Never break a line for width — the reader slides sideways. A new line starts only for a new step.
+- One line per bound name. The left column is the name, anchored to its block.
 - A loop is a header line with indented step lines.
-- Use the real names from the code. Do not invent names.
+- Use the real names from the code only inside anchor targets. Do not invent names.
 - Simple words, one idea per line. A dense clause after the `=` is what makes a flow hard to follow.
-- A word is coined when the reader's world does not contain it. This includes the words of programming itself — parser, argument, flag, table, callback, index — not only the words this project made (sequent, premise, layer height). Do not write a coined word in a flow line before an indented line defines it — or say what the thing does in place of its class: "the reader of what a person types", not "the argument parser". The names in parentheses are the only free pass.
+- A word is coined when the reader's world does not contain it. This includes the words of programming itself — parser, argument, flag, table, callback, index — not only the words this project made. Do not write a coined word in a flow line before an indented line defines it — or say what the thing does in place of its class: "the reader of what a person types", not "the argument parser".
 - When a binding exists only to feed one later step, the line must say that purpose: "it exists only so X can Y". A "what" without a "for what" reads as trivia.
 - Compress by dropping the fields the reader does not need yet, never by dropping the verbs. A pile of nouns is short but not simple.
 - For a numbering or naming scheme, give the first two cases and "and so on" instead of the rule.
-- A value that comes from outside — typed input, a file — gets one real example and what the step keeps from it: `the person types, for example: dmap show notes.py` and then `a remembers two things: the command name "show", and the code file notes.py`.
-- A dispatch from a name to a function is a header line with indented cases — `"show" starts (cmd_show), "map" starts (cmd_map), and so on` — not one dense line that names the data structure. Describe what the step does, not the structure that does it.
-- A definition states the permission before the constraint. First what the answer may do — "the answer can name a block in parentheses, like (carve)" — then the rule that binds it. A constraint before its permission reads as noise.
+- A value that comes from outside — typed input, a file — gets one real example and what the step keeps from it.
+- A dispatch from a name to a function is a header line with indented cases, not one dense line that names the data structure. Describe what the step does, not the structure that does it.
+- A definition states the permission before the constraint. First what the thing may do, then the rule that binds it.
 - When the user says which phrasing made them understand, build the definition from those exact words. Never paraphrase a validated phrasing away.
-- A zoom hangs on one instruction — one line of the parent entry's text. When the user pastes a line, that line is the instruction. The zoom explanation must stay inside the code lines that instruction reaches.
 
-**The question shape.** When a block is a chain of checks — a gate, a validator — the `name = must be ...` form reads badly. Write each check as a question, with its stop error on the right:
+**The question shape.** When a block is a chain of checks — a gate, a validator — write each check as a question, with its stop error on the right, each question and its answer on one line.
 
-```
-for each part, in the order of the text:
-    is the part name new?                            no -> PART-NAME stops
-    do the own lines sit inside the block lines?     no -> PART-BOUNDS stops
-```
+**Definitions live inside the flow.** When a concept needs a definition, put it as indented lines at the point where the reader meets it. Do not create a separate entry just to hold a definition.
 
-Each question and its answer stay on one line.
+**The format is always the flow shape** for code, even when the user says "explain simpler" — answer with a simpler flow, not with prose. One short read-me line under the flow is fine; paragraphs are not.
 
-**Definitions live inside the flow.** When a concept needs a definition, put it as indented lines at the point where the reader meets it — the first lines under the loop or the name that uses it. Do not create a separate zoom entry just to hold a definition; the user found that confusing.
+**The stage shape**, for a plainer telling of a whole file. When the user says the whole-file flow is still too hard, write six to eight stages, each a head line plus two to four indented sentences. The head is an act with the one who acts in it — "the tool finds the pieces of the file" — and the head words are the anchor, targeted with `e<id>:` at the anchor of the detailed entry that does the work. Every sentence has a subject and a full stop; the subject is you, the tool, or claude. Keep one kind of file in hand and drop the rest. Say the purpose of a stage in a sentence of its own. Drawings — an arrow back for a retry loop, a rule line before the stages that are not the main run — are welcome, because the layout carries no meaning.
 
-**The format is always the flow shape** for code, even when the user says "explain simpler" — answer with a simpler flow, not with prose. One short read-me line under the flow is fine; paragraphs are not. Prose is right only for questions about the system itself ("what is a part, why do we have parts"), not about code.
+**A markdown file.** The blocks of a `.md` file are its headings. The first flow of a document is one line per section — a short label on the left, anchored to the real heading, the section's one job after it. For a document the label ends with a comma in place of the equals sign. Labels stay unique across the whole text.
 
-**A markdown file.** The blocks of a `.md` file are its headings — dmap reads their spans the way it reads a `def`'s. The grammar shifts one level up: a section is the analog of a function, and a rule is the analog of a step inside a zoom. The first flow of a document is one line per section — a short label on the left, the section's one job after it, the real heading in parentheses at the end of the line. A zoom expands one section into its rules, one line per rule. For a document the label ends with a comma in place of the equals sign; the user validated that form. Every label must stay unique across the whole text — when two sections want the same natural label ("the run"), give each a distinct one. The flow stays one text: blank lines group it; never split it into pieces with markdown headers between them.
-
-**A web page.** A `.html` file holds three languages, so its blocks come from two places: every tag that appears once — `head`, `style`, `body`, `main`, `script` — and every named function inside a `<script>`, nested ones too. The first flow of a page is one line per region: the colors and the shapes (`style`), the empty frame the page starts with (`main`), the program that fills it (`script`). A zoom on the program is normal code — one line per bound name. A zoom on the look has no bound names, so the grammar shifts: one line per visual role — the colors, the two panes, the flow text, the links — and the color names at the top of the file (`--spec`, `--call`) are its constants. Say what the reader sees, never how the rule finds its target: "the flow text sits in one column of even letters", not "the selector for the chunk class".
-
-**A plainer flow.** When the user says the whole-file flow is still too hard, write a shorter flow of the same file — one line per stage of the tool, six to eight lines — and map it with `--over <id>` on the entry it makes simpler. A plainer flow is not a zoom: it covers the same code or more, never less, so it takes no `--within` and no `--at`. It keeps the real names in parentheses, and it drops fields, never verbs. In the reader the plainer flow stands in the place of the entry it covers: one line under it opens the detailed flow in that same place, and the block header above the text brings the plainer flow back.
+**A web page.** A `.html` file's blocks come from two places: every tag that appears once — `head`, `style`, `body`, `main`, `script` — and every named function inside a `<script>`, nested ones too. A zoom on the look has no bound names, so the grammar shifts: one line per visual role, and say what the reader sees, never how the rule finds its target.
 
 Run `dmap lines <code_file>` to see the file with line numbers.
 
-**Reread before you show.** Read each line of the finished flow as a stranger who has not seen the code: does the line use a word the flow has not defined yet? Does a line use a programming word (parser, argument, table)? Does a line only say "what" where the reader needs "for what"? Does a line name a data structure where the reader needs the action? Fix those lines before you show the flow.
+**Reread before you show.** Read each line of the finished flow as a stranger who has not seen the code: does the line use a word the flow has not defined yet? Does a line use a programming word? Does a line only say "what" where the reader needs "for what"? Fix those lines before you show the flow.
 
-**Show the explanation, then stop. Do not touch the map until the user gives the word.** This holds even when the user's message sounds like approval in advance ("add it", "what do you recommend?") — show the flow first, map on the next word.
+**Show the explanation, then stop. Do not touch the map until the user gives the word.** This holds even when the user's message sounds like approval in advance — show the flow first, map on the next word.
 
-## 2. Map
+## 3. Map
 
-When the user says "map it", or gives an explanation to map, pipe the exact explanation text into dmap:
+When the user says "map it", pipe the exact explanation text into dmap:
 
 ```bash
-dmap map <code_file> --block <name> --within <id>:<part> --at "<instruction>" <<'EOF'
+dmap map <code_file> --block <name> <<'EOF'
 <the explanation text, verbatim>
 EOF
 ```
 
-- `--block` is the block the text explains. Omit it when unsure; the mapper infers it.
-- `--within` names the parent entry and part when this explanation expands one part of an earlier entry, for example `--within 1:layers`. Omit it for the first entry of a file.
-- `--at` gives the instruction: the exact line of the parent part's text that this zoom expands, without its leading spaces. Every zoom carries one — dmap rejects a zoom without it. The mapper can find the instruction alone, but pass `--at` when the user pointed at a line.
-- `--over` names the entry this text makes simpler. Use it only for a plainer flow of a whole entry. It cannot go with `--within` or `--at`, and dmap rejects it when the new flow covers less code than the entry it sits over, when that entry is a zoom, or when another plainer flow already sits over it.
-- **Everything after the first entry is a zoom or a plainer flow.** The first entry of a file is the whole-file flow. Every explanation that goes deeper hangs with `--within` on the part, and through its instruction on the line, that reaches it — even when the user asked about a block by name. Every explanation that goes plainer sits with `--over` on the entry it simplifies. In the reader a zoom folds under its instruction line, a covered entry opens in the place of the plainer flow, and one flow of the file always shows.
-- dmap runs `claude -p` for the mapping, checks the answer up to 8 times, appends one entry, recomputes coverage, and writes the file. It returns a delta only.
+- `--block` is the block the entry explains. Omit it for a whole-file entry — the default is the file itself.
+- The run is deterministic and instant: dmap parses the anchors out of the text, checks every target, refuses duplicates, dead names, and circles, resolves each block anchor to its exact lines, and appends one entry. There is no claude call.
+- Order matters once: an `e<id>:` target must name an entry that already exists, so map the detailed entry before the plainer one that points into it.
 
-## 3. Rewrite and rollback
+## 4. Rewrite and rollback
 
-When the user approves a clearer wording for an entry that is already mapped, do not map again — replace the text in place:
+When the user approves a clearer wording for an entry that is already mapped, replace the text in place:
 
 ```bash
 dmap retext <code_file> <id> <<'EOF'
@@ -96,36 +99,38 @@ dmap retext <code_file> <id> <<'EOF'
 EOF
 ```
 
-The rewrite must keep every part name, in order — including a name bound inside a loop. The mapped lines and the web reader hang on those names. It must also keep every line a child zoom hangs on as its instruction. dmap rejects a text that drops or renames a part, or that drops an instruction line with a child.
+The new text may change anything except the anchors other entries point at — dmap refuses a text that drops one. All other anchors may be added, removed, or reworded, and are revalidated. When the text changed and other entries point into this one, dmap marks them **stale**; repair each with `dmap sync <code_file> --stale <id>` when the user gives the word.
 
-When the user says "rollback" or "undo", remove the last entry:
+When the user says "rollback" or "undo": `dmap undo <code_file>` removes the last entry. An entry that other entries point into cannot be undone before them.
 
-```bash
-dmap undo <code_file>
-```
+## 5. Sync after a change
 
-Undo pops the newest entry and recomputes coverage. An entry with children cannot be undone before its children, and an entry with a plainer flow over it cannot be undone before that flow.
-
-## 4. Sync after a code change
-
-When the code file changed and the map went stale, run:
+When the **code file** changed:
 
 ```bash
 dmap sync <code_file>
 ```
 
-- The old version comes from git `HEAD`. Pass `--old <file>` when the old code lives elsewhere. Commit the code file together with its map, so `HEAD` is always the last synced state.
-- A deterministic pass renumbers every span through the diff and finds the candidate entries. A change that only moves lines ends here — no claude call.
-- One `claude -p` call then repairs the words: it rewrites only the stale lines, adds a part and a flow line for a new bound name, removes the part of a dead name, and keeps every other line verbatim. Gates check the part order, the spans, and the lines child zooms hang on, with retries up to `--tries` (default 4).
-- Read the report: each stale line `old -> new`, the part edits, the moved instructions, and a warning for any inserted line that landed in no part. The coverage number alone cannot catch an inserted line under a coarse span — the warning can.
+- The old version comes from git `HEAD`; pass `--old <file>` when it lives elsewhere. Commit the code file together with its map, so `HEAD` is always the last synced state. Run sync exactly once per code change — a second run against the same `--old` re-applies the diff and corrupts the spans; use `dmap show` to look.
+- A deterministic pass re-resolves every block anchor and entry span from the new code. A change that only moves lines ends here — no claude call.
+- One claude call then repairs the words of the entries the change touches: it rewrites only the stale lines, keeps every anchor, retargets an anchor whose block was renamed, and renames an entry's block when the code renamed it. Gates check every anchor and retry up to `--tries` (default 4).
+- Entries that point into a repaired entry are marked stale.
 
-## 5. Report
+When an **explanation** changed and its dependents are stale:
+
+```bash
+dmap sync <code_file> --stale <id>
+```
+
+One claude call reads the old and new text of the changed parent and repairs only the words of the dependent that went wrong, keeping every anchor. Repairs run one layer at a time, downward only, on the user's word — never recursively in one breath.
+
+## 6. Report
 
 After a map run, report to the user in this order:
 
-1. The new entry: id, block, lines, part names, and its `within` parent, or the entry it sits `over`, if it has one.
+1. The new entry: id, block, lines, and its anchors — how many into the code, how many into earlier explanations.
 2. Coverage: covered code lines out of total code lines.
-3. The lines that are not covered. Say what each missing range is: the imports, the entry point, or a block with no explanation yet.
+3. Any warnings from `dmap show`, and any entries marked stale.
 4. Offer to take the next explanation.
 
-After a retext or an undo, report what changed and confirm the parts and coverage with `dmap show <code_file>`.
+After a retext, an undo, or a sync, report what changed and confirm with `dmap show <code_file>`.
