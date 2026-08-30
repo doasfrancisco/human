@@ -28,7 +28,7 @@ The rules:
 
 Layering runs one way: a plainer explanation anchors into a more detailed one with `e<id>:` targets, and holds no line numbers of its own — it inherits them through the chain. The detailed explanation anchors into the code with block targets. So the map reads: explanation → anchor → block → lines.
 
-In the reader, the entry nothing points at stands on top. A click on an `e<id>:` anchor opens the more detailed explanation **in the place of** the plainer one, and the block header above the text is the way back. A click on a block anchor whose block has its own entry opens that entry **inline under the line**, and its header closes it. An anchor with no entry behind it shows muted and does not react.
+In the reader, every explanation of a file is one folded header in a single list, the most detailed first and the entry nothing points at last — a zoom on a block sits above the whole-file entry, and a plainer telling that points into the whole-file entry sits below it. A click on a header folds or unfolds that entry. A click on an anchor whose target has an entry jumps to that entry and unfolds it. An anchor with no entry behind it shows muted and does not react.
 
 ## 2. Explain
 
