@@ -1,9 +1,9 @@
 [project]
 name = "human"
-version = "0.1.0"
-description = "Compile a human abstraction into code and map both onto the real lines"
+version = "2.0.1"
+description = "One CLI for both directions: decompile code into a telling, or compile a human abstraction into code, with every word tied to real lines"
 requires-python = ">=3.10"
-dependencies = ["dmap @ file:///home/ubuntu/projects/human/decompile/cli"]
+dependencies = []
 
 [project.scripts]
 human = "human:main"
@@ -13,4 +13,4 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["human"]
+py-modules = ["human", "decompiler", "cmd_map"]

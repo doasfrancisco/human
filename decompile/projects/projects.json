@@ -1,1 +1,0 @@
-{"projects": [{"name": "decompiler", "files": ["decompiler.py", "cmd_map.py", "SKILL.md", "web.html"]}, {"name": "decompile_v14", "file": "decompile.py"}, {"name": "deploy", "file": "deploy.py"}]}

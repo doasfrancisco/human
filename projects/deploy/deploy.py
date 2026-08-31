@@ -4,7 +4,7 @@ import shutil
 import sys
 from pathlib import Path
 
-SKILLS_SRC = Path(__file__).parent / "skill"
+SKILLS_SRC = Path(__file__).parent / "skills"
 DESTINATIONS = {
     "claude": Path.home() / ".claude" / "skills",
     "droid": Path.home() / ".factory" / "skills",

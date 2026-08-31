@@ -394,7 +394,7 @@ def ask_claude(prompt):
 def guard_structure(data, map_path):
     if any("parts" in e for e in data.get("explanations", [])):
         sys.exit(f"{map_path.name} carries the old part structure; "
-                 f"this dmap reads anchors — rebuild the map with dmap map")
+                 f"this human reads anchors — rebuild the map with human map")
 
 
 def map_path_of(code_path):
@@ -482,7 +482,7 @@ def cmd_retext(a):
     print(f"entry {a.id} ({entry['block']}): text replaced, {anchor_counts(anchors)}")
     if kids:
         print(f"entries {', '.join(map(str, kids))} depend on entry {a.id} and are marked stale; "
-              f"repair each with dmap sync {code_path.name} --stale <id>")
+              f"repair each with human sync {code_path.name} --stale <id>")
     print(f"wrote {map_path}")
 
 
@@ -533,7 +533,7 @@ def cmd_show(a):
         stored = [x["words"] for x in e.get("anchors", [])]
         if derived != stored:
             warnings.append(f"entry {e['id']}: the anchors in the text do not match the stored anchors; "
-                            f"rebuild the entry with dmap retext")
+                            f"rebuild the entry with human retext")
         for x in e.get("anchors", []):
             if "file" in x:
                 fp = folder / x["file"]
@@ -544,24 +544,24 @@ def cmd_show(a):
                     fspans = block_spans(fp, fp.read_text().splitlines())
                     if x["block"] not in fspans:
                         warnings.append(f"entry {e['id']}: the anchor {x['words']!r} names the block "
-                                        f"{x['block']!r}, which is not in {x['file']}; run dmap sync")
+                                        f"{x['block']!r}, which is not in {x['file']}; run human sync")
                     elif x.get("lines") != [list(fspans[x["block"]])]:
                         warnings.append(f"entry {e['id']}: the anchor {x['words']!r} holds old lines "
-                                        f"for {x['file']}:{x['block']}; run dmap sync")
+                                        f"for {x['file']}:{x['block']}; run human sync")
             elif "block" in x:
                 if x["block"] not in spans:
                     warnings.append(f"entry {e['id']}: the anchor {x['words']!r} names the block "
-                                    f"{x['block']!r}, which is not in the file; run dmap sync")
+                                    f"{x['block']!r}, which is not in the file; run human sync")
                 elif x.get("lines") != [list(spans[x["block"]])]:
                     warnings.append(f"entry {e['id']}: the anchor {x['words']!r} holds old lines "
-                                    f"for {x['block']!r}; run dmap sync")
+                                    f"for {x['block']!r}; run human sync")
             else:
                 parent = next((p for p in data["explanations"] if p["id"] == x["explanation"]), None)
                 if not parent or x["anchor"] not in {y["words"] for y in parent.get("anchors", [])}:
                     warnings.append(f"entry {e['id']}: the anchor {x['words']!r} points at "
                                     f"e{x['explanation']}:{x['anchor']}, which does not exist")
         if not is_dir and e["block"] != code_path.name and e["block"] not in spans:
-            warnings.append(f"entry {e['id']}: the block {e['block']!r} is not in the file; run dmap sync")
+            warnings.append(f"entry {e['id']}: the block {e['block']!r} is not in the file; run human sync")
     if not is_dir and code_path.suffix == ".py":
         whole = next((e for e in data["explanations"] if e["block"] == code_path.name), None)
         if whole:
@@ -844,7 +844,7 @@ def cmd_sync(a):
             stale_kids.update(mark_children(trial, e["id"], before["text"]))
     if stale_kids:
         print(f"entries {', '.join(map(str, sorted(stale_kids)))} depend on a changed entry and are "
-              f"marked stale; repair each with dmap sync {code_path.name} --stale <id>")
+              f"marked stale; repair each with human sync {code_path.name} --stale <id>")
     missing, blank = recompute(trial, new_lines)
     map_path.write_text(json.dumps(trial, indent=2) + "\n")
     print_coverage(missing, blank, new_lines)
@@ -852,7 +852,7 @@ def cmd_sync(a):
 
 
 def main():
-    ap = argparse.ArgumentParser(prog="dmap")
+    ap = argparse.ArgumentParser(prog="human")
     sub = ap.add_subparsers(dest="cmd", required=True)
     m = sub.add_parser("map")
     m.add_argument("code_file")

@@ -5,7 +5,7 @@ description: Compile a human abstraction — free text — into code, then map t
 
 # human
 
-The user writes the telling first — free text, no pins — and claude writes the code under it. The state is one project folder under `compiler/projects/<name>/`: the code files, one `explanation_<file>.json` per code file, the abstraction in `abstraction.txt`, and one entry per project in `compiler/projects/projects.json`. The `human` CLI owns the map files — never edit one by hand. The reader is `compiler/projects/web.html`.
+The user writes the telling first — free text, no pins — and claude writes the code under it. The state is one project folder under `projects/<name>/`: the code files, one `explanation_<file>.json` per code file, the abstraction in `abstraction.txt`, and one entry per project in `projects/projects.json`. The `human` CLI owns the map files — never edit one by hand. The reader is `projects/web.html`.
 
 ## The run
 
@@ -15,7 +15,7 @@ An abstraction comes in as free text: "an http server using python that returns 
 
 2. **Write the code.** Make the project folder and write the code files with the Write tool, no comments. The gate is static, like a compiler's: the file must parse. `human map` runs the block reader over it, and an unparseable file is a refusal. There is no run and no test — trust that code which parses does what the abstraction says.
 
-3. **Register the project.** `human init compiler/projects/<name>` scans the folder for code files and writes the project's entry in `projects.json`. Run it again after a file is added or removed.
+3. **Register the project.** `human init projects/<name>` scans the folder for code files and writes the project's entry in `projects.json`. Run it again after a file is added or removed.
 
 4. **Map the detailed telling.** For each code file, one whole-file entry in the rail shape (below):
 
@@ -37,7 +37,7 @@ EOF
 
 The CLI strips the pins out and compares the rest against `abstraction.txt` character for character. A changed word is a refusal. Pins go in; the user's words never change.
 
-6. **Report.** `human show <code_file>` per file: the entries, the coverage, the warnings. Give the user the reader address when a server runs over `compiler/projects/`.
+6. **Report.** `human show <code_file>` per file: the entries, the coverage, the warnings. Give the user the reader address when a server runs over `projects/`.
 
 ## Pins
 

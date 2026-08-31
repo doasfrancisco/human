@@ -107,10 +107,10 @@ fetch("projects.json",{cache:"no-store"}).then(function(r){return r.json();}).th
   }));
 }).then(function(ps){
   projs=ps.filter(Boolean);
-  if(!projs.length){msg("no explanations — serve decompile/projects/ and run dmap map");return;}
+  if(!projs.length){msg("no explanations — serve projects/ and run human map");return;}
   buildTree(projs[0],projs[0].files[0].file);
   open(projs[0],projs[0].files[0]);
-}).catch(function(){msg("could not load — serve decompile/projects/ and open /web.html");});
+}).catch(function(){msg("could not load — serve projects/ and open /web.html");});
 
 document.getElementById("projbar").addEventListener("click",function(){
   var el=document.getElementById("projlist");

@@ -1,0 +1,60 @@
+{
+  "code_file": "PROMOTION.md",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "PROMOTION.md",
+      "block_lines": [
+        [
+          1,
+          26
+        ]
+      ],
+      "text": "[the promise](PROMOTION),   what a run of this file must leave behind:\n                            every changed source standing in its showcase twin\n[the pairs](The pairs),     which source file lands on which twin, one line each\n[the run](The run),         the four steps that carry one change over \u2014\n                            save the old twin, copy, sync once, look",
+      "anchors": [
+        {
+          "words": "the promise",
+          "block": "PROMOTION",
+          "lines": [
+            [
+              1,
+              26
+            ]
+          ]
+        },
+        {
+          "words": "the pairs",
+          "block": "The pairs",
+          "lines": [
+            [
+              5,
+              16
+            ]
+          ]
+        },
+        {
+          "words": "the run",
+          "block": "The run",
+          "lines": [
+            [
+              17,
+              26
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": [
+      2,
+      4,
+      6,
+      16,
+      18,
+      20,
+      25
+    ]
+  }
+}

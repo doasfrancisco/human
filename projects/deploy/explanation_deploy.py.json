@@ -1,0 +1,127 @@
+{
+  "code_file": "deploy.py",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "deploy.py",
+      "block_lines": [
+        [
+          1,
+          148
+        ]
+      ],
+      "text": "\u25cf  you ask for a deploy                                  ([the start](main))\n  \u2502     You type:  python3 deploy.py --add decompile\n  \u2502     The start reads what you asked for: add, all,\n  \u2502     diff, list, or remove, and hands it on.\n  \u2502\n  \u25cf  the tool copies a skill out                          ([the copy](deploy_skill))\n  \u2502     It takes one skill folder from compiler/skills\n  \u2502     and copies it whole into the skill folders of\n  \u2502     claude, droid, and the shared agents place.\n  \u2502     An old copy at the target is removed first,\n  \u2502     so a deploy never leaves a mix of two versions.\n  \u2502\n  \u25cf  the tool compares before it copies                   ([the compare](diff_skill))\n  \u2502     For one skill it lists what a deploy would change:\n  \u2502     a new file, a removed file, a changed file.\n  \u2502     Nothing is copied. You look before you leap.\n  \u2502\n  \u25cf  the tool takes a skill back                          ([the removal](remove_skills))\n  \u2502     It deletes the skill's folder from every target\n  \u2502     place and says where it removed one.\n  \u2502\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  \u25cf  the small helpers\n        [the color check](_supports_color) turns the colored\n        output off when the screen cannot show it.\n        [the list of sources](available_skills) reads the skill\n        folders that sit beside the tool, and\n        [the list of installs](installed_skills) reads the ones\n        already deployed, so the start can print both.",
+      "anchors": [
+        {
+          "words": "the start",
+          "block": "main",
+          "lines": [
+            [
+              114,
+              144
+            ]
+          ]
+        },
+        {
+          "words": "the copy",
+          "block": "deploy_skill",
+          "lines": [
+            [
+              46,
+              61
+            ]
+          ]
+        },
+        {
+          "words": "the compare",
+          "block": "diff_skill",
+          "lines": [
+            [
+              64,
+              98
+            ]
+          ]
+        },
+        {
+          "words": "the removal",
+          "block": "remove_skills",
+          "lines": [
+            [
+              101,
+              111
+            ]
+          ]
+        },
+        {
+          "words": "the color check",
+          "block": "_supports_color",
+          "lines": [
+            [
+              15,
+              24
+            ]
+          ]
+        },
+        {
+          "words": "the list of sources",
+          "block": "available_skills",
+          "lines": [
+            [
+              34,
+              35
+            ]
+          ]
+        },
+        {
+          "words": "the list of installs",
+          "block": "installed_skills",
+          "lines": [
+            [
+              38,
+              43
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": [
+      6,
+      13,
+      14,
+      25,
+      26,
+      32,
+      33,
+      36,
+      37,
+      44,
+      45,
+      48,
+      52,
+      56,
+      59,
+      62,
+      63,
+      66,
+      70,
+      73,
+      77,
+      81,
+      83,
+      87,
+      91,
+      96,
+      99,
+      100,
+      112,
+      113,
+      122,
+      134,
+      145,
+      146
+    ]
+  }
+}
