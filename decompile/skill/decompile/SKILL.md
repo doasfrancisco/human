@@ -1,9 +1,9 @@
 ---
-name: decompile-claude
-description: Explain a code file in the flow shape, tie the words to real code with inline anchors, and register each explanation with the dmap CLI. Use when the user invokes /decompile-claude, asks for a flow-shape explanation of code, or says "map it" / "map this explanation".
+name: decompile
+description: Explain a code file in the rail shape, tie the words to real code with inline anchors, and register each explanation with the dmap CLI. Use when the user invokes /decompile, asks for a rail-shape or flow-shape explanation of code, or says "map it" / "map this explanation".
 ---
 
-# decompile-claude
+# decompile
 
 Two operations: **explain** and **map**. The state is one JSON file per code file, `explanation_<file_name>.json`, written next to the code file. A project of many files also carries one map of its own, `human.json`, written inside the project folder: one entry whose pins point at the files, so a reader who opens the project has a top. The dmap CLI owns that file — never edit it by hand; every operation you need is a dmap command (`map`, `retext`, `undo`, `show`, `lines`, `sync`). The map grows delta by delta: every map run appends one entry and never changes the entries before it.
 
@@ -38,38 +38,72 @@ In the reader, every explanation of a file is one folded header in a single list
 
 ## 2. Explain
 
-When the user asks how a file or a block works, read the file and write the explanation in the flow shape:
+When the user asks how a file or a block works, read the file and write the explanation. The shape follows what the explanation covers: the whole file takes the **rail**, a zoom on one block takes the **flow**.
+
+**Who the reader is.** Write for a reader who does not read code. The reader knows the domain of the file, not the vocabulary of programming. When the user validates a different level, keep that level for the rest of the session.
+
+**The first explanation of a code file covers the whole file, and its shape is the rail.** Write six to eight stages down a rail: the main run of the file, from the first thing the user does to the last thing the tool writes. Every later explanation is a zoom on one block or a plainer layer over the whole; a plainer layer is a rail too, and its heads point with `e<id>:` at the anchors of the entry below it.
+
+```
+●  you ask for something                              ([the start](main))
+  │     You type one line and press enter.
+  │     The tool keeps the two things it needs from that line:
+  │     what you want done, and which file to do it to.
+  │
+  ●  the tool reads the file                       ([the reading](read_file))
+  │     It opens the file and holds every line of it.
+  │     It does this for one reason only: so the next stage
+  │     works without going back to the disk.
+  │
+  ●  the tool writes the answer beside the file     ([the answer](write_out))
+        It puts a new file next to the old one.
+        The old file is never touched.
+
+──────────────────────────────────────────────────────────────
+  when a check fails                                   ([the stop](refuse))
+     The tool says which check failed and stops there.
+     Nothing is written, so you can correct the line and ask again.
+```
+
+The rules of the rail:
+
+- A head is an act with the one who acts in it, in plain words — "the tool finds the pieces of the file", never a bare name and never a noun on its own.
+- The pin sits on the right of the head, in parentheses, like `([the start](main))`. The head words stay plain, so the reader reads the act first and the pin second.
+- Under each head stand two to four full sentences, indented. Every sentence has a subject — you, the tool, or claude — and a full stop. A fragment is not a stage sentence.
+- Keep the lines short. Break a sentence over two lines rather than let it run off the screen.
+- Say the purpose of a stage in a sentence of its own. A stage that says only what happens reads as trivia.
+- A rule line sets apart the stages that are not the main run: what happens when the file changes, what else the user may ask for. Below the rule the rail drops away and each stage stands on its own.
+- Keep one kind of file in hand through the whole rail and drop the rest. One real example of what the user types beats a description of what the user may type.
+- Drawings are welcome — an arrow back for a retry loop, an indented block that shows what a line looks like — because the layout carries no meaning. The pins, not the columns, carry the structure.
+
+**A zoom on one block: the flow shape.** For a reader who already walked the rail and asks about one block, write the flow — one line per bound name:
 
 ```
 name            = what the step binds, in simple words
 ```
 
-**The first explanation of a file covers the whole file.** Its flow is the module layer, top to bottom: the imports, each module binding, one line per function or class with its role — anchor the name of the step to its block, `[the start](main) = ...` — and the entry point. Every later explanation is a zoom on one block or a plainer layer over the whole.
-
-**Who the reader is.** Write for a reader who does not read code. The reader knows the domain of the file, not the vocabulary of programming. When the user validates a different level, keep that level for the rest of the session.
-
-The rules of the shape:
-
 - One line per bound name. The left column is the name, anchored to its block.
 - A loop is a header line with indented step lines.
+- A dispatch from a name to a function is a header line with indented cases, not one dense line that names the data structure. Describe what the step does, not the structure that does it.
+- The flow is the shape of a zoom only. When the user asks about the whole file again, go back to the rail.
+
+**The question shape.** When a block is a chain of checks — a gate, a validator — write each check as a question, with its stop error on the right, each question and its answer on one line.
+
+The wording rules hold for both shapes:
+
 - Use the real names from the code only inside anchor targets. Do not invent names.
-- Simple words, one idea per line. A dense clause after the `=` is what makes a flow hard to follow.
-- A word is coined when the reader's world does not contain it. This includes the words of programming itself — parser, argument, flag, table, callback, index — not only the words this project made. Do not write a coined word in a flow line before an indented line defines it — or say what the thing does in place of its class: "the reader of what a person types", not "the argument parser".
+- Simple words, one idea per line. A dense clause is what makes an explanation hard to follow.
+- A word is coined when the reader's world does not contain it. This includes the words of programming itself — parser, argument, flag, table, callback, index — not only the words this project made. Do not write a coined word before a line defines it — or say what the thing does in place of its class: "the reader of what a person types", not "the argument parser".
 - When a binding exists only to feed one later step, the line must say that purpose: "it exists only so X can Y". A "what" without a "for what" reads as trivia.
 - Compress by dropping the fields the reader does not need yet, never by dropping the verbs. A pile of nouns is short but not simple.
 - For a numbering or naming scheme, give the first two cases and "and so on" instead of the rule.
 - A value that comes from outside — typed input, a file — gets one real example and what the step keeps from it.
-- A dispatch from a name to a function is a header line with indented cases, not one dense line that names the data structure. Describe what the step does, not the structure that does it.
 - A definition states the permission before the constraint. First what the thing may do, then the rule that binds it.
 - When the user says which phrasing made them understand, build the definition from those exact words. Never paraphrase a validated phrasing away.
 
-**The question shape.** When a block is a chain of checks — a gate, a validator — write each check as a question, with its stop error on the right, each question and its answer on one line.
+**Definitions live in place.** When a concept needs a definition, put it at the point where the reader meets it — indented lines under the stage or the flow line. Do not create a separate entry just to hold a definition.
 
-**Definitions live inside the flow.** When a concept needs a definition, put it as indented lines at the point where the reader meets it. Do not create a separate entry just to hold a definition.
-
-**The format is always the flow shape** for code, even when the user says "explain simpler" — answer with a simpler flow, not with prose. One short read-me line under the flow is fine; paragraphs are not.
-
-**The stage shape**, for a plainer telling of a whole file. When the user says the whole-file flow is still too hard, write six to eight stages, each a head line plus two to four indented sentences. The head is an act with the one who acts in it — "the tool finds the pieces of the file" — and the head words are the anchor, targeted with `e<id>:` at the anchor of the detailed entry that does the work. Every sentence has a subject and a full stop; the subject is you, the tool, or claude. Keep one kind of file in hand and drop the rest. Say the purpose of a stage in a sentence of its own. Drawings — an arrow back for a retry loop, a rule line before the stages that are not the main run — are welcome, because the layout carries no meaning.
+**The answer is never prose.** Even when the user says "explain simpler", answer with a simpler rail, not with paragraphs. One short read-me line under the text is fine.
 
 **A markdown file.** The blocks of a `.md` file are its headings. The first flow of a document is one line per section — a short label on the left, anchored to the real heading, the section's one job after it. For a document the label ends with a comma in place of the equals sign. Labels stay unique across the whole text.
 
@@ -77,9 +111,9 @@ The rules of the shape:
 
 Run `dmap lines <code_file>` to see the file with line numbers.
 
-**Reread before you show.** Read each line of the finished flow as a stranger who has not seen the code: does the line use a word the flow has not defined yet? Does a line use a programming word? Does a line only say "what" where the reader needs "for what"? Fix those lines before you show the flow.
+**Reread before you show.** Read each line of the finished text as a stranger who has not seen the code: does the line use a word the text has not defined yet? Does a line use a programming word? Does a line only say "what" where the reader needs "for what"? Fix those lines before you show the explanation.
 
-**Show the explanation, then stop. Do not touch the map until the user gives the word.** This holds even when the user's message sounds like approval in advance — show the flow first, map on the next word.
+**Show the explanation, then stop. Do not touch the map until the user gives the word.** This holds even when the user's message sounds like approval in advance — show the explanation first, map on the next word.
 
 ## 3. Map
 

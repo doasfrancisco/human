@@ -1,8 +1,10 @@
-.playwright-mcp/
+*.egg-info/
 .claude/
-graphify-out/
-check-sort.png
 .env
+.playwright-mcp/
 .venv/
 __pycache__/
 bash.exe.stackdump
+build/
+check-sort.png
+graphify-out/
