@@ -7,10 +7,10 @@
       "block_lines": [
         [
           1,
-          249
+          315
         ]
       ],
-      "text": "\u25cf  the page loads the projects                            ([script](script))\n\u2502     The page asks for one list, projects.json, that names each\n\u2502     project and the files inside it. For every file it then asks\n\u2502     for two things: the file itself, and the record of its\n\u2502     abstractions, explanation_<file>.json. A file with no record\n\u2502     gets an empty one, so the page still shows it.\n\u2502\n\u25cf  the page draws the file tree                             ([main](main))\n\u2502     On the left: the project name and its files. A click on a\n\u2502     file opens that file. A click on the project name lists the\n\u2502     other projects.\n\u2502\n\u25cf  the page opens one file                                  ([open](open))\n\u2502     It keeps the lines of the file and every abstraction, and it\n\u2502     remembers which piece of the file each abstraction is about.\n\u2502\n\u25cf  the page puts the abstractions in order                ([sorted](sorted))\n\u2502     A pin points from one abstraction at another. The abstraction\n\u2502     nobody points at is the most abstract, and it goes last. An\n\u2502     abstraction that a pin points at goes above the one that holds\n\u2502     the pin, and so on upward. Among equals, the one about earlier\n\u2502     lines goes first.\n\u2502\n\u25cf  the page draws the list                                ([render](render))\n\u2502     Every abstraction is one header line: a small arrow, the name\n\u2502     of its piece, and its lines. All start folded. Under the header\n\u2502     the words are drawn exactly as written. A pin whose target has\n\u2502     an abstraction is lit; a pin with none is muted. The bar on top\n\u2502     says how many are open.\n\u2502\n\u25cf  you click                                                ([jump](jump))\n      A click on a header folds or unfolds that abstraction.\n      A click on a lit pin scrolls to the abstraction it points at,\n      unfolds it, and lights it for a moment.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  the look of the page                                     ([style](style))\n     Two panes on a quiet ground: the tree on the left, the reader on\n     the right. Text in a typewriter face, so drawings keep their\n     columns. A dark and a light version, chosen by your system.\n\n  small helpers\n     makes text safe to show on a page                        ([esc](esc))\n     shows one line when there is nothing to read              ([msg](msg))\n     finds which abstraction a pin points at            ([targetOf](targetOf))\n     turns the pins of one line into links               ([lineHtml](lineHtml))",
+      "text": "\u25cf  the page loads the projects                          ([script](script))\n\u2502     The page asks for one list, projects.json, that names each\n\u2502     project and the files inside it. For every file it then asks\n\u2502     for two things: the file itself, and the record of its\n\u2502     abstractions, explanation_<file>.json. A file with no record\n\u2502     gets an empty one, so the page still shows it. A project can\n\u2502     also carry human.json, a record with no file of its own, and\n\u2502     it comes first in the list.\n\u2502\n\u25cf  the page draws the file tree                             ([main](main))\n\u2502     On the left: the project name and its files. A click on a\n\u2502     file opens that file. A click on the project name lists the\n\u2502     other projects.\n\u2502\n\u25cf  the page opens one file                                  ([open](open))\n\u2502     It keeps the lines of the file and every abstraction, and it\n\u2502     remembers which piece of the file each abstraction is about.\n\u2502     It also remembers which abstractions you left open, so a file\n\u2502     you come back to opens as you left it.\n\u2502\n\u25cf  the page puts the abstractions in order               ([sorted](sorted))\n\u2502     A pin points from one abstraction at another. The abstraction\n\u2502     nobody points at is the most abstract, and it goes last. An\n\u2502     abstraction that a pin points at goes above the one that holds\n\u2502     the pin, and so on upward. Among equals, the one about earlier\n\u2502     lines goes first.\n\u2502\n\u25cf  the page draws the list                              ([render](render))\n\u2502     Every abstraction is one header line: a small arrow, the name\n\u2502     of its piece, and its lines. All start folded the first time.\n\u2502     Under the header the words are drawn exactly as written. A pin\n\u2502     whose target has an abstraction is lit; a pin with none is\n\u2502     muted. The bar on top says how many are open.\n\u2502\n\u25cf  you click                                                ([jump](jump))\n\u2502     A click on a header folds or unfolds that abstraction.\n\u2502     A click on a lit pin scrolls to the abstraction it points at,\n\u2502     unfolds it, and lights it for a moment.\n\u2502\n\u25cf  you cross to another file                      ([crossJump](crossJump))\n      A pin can name a file of the project instead of a piece of\n      this one. A click on it opens that file and goes to the piece\n      the pin names. A pin to a file the project does not hold, or\n      to a piece with no abstraction, is muted and shows the piece\n      name.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  the look of the page                                    ([style](style))\n     Two panes on a quiet ground: the tree on the left, the reader on\n     the right. Text in a typewriter face, so drawings keep their\n     columns. A dark and a light version, chosen by your system.\n\n  small helpers\n     makes text safe to show on a page                        ([esc](esc))\n     shows one line when there is nothing to read              ([msg](msg))\n     builds the file tree for one project         ([buildTree](buildTree))\n     finds a file of the project by name                ([fileOf](fileOf))\n     says if a piece has an abstraction         ([crossEntry](crossEntry))\n     finds which abstraction a pin points at        ([targetOf](targetOf))\n     turns the pins of one line into links          ([lineHtml](lineHtml))",
       "anchors": [
         {
           "words": "script",
@@ -18,7 +18,7 @@
           "lines": [
             [
               69,
-              247
+              313
             ]
           ]
         },
@@ -37,8 +37,8 @@
           "block": "open",
           "lines": [
             [
-              135,
-              147
+              147,
+              160
             ]
           ]
         },
@@ -47,8 +47,8 @@
           "block": "sorted",
           "lines": [
             [
-              155,
-              176
+              181,
+              202
             ]
           ]
         },
@@ -57,8 +57,8 @@
           "block": "render",
           "lines": [
             [
-              210,
-              225
+              246,
+              270
             ]
           ]
         },
@@ -67,8 +67,18 @@
           "block": "jump",
           "lines": [
             [
-              227,
-              235
+              272,
+              280
+            ]
+          ]
+        },
+        {
+          "words": "crossJump",
+          "block": "crossJump",
+          "lines": [
+            [
+              282,
+              299
             ]
           ]
         },
@@ -103,12 +113,42 @@
           ]
         },
         {
+          "words": "buildTree",
+          "block": "buildTree",
+          "lines": [
+            [
+              131,
+              145
+            ]
+          ]
+        },
+        {
+          "words": "fileOf",
+          "block": "fileOf",
+          "lines": [
+            [
+              162,
+              166
+            ]
+          ]
+        },
+        {
+          "words": "crossEntry",
+          "block": "crossEntry",
+          "lines": [
+            [
+              168,
+              172
+            ]
+          ]
+        },
+        {
           "words": "targetOf",
           "block": "targetOf",
           "lines": [
             [
-              149,
-              153
+              174,
+              179
             ]
           ]
         },
@@ -117,8 +157,8 @@
           "block": "lineHtml",
           "lines": [
             [
-              190,
-              204
+              216,
+              240
             ]
           ]
         }
@@ -131,18 +171,22 @@
       71,
       76,
       78,
-      117,
-      134,
-      148,
-      154,
-      177,
-      183,
-      185,
-      189,
-      205,
+      114,
+      130,
+      146,
+      161,
+      167,
+      173,
+      180,
+      203,
       209,
-      226,
-      236
+      211,
+      215,
+      241,
+      245,
+      271,
+      281,
+      300
     ]
   }
 }

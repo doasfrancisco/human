@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import cmd_map
+
 ANCHOR_RE = re.compile(r"\[([^\[\]]+)\]\(([^()]+)\)")
 
 SYNC_PROMPT = """A code file changed. Explanation texts were written for the old version of the file. Repair only the words the change made wrong.
@@ -216,6 +218,47 @@ def block_spans(path, lines):
     return spans
 
 
+def import_names(lines):
+    try:
+        tree = ast.parse("\n".join(lines))
+    except SyntaxError:
+        return set()
+    names = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names.update(n.name.split(".")[0] for n in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            names.add(node.module.split(".")[0])
+    return names
+
+
+def norm_dup(line):
+    line = ANCHOR_RE.sub(lambda m: m.group(1), line)
+    return " ".join(re.findall(r"[0-9a-z']+", line.lower()))
+
+
+def dup_warnings(folder):
+    paths = sorted(folder.glob("explanation_*.json"))
+    if (folder / "human.json").exists():
+        paths.append(folder / "human.json")
+    seen = {}
+    out = []
+    for mp in paths:
+        data = json.loads(mp.read_text())
+        fname = "human.json" if mp.name == "human.json" else data.get("code_file", mp.name)
+        for e in data["explanations"]:
+            for raw in e["text"].splitlines():
+                key = norm_dup(raw)
+                if len(key) < 30:
+                    continue
+                first = seen.setdefault(key, (fname, e["id"]))
+                if first[0] != fname:
+                    shown = raw.strip().lstrip("│●○·─ ").strip()
+                    out.append(f'the line "{shown[:60]}" is in {first[0]} entry {first[1]} '
+                               f"and in {fname} entry {e['id']} — one telling, one home")
+    return out
+
+
 def expand(span_list):
     s = set()
     for a, b in span_list:
@@ -243,7 +286,31 @@ def parse_target(raw):
     return {"block": raw.strip()}
 
 
-def build_anchors(text, data, spans, self_id):
+def resolve_code_target(words, raw, spans, folder):
+    if raw in spans:
+        return {"words": words, "block": raw, "lines": [list(spans[raw])]}
+    if ":" in raw:
+        fname, bname = (s.strip() for s in raw.split(":", 1))
+        fp = folder / fname
+        assert fp.is_file(), \
+            f"[ANCHOR-TARGET] the anchor {words!r} names {fname!r}, which is not a file of the folder"
+        fspans = block_spans(fp, fp.read_text().splitlines())
+        assert bname in fspans, \
+            f"[ANCHOR-TARGET] the anchor {words!r} names {bname!r}, which is not a block of {fname}"
+        return {"words": words, "file": fname, "block": bname, "lines": [list(fspans[bname])]}
+    if (folder / raw).is_file():
+        return {"words": words, "file": raw}
+    raise AssertionError(f"[ANCHOR-TARGET] {raw!r} is not a block of this file "
+                         f"and not a file of the folder")
+
+
+def project_pins(anchors):
+    bad = [x["words"] for x in anchors if "file" not in x]
+    assert not bad, f"[PROJECT-PIN] a project pin points at a file or a block of a file; " \
+                    f"{', '.join(repr(w) for w in bad)} does not"
+
+
+def build_anchors(text, data, spans, self_id, folder):
     seen = set()
     out = []
     for m in ANCHOR_RE.finditer(text):
@@ -256,8 +323,7 @@ def build_anchors(text, data, spans, self_id):
         if "block" in tgt:
             b = tgt["block"]
             assert b, f"[ANCHOR-TARGET] the anchor {words!r} needs a target"
-            assert b in spans, f"[ANCHOR-TARGET] {b!r} is not a block of this file"
-            out.append({"words": words, "block": b, "lines": [list(spans[b])]})
+            out.append(resolve_code_target(words, b, spans, folder))
         else:
             pid = tgt["explanation"]
             assert pid != self_id, f"[ANCHOR-TARGET] the anchor {words!r} points at its own entry"
@@ -309,7 +375,7 @@ def recompute(data, lines):
     for e in data["explanations"]:
         covered |= expand(e["block_lines"])
         for a in e.get("anchors", []):
-            if "lines" in a:
+            if "lines" in a and "file" not in a:
                 covered |= expand(a["lines"])
     missing = [i for i in range(1, len(lines) + 1) if i not in covered and i not in set(blank)]
     data["not_covered"] = {"code_lines": missing, "blank_lines": blank}
@@ -331,29 +397,19 @@ def guard_structure(data, map_path):
                  f"this dmap reads anchors — rebuild the map with dmap map")
 
 
-def load_map(map_path, name):
-    if map_path.exists():
-        data = json.loads(map_path.read_text())
-        guard_structure(data, map_path)
-        return data
-    return {"code_file": name, "explanations": [], "not_covered": {"code_lines": [], "blank_lines": []}}
+def map_path_of(code_path):
+    if code_path.is_dir():
+        return code_path / "human.json"
+    return code_path.parent / f"explanation_{code_path.name}.json"
 
 
 def load_existing(code_path):
-    map_path = code_path.parent / f"explanation_{code_path.name}.json"
+    map_path = map_path_of(code_path)
     if not map_path.exists():
         sys.exit(f"no map file at {map_path}")
     data = json.loads(map_path.read_text())
     guard_structure(data, map_path)
     return map_path, data
-
-
-def entry_span(name, code_path, spans, n):
-    if name == code_path.name:
-        return [[1, n]]
-    if name in spans:
-        return [list(spans[name])]
-    sys.exit(f"{name!r} is not a block of {code_path.name}")
 
 
 def read_text_arg(a):
@@ -364,8 +420,14 @@ def read_text_arg(a):
 
 
 def anchor_counts(anchors):
-    code = sum(1 for x in anchors if "block" in x)
-    return f"{len(anchors)} anchors ({code} into the code, {len(anchors) - code} into earlier explanations)"
+    code = sum(1 for x in anchors if "block" in x and "file" not in x)
+    cross = sum(1 for x in anchors if "file" in x)
+    up = len(anchors) - code - cross
+    parts = [f"{code} into the code"]
+    if cross:
+        parts.append(f"{cross} into other files")
+    parts.append(f"{up} into earlier explanations")
+    return f"{len(anchors)} anchors ({', '.join(parts)})"
 
 
 def print_coverage(missing, blank, lines):
@@ -386,44 +448,24 @@ def report_text_diff(eid, old, new):
             print(f"entry {eid}: + {l.strip()}")
 
 
-def cmd_map(a):
-    code_path = Path(a.code_file).resolve()
-    lines = code_path.read_text().splitlines()
-    spans = block_spans(code_path, lines)
-    map_path = code_path.parent / f"explanation_{code_path.name}.json"
-    data = load_map(map_path, code_path.name)
-    text = read_text_arg(a)
-    n = len(lines)
-    block = (a.block or code_path.name).strip()
-    block_lines = entry_span(block, code_path, spans, n)
-    eid = max((e["id"] for e in data["explanations"]), default=0) + 1
-    try:
-        anchors = build_anchors(text, data, spans, eid)
-        check_cycle(data, eid, anchors)
-    except AssertionError as e:
-        sys.exit(str(e))
-    record = {"id": eid, "block": block, "block_lines": block_lines,
-              "text": text, "anchors": anchors}
-    data["explanations"].append(record)
-    missing, blank = recompute(data, lines)
-    map_path.write_text(json.dumps(data, indent=2) + "\n")
-    print(f"entry {eid}: {block}, lines {fmt(expand(block_lines))}, {anchor_counts(anchors)}")
-    print_coverage(missing, blank, lines)
-    print(f"wrote {map_path}")
-
-
 def cmd_retext(a):
     code_path = Path(a.code_file).resolve()
     map_path, data = load_existing(code_path)
-    lines = code_path.read_text().splitlines()
-    spans = block_spans(code_path, lines)
+    if code_path.is_dir():
+        lines, spans, folder = [], {}, code_path
+    else:
+        lines = code_path.read_text().splitlines()
+        spans = block_spans(code_path, lines)
+        folder = code_path.parent
     entry = next((e for e in data["explanations"] if e["id"] == a.id), None)
     if entry is None:
         sys.exit(f"no entry {a.id} in {map_path.name}")
     text = read_text_arg(a)
     need = needed_words(data, a.id)
     try:
-        anchors = build_anchors(text, data, spans, a.id)
+        anchors = build_anchors(text, data, spans, a.id, folder)
+        if code_path.is_dir():
+            project_pins(anchors)
         gone = need - {x["words"] for x in anchors}
         assert not gone, f"[RETEXT-ANCHORS] other entries point at the anchors {sorted(gone)}; " \
                          "the new text must keep them"
@@ -454,30 +496,38 @@ def cmd_undo(a):
     if kids:
         sys.exit(f"entries {kids} point at entry {last['id']} through anchors; undo them first")
     data["explanations"].pop()
-    lines = code_path.read_text().splitlines()
+    lines = [] if code_path.is_dir() else code_path.read_text().splitlines()
     missing, blank = recompute(data, lines)
     map_path.write_text(json.dumps(data, indent=2) + "\n")
-    print(f"removed entry {last['id']}: {last['block']}, lines {fmt(expand(last['block_lines']))}")
-    print_coverage(missing, blank, lines)
+    tail = "" if code_path.is_dir() else f", lines {fmt(expand(last['block_lines']))}"
+    print(f"removed entry {last['id']}: {last['block']}{tail}")
+    if not code_path.is_dir():
+        print_coverage(missing, blank, lines)
     print(f"wrote {map_path}")
 
 
 def cmd_show(a):
     code_path = Path(a.code_file).resolve()
-    lines = code_path.read_text().splitlines()
-    map_path = code_path.parent / f"explanation_{code_path.name}.json"
+    map_path = map_path_of(code_path)
     if not map_path.exists():
         print(f"no map file at {map_path}")
+        if code_path.is_dir():
+            for w in dup_warnings(code_path):
+                print(f"warning: {w}")
         return
     data = json.loads(map_path.read_text())
     guard_structure(data, map_path)
-    spans = block_spans(code_path, lines)
+    is_dir = code_path.is_dir()
+    lines = [] if is_dir else code_path.read_text().splitlines()
+    spans = {} if is_dir else block_spans(code_path, lines)
+    folder = code_path if is_dir else code_path.parent
     warnings = []
     for e in data["explanations"]:
         tail = ""
         if e.get("stale"):
             tail = f"  stale (explanation {e['stale']['parent']} changed)"
-        print(f"{e['id']:3}  {e['block']:<24} {fmt(expand(e['block_lines'])):<14} "
+        where = fmt(expand(e["block_lines"])) or "-"
+        print(f"{e['id']:3}  {e['block']:<24} {where:<14} "
               f"{len(e.get('anchors', []))} anchors{tail}")
         derived = [m.group(1).strip() for m in ANCHOR_RE.finditer(e["text"])]
         stored = [x["words"] for x in e.get("anchors", [])]
@@ -485,7 +535,20 @@ def cmd_show(a):
             warnings.append(f"entry {e['id']}: the anchors in the text do not match the stored anchors; "
                             f"rebuild the entry with dmap retext")
         for x in e.get("anchors", []):
-            if "block" in x:
+            if "file" in x:
+                fp = folder / x["file"]
+                if not fp.is_file():
+                    warnings.append(f"entry {e['id']}: the anchor {x['words']!r} names the file "
+                                    f"{x['file']!r}, which is not in the folder")
+                elif "block" in x:
+                    fspans = block_spans(fp, fp.read_text().splitlines())
+                    if x["block"] not in fspans:
+                        warnings.append(f"entry {e['id']}: the anchor {x['words']!r} names the block "
+                                        f"{x['block']!r}, which is not in {x['file']}; run dmap sync")
+                    elif x.get("lines") != [list(fspans[x["block"]])]:
+                        warnings.append(f"entry {e['id']}: the anchor {x['words']!r} holds old lines "
+                                        f"for {x['file']}:{x['block']}; run dmap sync")
+            elif "block" in x:
                 if x["block"] not in spans:
                     warnings.append(f"entry {e['id']}: the anchor {x['words']!r} names the block "
                                     f"{x['block']!r}, which is not in the file; run dmap sync")
@@ -497,16 +560,30 @@ def cmd_show(a):
                 if not parent or x["anchor"] not in {y["words"] for y in parent.get("anchors", [])}:
                     warnings.append(f"entry {e['id']}: the anchor {x['words']!r} points at "
                                     f"e{x['explanation']}:{x['anchor']}, which does not exist")
-        if e["block"] != code_path.name and e["block"] not in spans:
+        if not is_dir and e["block"] != code_path.name and e["block"] not in spans:
             warnings.append(f"entry {e['id']}: the block {e['block']!r} is not in the file; run dmap sync")
+    if not is_dir and code_path.suffix == ".py":
+        whole = next((e for e in data["explanations"] if e["block"] == code_path.name), None)
+        if whole:
+            pinned = {x.get("file") for x in whole.get("anchors", [])}
+            for nm in sorted(import_names(lines)):
+                f = f"{nm}.py"
+                if (folder / f).is_file() and (folder / f"explanation_{f}.json").exists() and f not in pinned:
+                    warnings.append(f"{code_path.name} imports {f} but entry {whole['id']} "
+                                    f"has no pin to it")
+    if is_dir:
+        warnings += dup_warnings(code_path)
     for w in warnings:
         print(f"warning: {w}")
-    missing, blank = recompute(data, lines)
-    print_coverage(missing, blank, lines)
+    if not is_dir:
+        missing, blank = recompute(data, lines)
+        print_coverage(missing, blank, lines)
 
 
 def cmd_lines(a):
     code_path = Path(a.code_file).resolve()
+    if code_path.is_dir():
+        sys.exit("a folder has no lines")
     print(numbered(code_path.read_text().splitlines()))
 
 
@@ -547,26 +624,40 @@ def entry_lines_set(e):
     return s
 
 
-def re_resolve(data, code_name, spans, n):
+def refresh_file_anchor(x, eid, folder):
+    fp = folder / x["file"]
+    if not fp.is_file():
+        return [(eid, x["file"])]
+    if "block" in x:
+        fspans = block_spans(fp, fp.read_text().splitlines())
+        if x["block"] not in fspans:
+            return [(eid, f"{x['file']}:{x['block']}")]
+        x["lines"] = [list(fspans[x["block"]])]
+    return []
+
+
+def re_resolve(data, code_name, spans, n, folder):
     broken = []
     for e in data["explanations"]:
         if e["block"] == code_name:
-            e["block_lines"] = [[1, n]]
+            if n:
+                e["block_lines"] = [[1, n]]
         elif e["block"] in spans:
             e["block_lines"] = [list(spans[e["block"]])]
         else:
             broken.append((e["id"], e["block"]))
         for x in e.get("anchors", []):
-            if "block" not in x:
-                continue
-            if x["block"] in spans:
-                x["lines"] = [list(spans[x["block"]])]
-            else:
-                broken.append((e["id"], x["block"]))
+            if "file" in x:
+                broken += refresh_file_anchor(x, e["id"], folder)
+            elif "block" in x:
+                if x["block"] in spans:
+                    x["lines"] = [list(spans[x["block"]])]
+                else:
+                    broken.append((e["id"], x["block"]))
     return broken
 
 
-def rebuild_all(trial, code_name, spans, n, texts, blocks, cand):
+def rebuild_all(trial, code_name, spans, n, folder, texts, blocks, cand):
     for e in sorted(trial["explanations"], key=lambda x: x["id"]):
         newb = blocks.get(str(e["id"]))
         if newb is not None:
@@ -582,7 +673,7 @@ def rebuild_all(trial, code_name, spans, n, texts, blocks, cand):
             assert newt.strip(), f"[SYNC-TEXTS] the text of entry {e['id']} is empty"
             e["text"] = newt.strip()
         try:
-            anchors = build_anchors(e["text"], trial, spans, e["id"])
+            anchors = build_anchors(e["text"], trial, spans, e["id"], folder)
         except AssertionError as err:
             raise AssertionError(f"in the text of entry {e['id']}: {err}") from None
         need = needed_words(trial, e["id"])
@@ -629,7 +720,7 @@ def repair_stale(a, code_path, map_path, data, lines, spans):
         t = (m.get("text") or "").strip()
         try:
             assert t, "[STALE-TEXT] the answer needs the full dependent text"
-            anchors = build_anchors(t, data, spans, entry["id"])
+            anchors = build_anchors(t, data, spans, entry["id"], code_path.parent)
             gone = need - {x["words"] for x in anchors}
             assert not gone, f"[STALE-ANCHORS] other entries point at the anchors {sorted(gone)}; " \
                              "the text must keep them"
@@ -662,6 +753,17 @@ def repair_stale(a, code_path, map_path, data, lines, spans):
 def cmd_sync(a):
     code_path = Path(a.code_file).resolve()
     map_path, data = load_existing(code_path)
+    if code_path.is_dir():
+        if a.stale is not None:
+            sys.exit("a project map has no stale entries")
+        broken = re_resolve(data, code_path.name, {}, 0, code_path)
+        map_path.write_text(json.dumps(data, indent=2) + "\n")
+        for eid, name in broken:
+            print(f"entry {eid}: {name!r} is gone; retext the entry")
+        if not broken:
+            print("every pin re-resolved, no claude call")
+        print(f"wrote {map_path}")
+        return
     new_lines = code_path.read_text().splitlines()
     spans = block_spans(code_path, new_lines)
     n = len(new_lines)
@@ -670,13 +772,18 @@ def cmd_sync(a):
         return
     old = old_lines_of(code_path, a.old)
     if old == new_lines:
-        print("nothing changed")
+        broken = re_resolve(data, code_path.name, spans, n, code_path.parent)
+        map_path.write_text(json.dumps(data, indent=2) + "\n")
+        for eid, name in broken:
+            print(f"entry {eid}: {name!r} is gone; retext the entry")
+        print("the file did not change; cross-file pins re-resolved, no claude call")
+        print(f"wrote {map_path}")
         return
     o2n, changed, inserted = line_map(old, new_lines)
     print(f"changed old lines: {fmt(changed) if changed else 'none'}; "
           f"inserted new lines: {fmt(inserted) if inserted else 'none'}")
     cand = {e["id"] for e in data["explanations"] if entry_lines_set(e) & changed}
-    broken = re_resolve(data, code_path.name, spans, n)
+    broken = re_resolve(data, code_path.name, spans, n, code_path.parent)
     broken_ids = {eid for eid, name in broken}
     cand |= broken_ids
     for e in data["explanations"]:
@@ -718,7 +825,7 @@ def cmd_sync(a):
         try:
             assert isinstance(texts, dict) and isinstance(blocks, dict), \
                 "[SYNC-SHAPE] texts and blocks are objects keyed by entry id"
-            rebuild_all(t, code_path.name, spans, n, texts, blocks, cand)
+            rebuild_all(t, code_path.name, spans, n, code_path.parent, texts, blocks, cand)
             trial = t
             break
         except AssertionError as e:
@@ -767,7 +874,7 @@ def main():
     y.add_argument("--stale", type=int)
     y.add_argument("--tries", type=int, default=4)
     a = ap.parse_args()
-    {"map": cmd_map, "retext": cmd_retext, "undo": cmd_undo,
+    {"map": cmd_map.cmd_map, "retext": cmd_retext, "undo": cmd_undo,
      "show": cmd_show, "lines": cmd_lines, "sync": cmd_sync}[a.cmd](a)
 
 

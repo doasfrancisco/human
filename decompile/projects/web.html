@@ -71,7 +71,7 @@ import { FileTree } from "./trees.js";
 
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 var ANCH=/\[([^\[\]]+)\]\(([^()]+)\)/g;
-var projs=[], cur=null, byId={}, blockId={}, order=[], lines=[], ft=null, openSet={};
+var projs=[], cur=null, byId={}, blockId={}, order=[], lines=[], ft=null, openSet={}, openMem={}, notice="";
 var rows=document.getElementById("rows");
 
 function msg(t){var el=document.getElementById("msg");el.hidden=!t;el.textContent=t||"";}
@@ -95,23 +95,20 @@ fetch("projects.json",{cache:"no-store"}).then(function(r){return r.json();}).th
         .catch(function(){return null;});
     })).then(function(fs){
       fs=fs.filter(Boolean);
-      return fs.length?{name:p.name,files:fs}:null;
+      return fetch(p.name+"/human.json",{cache:"no-store"})
+        .then(function(r){return r.ok?r.json():null;})
+        .catch(function(){return null;})
+        .then(function(h){
+          if(h&&Array.isArray(h.explanations)&&h.explanations.length)
+            fs.unshift({file:"human.json",d:h,code:null});
+          return fs.length?{name:p.name,files:fs}:null;
+        });
     });
   }));
 }).then(function(ps){
   projs=ps.filter(Boolean);
   if(!projs.length){msg("no explanations — serve decompile/projects/ and run dmap map");return;}
-  ft=new FileTree({paths:projs[0].files.map(function(f){return f.file;}),initialExpansion:"open",
-    initialSelectedPaths:[projs[0].files[0].file],
-    onSelectionChange:function(){
-      if(!cur) return;
-      var sel=ft.getSelectedPaths()[0];
-      if(!sel||sel===cur.file) return;
-      var f=null;
-      cur.proj.files.forEach(function(x){if(x.file===sel)f=x;});
-      if(f) open(cur.proj,f);
-    }});
-  ft.render({fileTreeContainer:document.getElementById("tree")});
+  buildTree(projs[0],projs[0].files[0].file);
   open(projs[0],projs[0].files[0]);
 }).catch(function(){msg("could not load — serve decompile/projects/ and open /web.html");});
 
@@ -126,17 +123,33 @@ document.getElementById("projlist").addEventListener("click",function(e){
   document.getElementById("projlist").hidden=true;
   var p=projs[+row.getAttribute("data-i")];
   if(!cur||p!==cur.proj){
-    ft.resetPaths(p.files.map(function(f){return f.file;}));
+    buildTree(p,p.files[0].file);
     open(p,p.files[0]);
-    ft.selectPath(p.files[0].file);
   }
 });
+
+function buildTree(p,sel){
+  var box=document.getElementById("tree");
+  if(ft&&ft.cleanUp) ft.cleanUp();
+  box.innerHTML="";
+  ft=new FileTree({paths:p.files.map(function(f){return f.file;}),initialExpansion:"open",
+    initialSelectedPaths:[sel],
+    onSelectionChange:function(){
+      if(!cur) return;
+      var s=ft.getSelectedPaths()[0];
+      if(!s||s===cur.file) return;
+      var f=fileOf(s);
+      if(f) open(cur.proj,f);
+    }});
+  ft.render({fileTreeContainer:box});
+}
 
 function open(p,f){
   cur={proj:p,name:p.name,file:f.file,d:f.d,code:f.code};
   document.getElementById("projname").textContent=p.name;
   lines=f.code?f.code.replace(/\n$/,"").split("\n"):[];
-  byId={}; blockId={}; openSet={};
+  openSet=openMem[p.name+"/"+f.file]=openMem[p.name+"/"+f.file]||{};
+  byId={}; blockId={}; notice="";
   f.d.explanations.forEach(function(e){
     byId[e.id]=e;
     if(!(e.block in blockId)) blockId[e.block]=e.id;
@@ -146,7 +159,20 @@ function open(p,f){
   render();
 }
 
+function fileOf(name){
+  var f=null;
+  if(cur) cur.proj.files.forEach(function(x){if(x.file===name)f=x;});
+  return f;
+}
+
+function crossEntry(fname,bname){
+  var f=fileOf(fname), has=false;
+  if(f) f.d.explanations.forEach(function(e){if(e.block===bname)has=true;});
+  return has;
+}
+
 function targetOf(a){
+  if(a.file) return null;
   if(a.explanation) return byId[a.explanation]?a.explanation:null;
   var t=blockId[a.block];
   return t===undefined?null:t;
@@ -192,7 +218,17 @@ function lineHtml(e,l){
   ANCH.lastIndex=0;
   while((m=ANCH.exec(l))){
     out+=esc(l.slice(last,m.index));
-    var w=m[1].trim(), a=anchorByWords(e,w), t=a?targetOf(a):null;
+    var w=m[1].trim(), a=anchorByWords(e,w);
+    if(a&&a.file){
+      if(fileOf(a.file)&&(!a.block||crossEntry(a.file,a.block)))
+        out+='<span class="anch" data-file="'+esc(a.file)+'"'
+          +(a.block?' data-block="'+esc(a.block)+'"':'')+'>'+esc(m[1])+'</span>';
+      else
+        out+='<span class="anch off">'+esc(m[1])+(a.block?' ('+esc(a.block)+')':'')+'</span>';
+      last=m.index+m[0].length;
+      continue;
+    }
+    var t=a?targetOf(a):null;
     if(t&&t!==e.id)
       out+='<span class="anch" data-kind="'+(a.explanation?"swap":"zoom")+'" data-child="'+t+'">'+esc(m[1])+'</span>';
     else
@@ -208,13 +244,22 @@ function textHtml(e){
 }
 
 function render(){
-  var html="", opened=0;
+  if(!cur.d.explanations.length){
+    var pad=String(lines.length).length;
+    var code=lines.map(function(l,i){return String(i+1).padStart(pad)+"  "+l;}).join("\n");
+    rows.innerHTML='<div class="pill">'+esc(notice||"no map for this file yet")+'</div>'
+      +(lines.length?'<div class="chunk">'+esc(code)+'</div>':"");
+    document.getElementById("head").textContent=cur.name+"/"+cur.file+"  ·  no map";
+    return;
+  }
+  var html=notice?'<div class="pill">'+esc(notice)+'</div>':"", opened=0;
   order.forEach(function(e){
     var on=!!openSet[e.id];
     if(on) opened++;
+    var spans=fmtSpans(e);
     html+='<div class="entry'+(on?'':' folded')+'" data-entry="'+e.id+'">'
       +'<div class="bhead closable" data-fold="'+e.id+'"><span class="caret">'+(on?'▾':'▸')+'</span> '
-      +esc(e.block)+' · '+fmtSpans(e)+'</div>'
+      +esc(e.block)+(spans?' · '+spans:"")+'</div>'
       +'<div class="body">'+textHtml(e)+'</div></div>';
   });
   var bare=(cur.d.not_covered&&cur.d.not_covered.code_lines||[]).length;
@@ -234,7 +279,28 @@ function jump(id){
   setTimeout(function(){el.classList.remove("flash");},900);
 }
 
+function crossJump(fname,bname){
+  var f=fileOf(fname);
+  if(!f) return;
+  open(cur.proj,f);
+  buildTree(cur.proj,fname);
+  if(!f.d.explanations.length){render();return;}
+  var id=null;
+  if(bname){
+    id=blockId[bname];
+    if(id===undefined){notice="no entry for "+bname+" yet";render();return;}
+  }else{
+    f.d.explanations.forEach(function(e){
+      if(e.block===f.file&&(id===null||e.id<id)) id=e.id;
+    });
+    if(id===null&&order.length) id=order[order.length-1].id;
+  }
+  if(id!=null) jump(id);
+}
+
 rows.addEventListener("click",function(ev){
+  var xf=ev.target.closest(".anch[data-file]");
+  if(xf){crossJump(xf.getAttribute("data-file"),xf.getAttribute("data-block"));return;}
   var an=ev.target.closest(".anch[data-child]");
   if(an){jump(+an.getAttribute("data-child"));return;}
   var fd=ev.target.closest(".bhead[data-fold]");

@@ -5,7 +5,7 @@ description: Explain a code file in the flow shape, tie the words to real code w
 
 # decompile-claude
 
-Two operations: **explain** and **map**. The state is one JSON file per code file, `explanation_<file_name>.json`, written next to the code file. The dmap CLI owns that file — never edit it by hand; every operation you need is a dmap command (`map`, `retext`, `undo`, `show`, `lines`, `sync`). The map grows delta by delta: every map run appends one entry and never changes the entries before it.
+Two operations: **explain** and **map**. The state is one JSON file per code file, `explanation_<file_name>.json`, written next to the code file. A project of many files also carries one map of its own, `human.json`, written inside the project folder: one entry whose pins point at the files, so a reader who opens the project has a top. The dmap CLI owns that file — never edit it by hand; every operation you need is a dmap command (`map`, `retext`, `undo`, `show`, `lines`, `sync`). The map grows delta by delta: every map run appends one entry and never changes the entries before it.
 
 ## How the user points at things
 
@@ -17,18 +17,24 @@ An explanation ties itself to real things with inline anchors, written like a Ma
 
 - `[the tool checks](check_entry)` — the words point at a **block** of the code file: a function, a class, a heading of a document, a once-only tag or a named function of a web page.
 - `[the checking](e1:the tool checks)` — the words point at an **anchor of an earlier explanation**: entry 1's anchor whose bracketed words are `the tool checks`.
+- `[the map command](cmd_map.py)` — the words point at **another file of the folder**. In the reader the pin leads to that file's whole-file entry, the front door of the file.
+- `[the check of the pins](cmd_map.py:parse_target)` — the words point at **one block of another file**, for the precise case where the sentence names one exact thing that lives elsewhere.
 
 The rules:
 
 - Anchor the words that name the thing. The rest of the line stays plain text.
 - Anchor words are unique inside one text. Two anchors cannot share the same bracketed words.
 - A block target must be a real block of the file. dmap refuses a dead name.
-- An `e<id>:` target must name an existing entry and existing anchor words inside it. It cannot make a circle.
+- An `e<id>:` target must name an existing entry and existing anchor words inside it. It cannot make a circle. It never crosses a file border — a plainer telling stays inside its file, so a change in one file makes only that file's map stale.
+- A file target must name a real file of the folder; a `file:block` target must also name a real block of that file. A block name of the own file wins over a file name when both exist.
+- The pins of `human.json` are file and `file:block` pins only. dmap refuses the rest.
+- `dmap show` warns when a `.py` file imports another mapped file of the folder and the whole-file entry has no pin to it. It is a warning, not an error — the code holds a connection the map does not show.
+- When code moves to another file, its telling moves with it. The old entry keeps one short stage with a pin to the new file — never the sentences. A sentence lives in one file's map only; every other map points at it. `dmap show <folder>` warns when the same line stands in the maps of two files.
 - Everything else in the text is free. The layout carries no meaning: drawings, arrows, boxes, and rules between groups are all allowed, because the anchors — not the columns — carry the structure.
 
 Layering runs one way: a plainer explanation anchors into a more detailed one with `e<id>:` targets, and holds no line numbers of its own — it inherits them through the chain. The detailed explanation anchors into the code with block targets. So the map reads: explanation → anchor → block → lines.
 
-In the reader, every explanation of a file is one folded header in a single list, the most detailed first and the entry nothing points at last — a zoom on a block sits above the whole-file entry, and a plainer telling that points into the whole-file entry sits below it. A click on a header folds or unfolds that entry. A click on an anchor whose target has an entry jumps to that entry and unfolds it. An anchor with no entry behind it shows muted and does not react.
+In the reader, every explanation of a file is one folded header in a single list, the most detailed first and the entry nothing points at last — a zoom on a block sits above the whole-file entry, and a plainer telling that points into the whole-file entry sits below it. A click on a header folds or unfolds that entry. A click on an anchor whose target has an entry jumps to that entry and unfolds it. An anchor with no entry behind it shows muted and does not react. `human.json` shows as a file in the file tree and opens first. A click on a cross-file pin switches to that file and jumps — to its whole-file entry for a file pin, to the block's entry for a `file:block` pin. A `file:block` pin whose block has no entry yet shows muted with the block name after the words, and does not react. When the target file has no map, a file pin still switches and shows the raw lines under "no map for this file yet".
 
 ## 2. Explain
 
@@ -86,6 +92,7 @@ EOF
 ```
 
 - `--block` is the block the entry explains. Omit it for a whole-file entry — the default is the file itself.
+- `dmap map <folder>` maps the project itself: the entry goes into `<folder>/human.json`, takes no `--block`, and its pins are file and `file:block` pins only. Write one line per file — what the file does, the file name as the pin.
 - The run is deterministic and instant: dmap parses the anchors out of the text, checks every target, refuses duplicates, dead names, and circles, resolves each block anchor to its exact lines, and appends one entry. There is no claude call.
 - Order matters once: an `e<id>:` target must name an entry that already exists, so map the detailed entry before the plainer one that points into it.
 
@@ -115,6 +122,8 @@ dmap sync <code_file>
 - A deterministic pass re-resolves every block anchor and entry span from the new code. A change that only moves lines ends here — no claude call.
 - One claude call then repairs the words of the entries the change touches: it rewrites only the stale lines, keeps every anchor, retargets an anchor whose block was renamed, and renames an entry's block when the code renamed it. Gates check every anchor and retry up to `--tries` (default 4).
 - Entries that point into a repaired entry are marked stale.
+
+`dmap sync <folder>` re-resolves the pins of `human.json` against the folder — no claude call. A pin whose file is gone is reported; repair it with `dmap retext`.
 
 When an **explanation** changed and its dependents are stale:
 

@@ -7,10 +7,10 @@
       "block_lines": [
         [
           1,
-          136
+          145
         ]
       ],
-      "text": "\u25cf  what the skill is                            ([decompile-claude](decompile-claude))\n\u2502     Claude does two things: it abstracts a file, and it maps the\n\u2502     abstraction. The map lives in one record next to the file, and\n\u2502     only the tool writes it. Each map run adds one abstraction and\n\u2502     changes none before it.\n\u2502\n\u25cf  how you point at things             ([how you point](How the user points at things))\n\u2502     You paste words, not numbers. Claude finds which abstraction\n\u2502     the words belong to.\n\u2502\n\u25cf  pins                                                    ([anchors](1. Anchors))\n\u2502     A pin ties a few words to a piece of the file, or to the words\n\u2502     of an earlier abstraction. The rules: pin the name, keep the\n\u2502     words unique, point at real things, make no circle. The rest\n\u2502     of the text is free.\n\u2502\n\u25cf  how claude abstracts                                    ([explain](2. Explain))\n\u2502     Who the reader is: someone who knows the subject, not the code.\n\u2502     The first abstraction covers the whole file. The rules of plain\n\u2502     words: define a word before it is used, say for what a thing\n\u2502     exists, keep the verbs. Show the abstraction, then stop.\n\u2502\n\u25cf  how claude maps                                             ([map](3. Map))\n\u2502     On your word, the text goes to the tool as it is. The tool\n\u2502     checks the pins and adds one abstraction. A detailed one is\n\u2502     mapped before the simpler one that points into it.\n\u2502\n\u25cf  reword and take back                     ([rewrite](4. Rewrite and rollback))\n\u2502     New words for one abstraction, in place, keeping the pins that\n\u2502     others depend on. Undo removes the last one.\n\u2502\n\u25cf  when the file changes                      ([sync](5. Sync after a change))\n\u2502     Once per change. The tool carries the pins to the new lines;\n\u2502     claude mends only the words that went untrue.\n\u2502\n\u25cf  what claude reports                                       ([report](6. Report))\n      The new abstraction, the coverage, the warnings, and the offer\n      of the next one.",
+      "text": "\u25cf  what the skill is                            ([decompile-claude](decompile-claude))\n\u2502     Claude does two things: it abstracts a file, and it maps the\n\u2502     abstraction. The map lives in one record next to the file, and\n\u2502     a folder of files has one record of its own. Only the tool\n\u2502     writes them. Each map run adds one abstraction and changes\n\u2502     none before it.\n\u2502\n\u25cf  how you point at things             ([how you point](How the user points at things))\n\u2502     You paste words, not numbers. Claude finds which abstraction\n\u2502     the words belong to.\n\u2502\n\u25cf  pins                                                    ([anchors](1. Anchors))\n\u2502     A pin ties a few words to a piece of the file, to the words of\n\u2502     an earlier abstraction, or to another file of the folder. The\n\u2502     rules: pin the name, keep the words unique, point at real\n\u2502     things, make no circle. The rest of the text is free.\n\u2502\n\u25cf  how claude abstracts                                    ([explain](2. Explain))\n\u2502     Who the reader is: someone who knows the subject, not the code.\n\u2502     The first abstraction covers the whole file. The rules of plain\n\u2502     words: define a word before it is used, say for what a thing\n\u2502     exists, keep the verbs. Show the abstraction, then stop.\n\u2502\n\u25cf  how claude maps                                             ([map](3. Map))\n\u2502     On your word, the text goes to the tool as it is. The tool\n\u2502     checks the pins and adds one abstraction. A detailed one is\n\u2502     mapped before the simpler one that points into it.\n\u2502\n\u25cf  reword and take back                     ([rewrite](4. Rewrite and rollback))\n\u2502     New words for one abstraction, in place, keeping the pins that\n\u2502     others depend on. Undo removes the last one.\n\u2502\n\u25cf  when the file changes                      ([sync](5. Sync after a change))\n\u2502     Once per change. The tool carries the pins to the new lines;\n\u2502     claude mends only the words that went untrue.\n\u2502\n\u25cf  what claude reports                                       ([report](6. Report))\n      The new abstraction, the coverage, the warnings, and the offer\n      of the next one.",
       "anchors": [
         {
           "words": "decompile-claude",
@@ -18,7 +18,7 @@
           "lines": [
             [
               6,
-              136
+              145
             ]
           ]
         },
@@ -38,7 +38,7 @@
           "lines": [
             [
               14,
-              32
+              38
             ]
           ]
         },
@@ -47,8 +47,8 @@
           "block": "2. Explain",
           "lines": [
             [
-              33,
-              77
+              39,
+              83
             ]
           ]
         },
@@ -57,8 +57,8 @@
           "block": "3. Map",
           "lines": [
             [
-              78,
-              91
+              84,
+              98
             ]
           ]
         },
@@ -67,8 +67,8 @@
           "block": "4. Rewrite and rollback",
           "lines": [
             [
-              92,
-              105
+              99,
+              112
             ]
           ]
         },
@@ -77,8 +77,8 @@
           "block": "5. Sync after a change",
           "lines": [
             [
-              106,
-              126
+              113,
+              135
             ]
           ]
         },
@@ -87,8 +87,8 @@
           "block": "6. Report",
           "lines": [
             [
-              127,
-              136
+              136,
+              145
             ]
           ]
         }
@@ -105,20 +105,17 @@
       13,
       15,
       17,
-      20,
       22,
-      28,
-      30,
-      32,
+      24,
       34,
       36,
+      38,
       40,
       42,
-      44,
       46,
-      59,
-      61,
-      63,
+      48,
+      50,
+      52,
       65,
       67,
       69,
@@ -128,23 +125,27 @@
       77,
       79,
       81,
+      83,
+      85,
       87,
-      91,
       93,
-      95,
-      101,
-      103,
-      105,
-      107,
-      109,
-      113,
-      118,
+      98,
+      100,
+      102,
+      108,
+      110,
+      112,
+      114,
+      116,
       120,
-      124,
-      126,
-      128,
-      130,
-      135
+      125,
+      127,
+      129,
+      133,
+      135,
+      137,
+      139,
+      144
     ]
   }
 }
