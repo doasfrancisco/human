@@ -1,0 +1,5 @@
+A human skill that creates shapes for the human compiler. puts it into compiler/shapes/.
+
+It's invoked when an abstraction shape didn't sufficiently explain. And it required input on what would an ideal shape would've looked. Each shape comes with rules and a general example so it's easier to understand when to use.
+
+The input compares to the current shapes on the folder, its rules and the example and takes a decision on whether to add a new shape. add or modify rules or modify the example. So the next time the decompiler or compiler has to use a shape it manages to get closer to the perfect abstraction.

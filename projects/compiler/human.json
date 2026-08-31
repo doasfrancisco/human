@@ -5,7 +5,7 @@
       "id": 1,
       "block": "compiler",
       "block_lines": [],
-      "text": "[the tool](decompiler.py)             the commands you can ask for \u2014 save, show,\n                                reword, undo, sync \u2014 and every shared rule\n                                a pin must pass\n[the map command](cmd_map.py)   how one abstraction is saved: numbered,\n                                checked, tied to its exact lines\n[the front door](human.py)      the one command, human, that takes every ask\n                                and guards your words on the way in\n[the skill](SKILL.md)           the instructions claude follows when it\n                                writes and maps an abstraction\n[the promotion](PROMOTION.md)   the run that carries a changed source\n                                to its showcase twin\n[the reader](web.html)          the page that draws the abstractions, one\n                                folded header per entry",
+      "text": "[the tool](decompiler.py)             the commands you can ask for \u2014 save, show,\n                                reword, undo, sync \u2014 and every shared rule\n                                a pin must pass\n[the map command](cmd_map.py)   how one abstraction is saved: numbered,\n                                checked, tied to its exact lines\n[the front door](human.py)      the one command, human, that takes every ask\n                                and guards your words on the way in\n[the deployer](deploy.py)       the run that installs the skills, the shape\n                                catalog riding inside each\n[the decompile skill](skills/decompile/SKILL.md)   the instructions claude follows\n                                when it writes and maps an abstraction\n[the compile skill](skills/human/SKILL.md)   the instructions claude follows when\n                                it turns your abstraction into a project\n[the shapes skill](skills/shapes/SKILL.md)   the only door into the shape catalog;\n                                it changes a shape on your word\n[the shapes](shapes/README.md)  the catalog of validated shapes a telling\n                                may take\n[the promotion](PROMOTION.md)   the run that carries a change here to its\n                                public twin\n[the reader](web.html)          the page that draws the abstractions, one\n                                folded header per entry",
       "anchors": [
         {
           "words": "the tool",
@@ -20,8 +20,24 @@
           "file": "human.py"
         },
         {
-          "words": "the skill",
-          "file": "SKILL.md"
+          "words": "the deployer",
+          "file": "deploy.py"
+        },
+        {
+          "words": "the decompile skill",
+          "file": "skills/decompile/SKILL.md"
+        },
+        {
+          "words": "the compile skill",
+          "file": "skills/human/SKILL.md"
+        },
+        {
+          "words": "the shapes skill",
+          "file": "skills/shapes/SKILL.md"
+        },
+        {
+          "words": "the shapes",
+          "file": "shapes/README.md"
         },
         {
           "words": "the promotion",

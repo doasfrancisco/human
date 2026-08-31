@@ -1,0 +1,35 @@
+{
+  "code_file": "README.md",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "README.md",
+      "block_lines": [
+        [
+          1,
+          8
+        ]
+      ],
+      "text": "\u25cf  a shape gets picked                                 ([the catalog](Shapes))\n      One folder holds every validated shape, one file\n      per shape with its rules and one example.\n      The table says when each shape fits, so the\n      picking is a look, not a guess.\n      Only the shapes skill writes this folder;\n      everything else reads it.",
+      "anchors": [
+        {
+          "words": "the catalog",
+          "block": "Shapes",
+          "lines": [
+            [
+              1,
+              8
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": [
+      2,
+      4
+    ]
+  }
+}

@@ -7,10 +7,10 @@
       "block_lines": [
         [
           1,
-          26
+          33
         ]
       ],
-      "text": "[the promise](PROMOTION),   what a run of this file must leave behind:\n                            every changed source standing in its showcase twin\n[the pairs](The pairs),     which source file lands on which twin, one line each\n[the run](The run),         the four steps that carry one change over \u2014\n                            save the old twin, copy, sync once, look",
+      "text": "\u25cf  a change wants to reach its twin                 ([the promise](PROMOTION))\n  \u2502     A file changed on one side and its twin still\n  \u2502     shows the old text. The copy runs either way, so\n  \u2502     the public version always matches the showcase.\n  \u2502\n  \u25cf  you find the twin of the changed file            ([the pairs](The pairs))\n  \u2502     One table row per pair: the showcase on the left,\n  \u2502     its public twin on the right.\n  \u2502     A file that is not in the table has no twin and\n  \u2502     stays where it is.\n  \u2502\n  \u25cf  you carry the change over                            ([the run](The run))\n        Five steps, in order: save the old copy, edit and\n        sync the map exactly once against the saved copy,\n        copy the new version over the twin, run the rules\n        of CLAUDE.md, and look at the result.\n        The saved copy exists for one reason: the sync\n        must see the exact last version the map knew.",
       "anchors": [
         {
           "words": "the promise",
@@ -18,7 +18,7 @@
           "lines": [
             [
               1,
-              26
+              33
             ]
           ]
         },
@@ -28,7 +28,7 @@
           "lines": [
             [
               5,
-              16
+              20
             ]
           ]
         },
@@ -37,8 +37,8 @@
           "block": "The run",
           "lines": [
             [
-              17,
-              26
+              21,
+              33
             ]
           ]
         }
@@ -51,10 +51,11 @@
       2,
       4,
       6,
-      16,
-      18,
       20,
-      25
+      22,
+      24,
+      30,
+      32
     ]
   }
 }

@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 SKILLS_SRC = Path(__file__).parent / "skills"
+SHAPES_SRC = Path(__file__).parent / "shapes"
 DESTINATIONS = {
     "claude": Path.home() / ".claude" / "skills",
     "droid": Path.home() / ".factory" / "skills",
@@ -58,6 +59,8 @@ def deploy_skill(name: str):
             shutil.rmtree(dst)
 
         shutil.copytree(src, dst, ignore=shutil.ignore_patterns("*.skill"))
+        if SHAPES_SRC.is_dir():
+            shutil.copytree(SHAPES_SRC, dst / "shapes", dirs_exist_ok=True)
         print(f"{GREEN}Deployed '{name}' -> {dst} [{label}]{RESET}")
 
 
@@ -77,6 +80,9 @@ def diff_skill(name: str):
 
         diffs_found = False
         src_files = {p.relative_to(src) for p in src.rglob("*") if p.is_file() and p.suffix != ".skill"}
+        if SHAPES_SRC.is_dir():
+            src_files.update(Path("shapes") / p.relative_to(SHAPES_SRC)
+                             for p in SHAPES_SRC.rglob("*") if p.is_file())
         dst_files = {p.relative_to(dst) for p in dst.rglob("*") if p.is_file()}
 
         print(f"{label}:")
@@ -90,7 +96,10 @@ def diff_skill(name: str):
             diffs_found = True
 
         for rel in sorted(src_files & dst_files):
-            if (src / rel).read_bytes() != (dst / rel).read_bytes():
+            src_file = src / rel
+            if not src_file.exists():
+                src_file = SHAPES_SRC.parent / rel
+            if src_file.read_bytes() != (dst / rel).read_bytes():
                 print(f"  ~ {rel}  (modified)")
                 diffs_found = True
 

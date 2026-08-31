@@ -10,10 +10,10 @@
           19
         ]
       ],
-      "text": "\u25cf  a call comes in                                   ([the answerer](Hello))\n  \u2502     Somebody opens the address in a browser.\n  \u2502     The answerer takes that one call.\n  \u2502     It is built on python's own kit for machines\n  \u2502     that answer web calls, so it only has to say\n  \u2502     what the answer is.\n  \u2502\n  \u25cf  the words go back                                 ([the answer](do_GET))\n  \u2502     For every page the browser asks for, the same\n  \u2502     words go back: hello world.\n  \u2502     The answer is marked as plain text, and its\n  \u2502     size is said first, so the browser knows\n  \u2502     where the answer ends.\n  \u2502\n  \u25cf  the door opens                                    ([the start](main))\n        The start opens door number 8000 and waits.\n        It answers calls forever, one after the other,\n        until a person stops it.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n        The last two lines run the start only when a\n        person launches this file directly.",
+      "text": "import BaseHTTPRequestHandler, HTTPserver\n\nclass [Hello](Hello)\n    ([answers every call](do_GET) with \"hello world\" as plain text)\n\n[main](main)()\n    serve on port 8000 \"Hello\" forever\n\nif file is launched directly\n    main()",
       "anchors": [
         {
-          "words": "the answerer",
+          "words": "Hello",
           "block": "Hello",
           "lines": [
             [
@@ -23,7 +23,7 @@
           ]
         },
         {
-          "words": "the answer",
+          "words": "answers every call",
           "block": "do_GET",
           "lines": [
             [
@@ -33,7 +33,7 @@
           ]
         },
         {
-          "words": "the start",
+          "words": "main",
           "block": "main",
           "lines": [
             [
@@ -53,17 +53,17 @@
           19
         ]
       ],
-      "text": "an [http server](e1:the answerer) using python that returns [hello world](e1:the answer)",
+      "text": "an [http server](e1:Hello) using python that returns [hello world](e1:answers every call)",
       "anchors": [
         {
           "words": "http server",
           "explanation": 1,
-          "anchor": "the answerer"
+          "anchor": "Hello"
         },
         {
           "words": "hello world",
           "explanation": 1,
-          "anchor": "the answer"
+          "anchor": "answers every call"
         }
       ]
     }

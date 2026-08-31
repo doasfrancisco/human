@@ -80,7 +80,7 @@ fetch("projects.json",{cache:"no-store"}).then(function(r){return r.json();}).th
   return Promise.all((j.projects||[]).map(function(p){
     var names=p.files||(p.file?[p.file]:[]);
     return Promise.all(names.map(function(f){
-      return fetch(p.name+"/explanation_"+f+".json",{cache:"no-store"})
+      return fetch(p.name+"/"+f.replace(/([^\/]+)$/,"explanation_$1.json"),{cache:"no-store"})
         .then(function(r){return r.ok?r.json():null;})
         .then(function(d){
           return fetch(p.name+"/"+f,{cache:"no-store"})

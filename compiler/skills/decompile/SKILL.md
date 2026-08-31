@@ -38,7 +38,7 @@ In the reader, every explanation of a file is one folded header in a single list
 
 ## 2. Explain
 
-When the user asks how a file or a block works, read the file and write the explanation. The shape follows what the explanation covers: the whole file takes the **rail**, a zoom on one block takes the **flow**.
+When the user asks how a file or a block works, read the file and write the explanation. The shape follows what the explanation covers: the whole file takes the **rail**, a zoom on one block takes the **flow**. The folder `shapes/` next to this file is the catalog of validated shapes, each with its rules and one example; when the user has validated another shape for a project — like the skeleton, the file's own structure in plain words — that shape takes the whole-file place there.
 
 **Who the reader is.** Write for a reader who does not read code. The reader knows the domain of the file, not the vocabulary of programming. When the user validates a different level, keep that level for the rest of the session.
 
@@ -105,7 +105,7 @@ The wording rules hold for both shapes:
 
 **The answer is never prose.** Even when the user says "explain simpler", answer with a simpler rail, not with paragraphs. One short read-me line under the text is fine.
 
-**A markdown file.** The blocks of a `.md` file are its headings. The first flow of a document is one line per section — a short label on the left, anchored to the real heading, the section's one job after it. For a document the label ends with a comma in place of the equals sign. Labels stay unique across the whole text.
+**A markdown file.** The blocks of a `.md` file are its headings. A document takes the rail like a code file: one stage per section, the head an act in plain words, the pin at the real heading on the right. The flow stays what it is — the shape of a zoom on one block, never the whole-file shape.
 
 **A web page.** A `.html` file's blocks come from two places: every tag that appears once — `head`, `style`, `body`, `main`, `script` — and every named function inside a `<script>`, nested ones too. A zoom on the look has no bound names, so the grammar shifts: one line per visual role, and say what the reader sees, never how the rule finds its target.
 

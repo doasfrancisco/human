@@ -1,1 +1,1 @@
-{"projects": [{"name": "compiler", "files": ["decompiler.py", "cmd_map.py", "human.py", "SKILL.md", "PROMOTION.md", "web.html"]}, {"name": "hello_server", "files": ["server.py"]}, {"name": "deploy", "file": "deploy.py"}]}
+{"projects": [{"name": "compiler", "files": ["decompiler.py", "cmd_map.py", "human.py", "deploy.py", "PROMOTION.md", "shapes/README.md", "shapes/rail.md", "shapes/skeleton.md", "skills/human/SKILL.md", "skills/decompile/SKILL.md", "skills/shapes/SKILL.md", "web.html"]}, {"name": "hello_server", "files": ["server.py"]}]}

@@ -1,0 +1,101 @@
+{
+  "code_file": "SKILL.md",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "SKILL.md",
+      "block_lines": [
+        [
+          1,
+          96
+        ]
+      ],
+      "text": "\u25cf  you hand over an abstraction                          ([the skill](human))\n  \u2502     You write the telling first, free text, and\n  \u2502     claude writes the code under it.\n  \u2502     One project folder holds the code, your words,\n  \u2502     and the maps that tie both to real lines.\n  \u2502\n  \u25cf  one run makes the project                            ([the run](The run))\n  \u2502     Six steps: keep your words untouched, write the\n  \u2502     code, register the project, map the detailed\n  \u2502     telling, map your words through the gate, report.\n  \u2502     The gate strips the pins and compares the rest\n  \u2502     to your file character for character.\n  \u2502\n  \u25cf  the pins tie words to things                            ([the pins](Pins))\n  \u2502     A few words may point at a block, at an earlier\n  \u2502     entry, or at another file.\n  \u2502     The rules: unique words, real targets, no circle,\n  \u2502     the detailed entry before the plainer one.\n  \u2502\n  \u25cf  the telling takes a shape                    ([the shape](The rail shape))\n  \u2502     Claude's telling picks its shape from the catalog\n  \u2502     beside this skill \u2014 the rail by default.\n  \u2502     Your abstraction takes no shape at all; it stays\n  \u2502     as you wrote it.\n  \u2502\n  \u25cf  the laws hold afterwards                              ([the rules](Rules))\n        Sync runs exactly once per change. A reword of\n        your abstraction goes to abstraction.txt first.\n        A repair may re-pin your words but never\n        change them.",
+      "anchors": [
+        {
+          "words": "the skill",
+          "block": "human",
+          "lines": [
+            [
+              6,
+              96
+            ]
+          ]
+        },
+        {
+          "words": "the run",
+          "block": "The run",
+          "lines": [
+            [
+              10,
+              41
+            ]
+          ]
+        },
+        {
+          "words": "the pins",
+          "block": "Pins",
+          "lines": [
+            [
+              42,
+              58
+            ]
+          ]
+        },
+        {
+          "words": "the shape",
+          "block": "The rail shape",
+          "lines": [
+            [
+              59,
+              90
+            ]
+          ]
+        },
+        {
+          "words": "the rules",
+          "block": "Rules",
+          "lines": [
+            [
+              91,
+              96
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": [
+      5,
+      7,
+      9,
+      11,
+      13,
+      15,
+      17,
+      19,
+      21,
+      27,
+      29,
+      31,
+      37,
+      39,
+      41,
+      43,
+      45,
+      49,
+      51,
+      58,
+      60,
+      62,
+      75,
+      77,
+      86,
+      88,
+      90,
+      92
+    ]
+  }
+}
