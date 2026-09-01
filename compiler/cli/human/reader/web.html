@@ -91,6 +91,7 @@ document.getElementById("menu").addEventListener("click",function(){drawer(!side
 shade.addEventListener("click",function(){drawer(false);});
 
 fetch("human.json",{cache:"no-store"}).then(function(r){return r.json();}).then(function(h){
+  if(h.code_file) document.title="Human · "+h.code_file;
   var names=h.files||[];
   return Promise.all(names.map(function(f){
     return fetch("explanation_"+f.replace(/\//g,"__")+".json",{cache:"no-store"})
