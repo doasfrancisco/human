@@ -7,7 +7,7 @@ Human is the first open source AI programming language that makes it possible to
 Requires [Claude Code](https://claude.com/claude-code) and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-uv tool install git+https://github.com/doasfrancisco/human.git#subdirectory=compiler/cli
+uv tool install humanlang
 human skills          # installs the /human and /decompile skills into ~/.claude/skills
 ```
 

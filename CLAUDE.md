@@ -6,3 +6,4 @@
 4. If you make any changes to a skill under compiler/cli/human/skills/ or to the shapes under compiler/cli/human/shapes/ redeploy with `human skills` after the reinstall.
 5. If you make any changes under compiler/cli/human/reader/ (web.html, trees.js) redeploy in this repo using `human init` after the reinstall.
 6. This repo is its own human project: the maps live in human/ at the root. Run `human sync <file>` exactly once per code change to a mapped file, against the exact last-synced old version (`--old <saved copy>` when it is not git HEAD). A second run against the same --old corrupts the spans.
+7. Never push a tag unless I ask for a PyPI release. $git-push pushes commits only. A release is: bump 0.0.X in pyproject, push, then tag v0.0.X and push the tag.
