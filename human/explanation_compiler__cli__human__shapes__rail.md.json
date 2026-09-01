@@ -1,0 +1,60 @@
+{
+  "code_file": "compiler/cli/human/shapes/rail.md",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "compiler/cli/human/shapes/rail.md",
+      "block_lines": [
+        [
+          1,
+          44
+        ]
+      ],
+      "text": "\u25cf  the shape is named                                      ([the shape](rail))\n  \u2502     The rail tells a whole file, stage by stage,\n  \u2502     from the first thing the user does to the last\n  \u2502     thing the tool writes.\n  \u2502     For a markdown file the stages follow its sections.\n  \u2502\n  \u25cf  the rules bind the telling                            ([the rules](Rules))\n  \u2502     A head is an act with the one who acts in it,\n  \u2502     the pin on its right.\n  \u2502     Under it stand two to four full sentences, the\n  \u2502     purpose said in a sentence of its own.\n  \u2502     No programming words; short lines; a rule line\n  \u2502     before what is not the main run.\n  \u2502\n  \u25cf  one example shows it whole                        ([the example](Example))\n        The hello world server, told as a rail.\n        It exists so a writer copies a working shape\n        instead of rereading the rules.",
+      "anchors": [
+        {
+          "words": "the shape",
+          "block": "rail",
+          "lines": [
+            [
+              1,
+              44
+            ]
+          ]
+        },
+        {
+          "words": "the rules",
+          "block": "Rules",
+          "lines": [
+            [
+              7,
+              18
+            ]
+          ]
+        },
+        {
+          "words": "the example",
+          "block": "Example",
+          "lines": [
+            [
+              19,
+              44
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": [
+      2,
+      4,
+      6,
+      8,
+      18,
+      20,
+      40
+    ]
+  }
+}

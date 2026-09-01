@@ -1,0 +1,71 @@
+{
+  "code_file": "human",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "human",
+      "block_lines": [],
+      "text": "[the tool](compiler/cli/human/decompiler.py)                    the commands you can ask for \u2014 show, reword,\n                                                       undo, sync \u2014 and every shared rule a pin must pass\n[the map command](compiler/cli/human/cmd_map.py)       how one abstraction is saved: numbered,\n                                                       checked, tied to its exact lines\n[the door](compiler/cli/human/__init__.py)             init, serve, and skills \u2014 how a project starts,\n                                                       how it shows, how claude learns the language\n[the decompile skill](compiler/cli/human/skills/decompile/SKILL.md)   the instructions claude follows when it\n                                                       explains code that already exists\n[the human skill](compiler/cli/human/skills/human/SKILL.md)           the instructions claude follows when it\n                                                       compiles an abstraction into code\n[the shape catalog](compiler/cli/human/shapes/README.md)              the validated shapes an abstraction can take\n[the reader](compiler/cli/human/reader/web.html)       the page that draws the abstractions, one\n                                                       folded header per entry\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nFiles ignored\n\nlegacy/\nold versions of the tool, kept for history",
+      "anchors": [
+        {
+          "words": "the tool",
+          "file": "compiler/cli/human/decompiler.py"
+        },
+        {
+          "words": "the map command",
+          "file": "compiler/cli/human/cmd_map.py"
+        },
+        {
+          "words": "the door",
+          "file": "compiler/cli/human/__init__.py"
+        },
+        {
+          "words": "the decompile skill",
+          "file": "compiler/cli/human/skills/decompile/SKILL.md"
+        },
+        {
+          "words": "the human skill",
+          "file": "compiler/cli/human/skills/human/SKILL.md"
+        },
+        {
+          "words": "the shape catalog",
+          "file": "compiler/cli/human/shapes/README.md"
+        },
+        {
+          "words": "the reader",
+          "file": "compiler/cli/human/reader/web.html"
+        }
+      ]
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": []
+  },
+  "files": [
+    "CLAUDE.md",
+    "CONTRIBUTING.md",
+    "IDEAS.md",
+    "NOTES.md",
+    "PG_ESSAY.md",
+    "README.md",
+    "THINGS_TRIED.md",
+    "report_licenses.md",
+    "todo.md",
+    "compiler/cli/pyproject.toml",
+    "compiler/cli/human/__init__.py",
+    "compiler/cli/human/cmd_map.py",
+    "compiler/cli/human/decompiler.py",
+    "compiler/cli/human/reader/trees.js",
+    "compiler/cli/human/reader/web.html",
+    "compiler/cli/human/shapes/README.md",
+    "compiler/cli/human/shapes/rail.md",
+    "compiler/cli/human/shapes/skeleton.md",
+    "compiler/cli/human/skills/decompile/SKILL.md",
+    "compiler/cli/human/skills/human/SKILL.md",
+    "compiler/cli/human/skills/shapes/SKILL.md"
+  ],
+  "ignore": [
+    "legacy/"
+  ]
+}

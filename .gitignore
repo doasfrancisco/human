@@ -1,3 +1,5 @@
+**/human/trees.js
+**/human/web.html
 *.egg-info/
 .claude/
 .env
@@ -8,3 +10,5 @@ bash.exe.stackdump
 build/
 check-sort.png
 graphify-out/
+human/trees.js
+human/web.html

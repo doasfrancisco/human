@@ -1,0 +1,99 @@
+{
+  "code_file": "compiler/cli/human/cmd_map.py",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "compiler/cli/human/cmd_map.py",
+      "block_lines": [
+        [
+          1,
+          78
+        ]
+      ],
+      "text": "\u25cf  the map command lives in this file\n\u2502     When you ask the tool to save an abstraction, everything\n\u2502     below happens here. The shared machinery \u2014 the pieces of\n\u2502     a file, [the checking of every pin](compiler/cli/human/decompiler.py:build_anchors) \u2014\n\u2502     lives in [the tool's main file](compiler/cli/human/decompiler.py), and this\n\u2502     file asks it for those steps.\n\u2502\n\u25cf  the tool picks up what is abstracted already            ([load_map](load_map))\n\u2502     In the project's human folder sits a second file. It\n\u2502     holds every abstraction written so far. On the first\n\u2502     run it is empty.\n\u2502\n\u25cf  the tool finds the lines the abstraction covers      ([entry_span](entry_span))\n\u2502     An abstraction can cover the whole file or one named piece.\n\u2502     Here the tool notes the first and the last line of what\n\u2502     it covers. A name that is not in the file stops the run.\n\u2502\n\u25cf  the tool numbers the abstraction                          ([next_id](next_id))\n\u2502     The first one it ever saved is number 1, the next is\n\u2502     number 2, and so on. The new one gets the next number.\n\u2502     The number is how you point at it later: you say\n\u2502     \"reword number 3\", and the tool knows which one you mean.\n\u2502\n\u25cf  the second file grows                                     ([cmd_map](cmd_map))\n\u2502     With the abstraction, the tool saves three things:\n\u2502         the words, exactly as written\n\u2502         the pins inside those words\n\u2502         for each pin, the lines of code it points at\n\u2502     Then the tool reads the whole file once more and counts\n\u2502     the lines of code that no abstraction points at yet.\n\u2502     It writes all of this into the second file \u2014 the record\n\u2502     in the project's human folder; for cmd_map.py it is named\n\u2502     explanation_compiler__cli__human__cmd_map.py.json. The\n\u2502     code file itself is never touched. Then the tool tells\n\u2502     you what it saved and how many lines are still bare.\n\u2502\n\u25cf  a whole project can carry one abstraction          ([map_project](map_project))\n      When you point the tool at a folder instead of a file,\n      the abstraction goes into human/human.json at the\n      project root. It has no lines of its own. Its pins point\n      at the files of the project \u2014 one line per file, what\n      the file is for. A pin that points anywhere else stops\n      the run.",
+      "anchors": [
+        {
+          "words": "the checking of every pin",
+          "file": "compiler/cli/human/decompiler.py",
+          "block": "build_anchors",
+          "lines": [
+            [
+              314,
+              337
+            ]
+          ]
+        },
+        {
+          "words": "the tool's main file",
+          "file": "compiler/cli/human/decompiler.py"
+        },
+        {
+          "words": "load_map",
+          "block": "load_map",
+          "lines": [
+            [
+              8,
+              13
+            ]
+          ]
+        },
+        {
+          "words": "entry_span",
+          "block": "entry_span",
+          "lines": [
+            [
+              16,
+              21
+            ]
+          ]
+        },
+        {
+          "words": "next_id",
+          "block": "next_id",
+          "lines": [
+            [
+              24,
+              25
+            ]
+          ]
+        },
+        {
+          "words": "cmd_map",
+          "block": "cmd_map",
+          "lines": [
+            [
+              49,
+              78
+            ]
+          ]
+        },
+        {
+          "words": "map_project",
+          "block": "map_project",
+          "lines": [
+            [
+              28,
+              46
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": [
+      4,
+      6,
+      7,
+      14,
+      15,
+      22,
+      23,
+      26,
+      27,
+      47,
+      48
+    ]
+  }
+}

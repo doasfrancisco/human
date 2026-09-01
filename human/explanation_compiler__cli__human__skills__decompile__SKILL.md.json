@@ -1,0 +1,156 @@
+{
+  "code_file": "compiler/cli/human/skills/decompile/SKILL.md",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "compiler/cli/human/skills/decompile/SKILL.md",
+      "block_lines": [
+        [
+          1,
+          180
+        ]
+      ],
+      "text": "\u25cf  what the skill is                                          ([decompile](decompile))\n\u2502     Claude does two things: it abstracts a file, and it maps the\n\u2502     abstraction. The maps live in one folder at the root of the\n\u2502     project, made once, and the project has one record of its own.\n\u2502     Only the tool writes them. Each map run adds one abstraction\n\u2502     and changes none before it.\n\u2502\n\u25cf  how you point at things            ([how you point](How the user points at things))\n\u2502     You paste words, not numbers. Claude finds which abstraction\n\u2502     the words belong to.\n\u2502\n\u25cf  pins                                                        ([anchors](1. Anchors))\n\u2502     A pin ties a few words to a piece of the file, to the words of\n\u2502     an earlier abstraction, or to another file of the project, by\n\u2502     its path. The rules: pin the name, keep the words unique,\n\u2502     point at real things, make no circle. The rest of the text is\n\u2502     free.\n\u2502\n\u25cf  how claude abstracts                                        ([explain](2. Explain))\n\u2502     Who the reader is: someone who knows the subject, not the code.\n\u2502     The first abstraction covers the whole file. The rules of plain\n\u2502     words: define a word before it is used, say for what a thing\n\u2502     exists, keep the verbs. Show the abstraction, then stop.\n\u2502\n\u25cf  how claude maps                                                     ([map](3. Map))\n\u2502     On your word, the text goes to the tool as it is. The tool\n\u2502     checks the pins and adds one abstraction. A detailed one is\n\u2502     mapped before the simpler one that points into it.\n\u2502\n\u25cf  reword and take back                           ([rewrite](4. Rewrite and rollback))\n\u2502     New words for one abstraction, in place, keeping the pins that\n\u2502     others depend on. Undo removes the last one.\n\u2502\n\u25cf  when the file changes                              ([sync](5. Sync after a change))\n\u2502     Once per change. The tool carries the pins to the new lines;\n\u2502     claude mends only the words that went untrue.\n\u2502\n\u25cf  what claude reports                                           ([report](6. Report))\n      The new abstraction, the coverage, the warnings, and the offer\n      of the next one.",
+      "anchors": [
+        {
+          "words": "decompile",
+          "block": "decompile",
+          "lines": [
+            [
+              6,
+              180
+            ]
+          ]
+        },
+        {
+          "words": "how you point",
+          "block": "How the user points at things",
+          "lines": [
+            [
+              10,
+              13
+            ]
+          ]
+        },
+        {
+          "words": "anchors",
+          "block": "1. Anchors",
+          "lines": [
+            [
+              14,
+              38
+            ]
+          ]
+        },
+        {
+          "words": "explain",
+          "block": "2. Explain",
+          "lines": [
+            [
+              39,
+              117
+            ]
+          ]
+        },
+        {
+          "words": "map",
+          "block": "3. Map",
+          "lines": [
+            [
+              118,
+              133
+            ]
+          ]
+        },
+        {
+          "words": "rewrite",
+          "block": "4. Rewrite and rollback",
+          "lines": [
+            [
+              134,
+              147
+            ]
+          ]
+        },
+        {
+          "words": "sync",
+          "block": "5. Sync after a change",
+          "lines": [
+            [
+              148,
+              170
+            ]
+          ]
+        },
+        {
+          "words": "report",
+          "block": "6. Report",
+          "lines": [
+            [
+              171,
+              180
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": [
+      5,
+      7,
+      9,
+      11,
+      13,
+      15,
+      17,
+      22,
+      24,
+      34,
+      36,
+      38,
+      40,
+      42,
+      44,
+      46,
+      61,
+      67,
+      69,
+      78,
+      80,
+      84,
+      89,
+      91,
+      93,
+      103,
+      105,
+      107,
+      109,
+      111,
+      113,
+      115,
+      117,
+      119,
+      121,
+      127,
+      133,
+      135,
+      137,
+      143,
+      145,
+      147,
+      149,
+      151,
+      155,
+      160,
+      162,
+      164,
+      168,
+      170,
+      172,
+      174,
+      179
+    ]
+  }
+}

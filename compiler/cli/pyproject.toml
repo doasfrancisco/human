@@ -1,7 +1,7 @@
 [project]
 name = "human"
-version = "2.0.1"
-description = "One CLI for both directions: decompile code into a telling, or compile a human abstraction into code, with every word tied to real lines"
+version = "3.0.7"
+description = "The human programming language: compile a free-text abstraction into code, or decompile code into a telling, with every word tied to real lines"
 requires-python = ">=3.10"
 dependencies = []
 
@@ -13,4 +13,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["human", "decompiler", "cmd_map"]
+packages = ["human"]
+
+[tool.setuptools.package-data]
+human = ["reader/*", "shapes/*", "skills/*/SKILL.md"]

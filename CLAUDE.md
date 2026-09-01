@@ -1,8 +1,8 @@
 # Project rules
 
 1. Never add comments or docstrings to code unless I explicitly tell you to. This includes module docstrings, class docstrings, function/method docstrings, inline `#` comments, field-level comments, and section-divider comments. Write code with no commentary by default.
-2. projects/compiler mirrors compiler/. Any modification on one side is copied to the other side in the same motion: a change in projects/compiler updates compiler/ exactly.
-3. If you make any changes to the CLI (compiler/cli/*) update the version in compiler/cli/pyproject.toml so reinstalling works and doesn't cache. Reinstall the bumped version with `uv tool install --reinstall .` from compiler/cli.
-4. If you make any changes to a skill under compiler/skills/ redeploy it with `python3 deploy.py --add <skill>` from compiler/.
-5. Only report to me in ASD-STE100 Simplified Technical English.
-6. Run `human sync` exactly once per code change, against the exact last-synced old version (the showcase twin saved before the edit). A second run against the same --old corrupts the spans.
+2. Only report to me in ASD-STE100 Simplified Technical English.
+3. If you make any changes under compiler/cli/ update the version in compiler/cli/pyproject.toml so reinstalling works and doesn't cache. Reinstall the bumped version with `uv tool install --reinstall .` from compiler/cli.
+4. If you make any changes to a skill under compiler/cli/human/skills/ or to the shapes under compiler/cli/human/shapes/ redeploy with `human skills` after the reinstall.
+5. If you make any changes under compiler/cli/human/reader/ (web.html, trees.js) redeploy in this repo using `human init` after the reinstall.
+6. This repo is its own human project: the maps live in human/ at the root. Run `human sync <file>` exactly once per code change to a mapped file, against the exact last-synced old version (`--old <saved copy>` when it is not git HEAD). A second run against the same --old corrupts the spans.
