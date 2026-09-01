@@ -1,15 +1,22 @@
 [project]
-name = "human"
-version = "3.0.7"
+name = "humanlang"
+version = "0.0.1"
 description = "The human programming language: compile a free-text abstraction into code, or decompile code into a telling, with every word tied to real lines"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-*"]
 requires-python = ">=3.10"
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/doasfrancisco/human"
+Repository = "https://github.com/doasfrancisco/human"
 
 [project.scripts]
 human = "human:main"
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]

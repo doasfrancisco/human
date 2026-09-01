@@ -8,6 +8,7 @@
 __pycache__/
 bash.exe.stackdump
 build/
+dist/
 check-sort.png
 graphify-out/
 human/trees.js
