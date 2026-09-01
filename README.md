@@ -11,6 +11,14 @@ uv tool install humanlang
 human skills          # installs the /human and /decompile skills into ~/.claude/skills
 ```
 
+Upgrade to the latest version with:
+
+```bash
+uv tool upgrade humanlang
+human skills          # refresh the installed skills too
+human init            # run in each project to refresh its reader
+```
+
 ## Use
 
 In your project:

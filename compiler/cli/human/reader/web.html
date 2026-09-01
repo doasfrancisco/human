@@ -102,8 +102,7 @@ fetch("human.json",{cache:"no-store"}).then(function(r){return r.json();}).then(
         return {file:f,d:d,code:null};
       });
   })).then(function(fs){
-    if(Array.isArray(h.explanations)&&h.explanations.length)
-      fs.unshift({file:"human.json",d:h,code:null});
+    fs.unshift({file:"human/human.json",d:h,code:null});
     return fs.length?{name:h.code_file||"project",files:fs}:null;
   });
 }).then(function(p){
@@ -147,7 +146,7 @@ function open(p,f){
   msg("");
   drawer(false);
   render();
-  if(f.code===null&&f.file!=="human.json"&&!f.d.explanations.length) loadCode(p,f);
+  if(f.code===null&&!f.d.explanations.length) loadCode(p,f);
 }
 
 function loadCode(p,f){
@@ -251,7 +250,7 @@ function render(){
   if(!cur.d.explanations.length){
     var pad=String(lines.length).length;
     var code=lines.map(function(l,i){return String(i+1).padStart(pad)+"  "+l;}).join("\n");
-    var word=cur.code===null&&cur.file!=="human.json"?"loading the file":"no map for this file yet";
+    var word=cur.code===null?"loading the file":"no map for this file yet";
     rows.innerHTML='<div class="pill">'+esc(notice||word)+'</div>'
       +(lines.length?'<div class="chunk">'+esc(code)+'</div>':"");
     document.getElementById("head").textContent=cur.name+"/"+cur.file+"  ·  no map";
