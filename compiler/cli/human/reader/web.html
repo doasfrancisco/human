@@ -118,7 +118,10 @@ function buildTree(p,sel){
   var box=document.getElementById("tree");
   if(ft&&ft.cleanUp) ft.cleanUp();
   box.innerHTML="";
-  ft=new FileTree({paths:p.files.map(function(f){return f.file;}),initialExpansion:"open",
+  var ex=[], acc="";
+  sel.split("/").slice(0,-1).forEach(function(d){acc=acc?acc+"/"+d:d;ex.push(acc);});
+  ft=new FileTree({paths:p.files.map(function(f){return f.file;}),initialExpansion:"closed",
+    initialExpandedPaths:ex,
     initialSelectedPaths:[sel],
     onSelectionChange:function(){
       if(!cur) return;

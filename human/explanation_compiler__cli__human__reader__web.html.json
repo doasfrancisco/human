@@ -7,7 +7,7 @@
       "block_lines": [
         [
           1,
-          317
+          320
         ]
       ],
       "text": "\u25cf  the page loads the project                           ([script](script))\n\u2502     The page asks for one record, human.json, that names the files\n\u2502     of the project. For every file it then asks for the record of\n\u2502     its abstractions, explanation_<name>.json in the map folder. A\n\u2502     file with no record gets an empty one, so the page still shows\n\u2502     it. The file itself comes only when you open the file. The\n\u2502     human.json is also a record with no file of its own, and it\n\u2502     comes first in the list.\n\u2502\n\u25cf  the page draws the file tree                             ([main](main))\n\u2502     On the left: the project name and its files. A click on a\n\u2502     file opens that file.\n\u2502\n\u25cf  the page opens one file                                  ([open](open))\n\u2502     It keeps the lines of the file and every abstraction, and it\n\u2502     remembers which piece of the file each abstraction is about.\n\u2502     It also remembers which abstractions you left open, so a file\n\u2502     you come back to opens as you left it.\n\u2502\n\u25cf  the page puts the abstractions in order               ([sorted](sorted))\n\u2502     A pin points from one abstraction at another. The abstraction\n\u2502     nobody points at is the most abstract, and it goes last. An\n\u2502     abstraction that a pin points at goes above the one that holds\n\u2502     the pin, and so on upward. Among equals, the one about earlier\n\u2502     lines goes first.\n\u2502\n\u25cf  the page draws the list                              ([render](render))\n\u2502     Every abstraction is one header line: a small arrow, the name\n\u2502     of its piece, and its lines. All start folded the first time.\n\u2502     Under the header the words are drawn exactly as written. A pin\n\u2502     whose target has an abstraction is lit; a pin with none is\n\u2502     muted. The bar on top says how many are open.\n\u2502\n\u25cf  you click                                                ([jump](jump))\n\u2502     A click on a header folds or unfolds that abstraction.\n\u2502     A click on a lit pin scrolls to the abstraction it points at,\n\u2502     unfolds it, and lights it for a moment.\n\u2502\n\u25cf  you cross to another file                      ([crossJump](crossJump))\n      A pin can name a file of the project instead of a piece of\n      this one. A click on it opens that file and goes to the piece\n      the pin names. A pin to a file the project does not hold, or\n      to a piece with no abstraction, is muted and shows the piece\n      name.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  the look of the page                                    ([style](style))\n     Two panes on a quiet ground: the tree on the left, the reader on\n     the right. Text in a typewriter face, so drawings keep their\n     columns. A dark and a light version, chosen by your system. On a\n     narrow screen the tree hides and slides in over the reader.\n\n  small helpers\n     makes text safe to show on a page                        ([esc](esc))\n     shows one line when there is nothing to read              ([msg](msg))\n     opens and hides the tree on a narrow screen        ([drawer](drawer))\n     builds the file tree for one project         ([buildTree](buildTree))\n     asks for the file when you open it             ([loadCode](loadCode))\n     finds a file of the project by name                ([fileOf](fileOf))\n     says if a piece has an abstraction         ([crossEntry](crossEntry))\n     finds which abstraction a pin points at        ([targetOf](targetOf))\n     turns the pins of one line into links          ([lineHtml](lineHtml))",
@@ -18,7 +18,7 @@
           "lines": [
             [
               78,
-              315
+              318
             ]
           ]
         },
@@ -37,8 +37,8 @@
           "block": "open",
           "lines": [
             [
-              133,
-              148
+              136,
+              151
             ]
           ]
         },
@@ -47,8 +47,8 @@
           "block": "sorted",
           "lines": [
             [
-              182,
-              203
+              185,
+              206
             ]
           ]
         },
@@ -57,8 +57,8 @@
           "block": "render",
           "lines": [
             [
-              247,
-              272
+              250,
+              275
             ]
           ]
         },
@@ -67,8 +67,8 @@
           "block": "jump",
           "lines": [
             [
-              274,
-              282
+              277,
+              285
             ]
           ]
         },
@@ -77,8 +77,8 @@
           "block": "crossJump",
           "lines": [
             [
-              284,
-              301
+              287,
+              304
             ]
           ]
         },
@@ -128,7 +128,7 @@
           "lines": [
             [
               117,
-              131
+              134
             ]
           ]
         },
@@ -137,8 +137,8 @@
           "block": "loadCode",
           "lines": [
             [
-              150,
-              161
+              153,
+              164
             ]
           ]
         },
@@ -147,8 +147,8 @@
           "block": "fileOf",
           "lines": [
             [
-              163,
-              167
+              166,
+              170
             ]
           ]
         },
@@ -157,8 +157,8 @@
           "block": "crossEntry",
           "lines": [
             [
-              169,
-              173
+              172,
+              176
             ]
           ]
         },
@@ -167,8 +167,8 @@
           "block": "targetOf",
           "lines": [
             [
-              175,
-              180
+              178,
+              183
             ]
           ]
         },
@@ -177,8 +177,8 @@
           "block": "lineHtml",
           "lines": [
             [
-              217,
-              241
+              220,
+              244
             ]
           ]
         }
@@ -193,21 +193,21 @@
       87,
       92,
       116,
-      132,
-      149,
-      162,
-      168,
-      174,
-      181,
-      204,
-      210,
-      212,
-      216,
-      242,
-      246,
-      273,
-      283,
-      302
+      135,
+      152,
+      165,
+      171,
+      177,
+      184,
+      207,
+      213,
+      215,
+      219,
+      245,
+      249,
+      276,
+      286,
+      305
     ]
   }
 }

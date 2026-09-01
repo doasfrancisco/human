@@ -7,18 +7,18 @@
       "block_lines": [
         [
           1,
-          175
+          183
         ]
       ],
-      "text": "\u25cf  you ask for something                              ([the front door](main))\n  \u2502     You type one line and press enter:\n  \u2502     human map server.py --verbatim abstraction.txt\n  \u2502     The tool reads the line, keeps what you want done\n  \u2502     and which file to do it to, and hands the ask\n  \u2502     to the hand that does that work.\n  \u2502\n  \u25cf  the tool guards your words                          ([the guard](cmd_map_h))\n  \u2502     Your words wait in abstraction.txt, exactly as you typed them.\n  \u2502     The guard takes the telling with the pins in it,\n  \u2502     strips the pins out, and compares what is left\n  \u2502     against your file, character for character.\n  \u2502     One changed word and the tool stops; nothing is written.\n  \u2502\n  \u25cf  the telling goes onto the map                    ([the map run](compiler/cli/human/cmd_map.py))\n        When the words pass, the guard hands the pinned telling\n        to the map run, which ties every pin to real lines\n        and adds one entry to the map of the file.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  the tool finds the code files                      ([the sweep](scan_files))\n     It walks the folder, keeps the files it can read as code,\n     and drops hidden files, build folders, and any folder\n     that already holds a map of its own.\n\n  the tool checks the ignore list                    ([the sieve](is_ignored))\n     It holds a file against the ignore list of the map:\n     a name in the list covers that file, everything under it,\n     and any file whose name fits the name as a pattern.\n\n  the tool signs a project in                         ([the register](cmd_init))\n     You type: human init hello_server.\n     The tool makes a human folder in the project, puts the\n     reader's own files into it, and writes the code files\n     into the book the reader opens: human/human.json.\n\n  the tool sends fresh pages                         ([the fresh copy](FreshHandler))\n     Every file it gives out carries a note that says:\n     do not keep this, ask for it again. So a changed map\n     shows the new words and not the old copy.\n\n  the tool opens the reader                           ([the shelf](cmd_serve))\n     You type: human serve. The tool finds the top of the\n     project and gives its files to a browser on your machine.\n\n  the tool hands the skills out                      ([the giver](cmd_skills))\n     It copies every skill folder, and the shapes with it,\n     into the place where your agent looks for skills.\n\n  every other ask goes to the engine                 ([the engine](compiler/cli/human/decompiler.py))\n     Retext, undo, show, lines, and sync are the engine's work.\n     This file only opens the door and points the way.",
+      "text": "\u25cf  you ask for something                              ([the front door](main))\n  \u2502     You type one line and press enter:\n  \u2502     human map server.py --verbatim abstraction.txt\n  \u2502     The tool reads the line, keeps what you want done\n  \u2502     and which file to do it to, and hands the ask\n  \u2502     to the hand that does that work.\n  \u2502\n  \u25cf  the tool guards your words                          ([the guard](cmd_map_h))\n  \u2502     Your words wait in abstraction.txt, exactly as you typed them.\n  \u2502     The guard takes the telling with the pins in it,\n  \u2502     strips the pins out, and compares what is left\n  \u2502     against your file, character for character.\n  \u2502     One changed word and the tool stops; nothing is written.\n  \u2502\n  \u25cf  the telling goes onto the map                    ([the map run](compiler/cli/human/cmd_map.py))\n        When the words pass, the guard hands the pinned telling\n        to the map run, which ties every pin to real lines\n        and adds one entry to the map of the file.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  the tool finds the code files                      ([the sweep](scan_files))\n     It walks the folder, keeps the files it can read as code,\n     and drops hidden files, build folders, and any folder\n     that already holds a map of its own.\n\n  the tool checks the ignore list                    ([the sieve](is_ignored))\n     It holds a file against the ignore list of the map:\n     a name in the list covers that file, everything under it,\n     and any file whose name fits the name as a pattern.\n\n  the tool signs a project in                         ([the register](cmd_init))\n     You type: human init hello_server.\n     The tool makes a human folder in the project, puts the\n     reader's own files into it, and writes the code files\n     into the book the reader opens: human/human.json.\n\n  the tool sends fresh pages                         ([the fresh copy](FreshHandler))\n     Every file it gives out carries a note that says:\n     do not keep this, ask for it again. So a changed map\n     shows the new words and not the old copy.\n\n  the tool keeps the log quiet                       ([the mute](log_message))\n     It writes no line for the files it gives out. Add --log\n     to the serve command and it writes one line for each ask.\n\n  the tool opens the reader                           ([the shelf](cmd_serve))\n     You type: human serve. The tool finds the top of the\n     project and gives its files to a browser on your machine.\n\n  the tool hands the skills out                      ([the giver](cmd_skills))\n     It copies every skill folder, and the shapes with it,\n     into the place where your agent looks for skills.\n\n  every other ask goes to the engine                 ([the engine](compiler/cli/human/decompiler.py))\n     Retext, undo, show, lines, and sync are the engine's work.\n     This file only opens the door and points the way.",
       "anchors": [
         {
           "words": "the front door",
           "block": "main",
           "lines": [
             [
-              137,
-              171
+              144,
+              179
             ]
           ]
         },
@@ -27,8 +27,8 @@
           "block": "cmd_map_h",
           "lines": [
             [
-              117,
-              134
+              124,
+              141
             ]
           ]
         },
@@ -72,7 +72,17 @@
           "lines": [
             [
               84,
-              87
+              93
+            ]
+          ]
+        },
+        {
+          "words": "the mute",
+          "block": "log_message",
+          "lines": [
+            [
+              91,
+              93
             ]
           ]
         },
@@ -81,8 +91,8 @@
           "block": "cmd_serve",
           "lines": [
             [
-              90,
-              99
+              96,
+              106
             ]
           ]
         },
@@ -91,8 +101,8 @@
           "block": "cmd_skills",
           "lines": [
             [
-              102,
-              114
+              109,
+              121
             ]
           ]
         },
@@ -118,16 +128,18 @@
       55,
       82,
       83,
-      88,
-      89,
-      100,
-      101,
-      115,
-      116,
-      135,
-      136,
-      172,
-      173
+      86,
+      90,
+      94,
+      95,
+      107,
+      108,
+      122,
+      123,
+      142,
+      143,
+      180,
+      181
     ]
   }
 }

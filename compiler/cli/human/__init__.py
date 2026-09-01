@@ -82,13 +82,20 @@ def cmd_init(a):
 
 
 class FreshHandler(SimpleHTTPRequestHandler):
+    verbose = False
+
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache")
         super().end_headers()
 
+    def log_message(self, format, *args):
+        if self.verbose:
+            super().log_message(format, *args)
+
 
 def cmd_serve(a):
     root = decompiler.find_root(Path(a.folder).resolve())
+    FreshHandler.verbose = a.log
     handler = partial(FreshHandler, directory=str(root))
     srv = ThreadingHTTPServer(("0.0.0.0", a.port), handler)
     print(f"serving {root}")
@@ -142,6 +149,7 @@ def main():
     v = sub.add_parser("serve")
     v.add_argument("folder", nargs="?", default=".")
     v.add_argument("--port", type=int, default=8010)
+    v.add_argument("--log", action="store_true")
     k = sub.add_parser("skills")
     k.add_argument("--dest", choices=list(DESTINATIONS) + ["all"], default="claude")
     m = sub.add_parser("map")

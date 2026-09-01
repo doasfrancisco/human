@@ -52,6 +52,7 @@
     "THINGS_TRIED.md",
     "report_licenses.md",
     "todo.md",
+    "compiler/cli/README.md",
     "compiler/cli/pyproject.toml",
     "compiler/cli/human/__init__.py",
     "compiler/cli/human/cmd_map.py",
