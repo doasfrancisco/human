@@ -1,6 +1,6 @@
 ---
 name: decompile
-description: Explain a code file in the rail shape, tie the words to real code with inline anchors, and register each explanation with the human CLI. Use when the user invokes /decompile, asks for a rail-shape or flow-shape explanation of code, or says "map it" / "map this explanation".
+description: Explain a code file in the rail shape, tie the words to real code with inline anchors, and register each explanation with the human CLI. Use when the user invokes /decompile, asks for a rail-shape explanation of code, or says "map it" / "map this explanation".
 ---
 
 # decompile
@@ -38,11 +38,11 @@ In the reader, every explanation of a file is one folded header in a single list
 
 ## 2. Explain
 
-When the user asks how a file or a block works, read the file and write the explanation. The shape follows what the explanation covers: the whole file takes the **rail**, a zoom on one block takes the **flow**. The folder `shapes/` next to this file is the catalog of validated shapes, each with its rules and one example; when the user has validated another shape for a project — like the skeleton, the file's own structure in plain words — that shape takes the whole-file place there.
+When the user asks how a file or a block works, read the file and write the explanation. The shape is the **rail** — for the whole file and for a zoom on one block alike. The folder `shapes/` next to this file is the catalog of validated shapes, each with its rules and one example; when the user has validated another shape for a project — like the skeleton, the file's own structure in plain words — that shape takes the whole-file place there.
 
 **Who the reader is.** Write for a reader who does not read code. The reader knows the domain of the file, not the vocabulary of programming. When the user validates a different level, keep that level for the rest of the session.
 
-**The first explanation of a code file covers the whole file, and its shape is the rail.** Write six to eight stages down a rail: the main run of the file, from the first thing the user does to the last thing the tool writes. Every later explanation is a zoom on one block or a plainer layer over the whole; a plainer layer is a rail too, and its heads point with `e<id>:` at the anchors of the entry below it.
+**The first explanation of a code file covers the whole file, and its shape is the rail.** Write six to eight stages down a rail: the main run of the file, from the first thing the user does to the last thing the tool writes. Every later explanation is a zoom on one block or a plainer layer over the whole. A zoom is a rail too — its stages walk the block's own run, and its pins reach the block and the names inside it. A plainer layer is a rail whose heads point with `e<id>:` at the anchors of the entry below it.
 
 ```
 ●  you ask for something                              ([the start](main))
@@ -76,20 +76,9 @@ The rules of the rail:
 - Keep one kind of file in hand through the whole rail and drop the rest. One real example of what the user types beats a description of what the user may type.
 - Drawings are welcome — an arrow back for a retry loop, an indented block that shows what a line looks like — because the layout carries no meaning. The pins, not the columns, carry the structure.
 
-**A zoom on one block: the flow shape.** For a reader who already walked the rail and asks about one block, write the flow — one line per bound name:
-
-```
-name            = what the step binds, in simple words
-```
-
-- One line per bound name. The left column is the name, anchored to its block.
-- A loop is a header line with indented step lines.
-- A dispatch from a name to a function is a header line with indented cases, not one dense line that names the data structure. Describe what the step does, not the structure that does it.
-- The flow is the shape of a zoom only. When the user asks about the whole file again, go back to the rail.
-
 **The question shape.** When a block is a chain of checks — a gate, a validator — write each check as a question, with its stop error on the right, each question and its answer on one line.
 
-The wording rules hold for both shapes:
+The wording rules hold for every shape:
 
 - Use the real names from the code only inside anchor targets. Do not invent names.
 - Simple words, one idea per line. A dense clause is what makes an explanation hard to follow.
@@ -101,13 +90,13 @@ The wording rules hold for both shapes:
 - A definition states the permission before the constraint. First what the thing may do, then the rule that binds it.
 - When the user says which phrasing made them understand, build the definition from those exact words. Never paraphrase a validated phrasing away.
 
-**Definitions live in place.** When a concept needs a definition, put it at the point where the reader meets it — indented lines under the stage or the flow line. Do not create a separate entry just to hold a definition.
+**Definitions live in place.** When a concept needs a definition, put it at the point where the reader meets it — indented lines under the stage. Do not create a separate entry just to hold a definition.
 
 **The answer is never prose.** Even when the user says "explain simpler", answer with a simpler rail, not with paragraphs. One short read-me line under the text is fine.
 
-**A markdown file.** The blocks of a `.md` file are its headings. A document takes the rail like a code file: one stage per section, the head an act in plain words, the pin at the real heading on the right. The flow stays what it is — the shape of a zoom on one block, never the whole-file shape.
+**A markdown file.** The blocks of a `.md` file are its headings. A document takes the rail like a code file: one stage per section, the head an act in plain words, the pin at the real heading on the right.
 
-**A web page.** A `.html` file's blocks come from two places: every tag that appears once — `head`, `style`, `body`, `main`, `script` — and every named function inside a `<script>`, nested ones too. A zoom on the look has no bound names, so the grammar shifts: one line per visual role, and say what the reader sees, never how the rule finds its target.
+**A web page.** A `.html` file's blocks come from two places: every tag that appears once — `head`, `style`, `body`, `main`, `script` — and every named function inside a `<script>`, nested ones too. A zoom on the look takes one line per visual role — say what the reader sees, never how the rule finds its target.
 
 Run `human lines <code_file>` to see the file with line numbers.
 

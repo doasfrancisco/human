@@ -1,6 +1,6 @@
 [project]
 name = "humanlang"
-version = "0.0.5"
+version = "0.0.7"
 description = "The human programming language: compile a free-text abstraction into code, or decompile code into a telling, with every word tied to real lines"
 readme = "README.md"
 license = "MIT OR Apache-2.0"

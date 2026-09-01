@@ -1,8 +1,10 @@
 import argparse
 import fnmatch
+import ipaddress
 import json
 import os
 import shutil
+import socket
 import sys
 import tempfile
 from functools import partial
@@ -115,6 +117,21 @@ class FreshHandler(SimpleHTTPRequestHandler):
             super().log_message(format, *args)
 
 
+def tailnet_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("100.100.100.100", 1))
+            ip = s.getsockname()[0]
+        finally:
+            s.close()
+    except OSError:
+        return None
+    if ipaddress.ip_address(ip) in ipaddress.ip_network("100.64.0.0/10"):
+        return ip
+    return None
+
+
 def cmd_serve(a):
     root = decompiler.find_root(Path(a.folder).resolve())
     FreshHandler.verbose = a.log
@@ -122,6 +139,9 @@ def cmd_serve(a):
     srv = ThreadingHTTPServer(("0.0.0.0", a.port), handler)
     print(f"serving {root}")
     print(f"http://localhost:{a.port}/human/web.html")
+    tip = tailnet_ip()
+    if tip:
+        print(f"http://{tip}:{a.port}/human/web.html")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
