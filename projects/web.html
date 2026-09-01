@@ -33,7 +33,9 @@
   #treewrap{flex:1;min-height:0;display:flex;flex-direction:column;}
   #tree{flex:1;min-height:0;}
   #reader{flex:1;min-height:0;display:flex;flex-direction:column;}
-  .phead{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--hair);padding:5px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
+  .phead{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--hair);padding:5px 14px;flex-shrink:0;}
+  #head{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #menu{display:none;cursor:pointer;color:var(--faint);font-size:15px;line-height:1;padding:2px 4px;}
   .rows{flex:1;min-height:0;overflow:auto;padding:6px 0;display:grid;grid-auto-rows:min-content;align-content:start;}
   .bhead{font-family:var(--mono);font-size:11px;color:var(--muted);padding:10px 14px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .12s;}
   .bhead.closable{cursor:pointer;}
@@ -50,6 +52,16 @@
   #msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;}
   #msg[hidden]{display:none;}
   #readwrap{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;}
+  #shade{position:fixed;inset:0;z-index:15;background:rgba(0,0,0,.4);}
+  @media (max-width:720px){
+    main{padding:8px;gap:8px;}
+    #menu{display:inline-block;}
+    #side{position:fixed;top:0;bottom:0;left:0;width:min(78vw,300px);z-index:20;background:var(--ground);padding:8px;transform:translateX(-105%);transition:transform .2s;box-shadow:2px 0 12px rgba(0,0,0,.25);}
+    #side.open{transform:none;}
+    .chunk{font-size:12px;line-height:1.55;padding:2px 10px;}
+    .bhead,.phead{padding-left:10px;padding-right:10px;}
+    .pill{padding:6px 10px;}
+  }
 </style>
 </head>
 <body>
@@ -61,11 +73,12 @@
   </div>
   <div id="wrap">
     <div id="readwrap">
-      <section class="pane" id="reader"><div class="phead" id="head"></div><div class="rows" id="rows"></div></section>
+      <section class="pane" id="reader"><div class="phead"><span id="menu">☰</span><span id="head"></span></div><div class="rows" id="rows"></div></section>
       <div id="msg" hidden></div>
     </div>
   </div>
 </main>
+<div id="shade" hidden></div>
 <script type="module">
 import { FileTree } from "./trees.js";
 
@@ -75,6 +88,11 @@ var projs=[], cur=null, byId={}, blockId={}, order=[], lines=[], ft=null, openSe
 var rows=document.getElementById("rows");
 
 function msg(t){var el=document.getElementById("msg");el.hidden=!t;el.textContent=t||"";}
+
+var side=document.getElementById("side"), shade=document.getElementById("shade");
+function drawer(on){side.classList.toggle("open",on);shade.hidden=!on;}
+document.getElementById("menu").addEventListener("click",function(){drawer(!side.classList.contains("open"));});
+shade.addEventListener("click",function(){drawer(false);});
 
 fetch("projects.json",{cache:"no-store"}).then(function(r){return r.json();}).then(function(j){
   return Promise.all((j.projects||[]).map(function(p){
@@ -156,6 +174,7 @@ function open(p,f){
   });
   order=sorted(f.d.explanations);
   msg("");
+  drawer(false);
   render();
 }
 
