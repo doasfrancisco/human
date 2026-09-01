@@ -7,18 +7,18 @@
       "block_lines": [
         [
           1,
-          183
+          205
         ]
       ],
-      "text": "\u25cf  you ask for something                              ([the front door](main))\n  \u2502     You type one line and press enter:\n  \u2502     human map server.py --verbatim abstraction.txt\n  \u2502     The tool reads the line, keeps what you want done\n  \u2502     and which file to do it to, and hands the ask\n  \u2502     to the hand that does that work.\n  \u2502\n  \u25cf  the tool guards your words                          ([the guard](cmd_map_h))\n  \u2502     Your words wait in abstraction.txt, exactly as you typed them.\n  \u2502     The guard takes the telling with the pins in it,\n  \u2502     strips the pins out, and compares what is left\n  \u2502     against your file, character for character.\n  \u2502     One changed word and the tool stops; nothing is written.\n  \u2502\n  \u25cf  the telling goes onto the map                    ([the map run](compiler/cli/human/cmd_map.py))\n        When the words pass, the guard hands the pinned telling\n        to the map run, which ties every pin to real lines\n        and adds one entry to the map of the file.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  the tool finds the code files                      ([the sweep](scan_files))\n     It walks the folder, keeps the files it can read as code,\n     and drops hidden files, build folders, and any folder\n     that already holds a map of its own.\n\n  the tool checks the ignore list                    ([the sieve](is_ignored))\n     It holds a file against the ignore list of the map:\n     a name in the list covers that file, everything under it,\n     and any file whose name fits the name as a pattern.\n\n  the tool signs a project in                         ([the register](cmd_init))\n     You type: human init hello_server.\n     The tool makes a human folder in the project, puts the\n     reader's own files into it, and writes the code files\n     into the book the reader opens: human/human.json.\n\n  the tool opens the reader                           ([the shelf](cmd_serve))\n     You type: human serve. The tool finds the top of the\n     project and gives its files to a browser, fresh on\n     every ask and quiet unless you add --log.\n\n  the tool hands the skills out                      ([the giver](cmd_skills))\n     It copies every skill folder, and the shapes with it,\n     into the place where your agent looks for skills.\n\n  every other ask goes to the engine                 ([the engine](compiler/cli/human/decompiler.py))\n     Retext, undo, show, lines, and sync are the engine's work.\n     This file only opens the door and points the way.",
+      "text": "\u25cf  you ask for something                              ([the front door](main))\n  \u2502     You type one line and press enter:\n  \u2502     human map server.py --verbatim abstraction.txt\n  \u2502     The tool reads the line, keeps what you want done\n  \u2502     and which file to do it to, and hands the ask\n  \u2502     to the hand that does that work.\n  \u2502\n  \u25cf  the tool guards your words                          ([the guard](cmd_map_h))\n  \u2502     Your words wait in abstraction.txt, exactly as you typed them.\n  \u2502     The guard takes the telling with the pins in it,\n  \u2502     strips the pins out, and compares what is left\n  \u2502     against your file, character for character.\n  \u2502     One changed word and the tool stops; nothing is written.\n  \u2502\n  \u25cf  the telling goes onto the map                    ([the map run](compiler/cli/human/cmd_map.py))\n        When the words pass, the guard hands the pinned telling\n        to the map run, which ties every pin to real lines\n        and adds one entry to the map of the file.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  the tool finds the code files                      ([the sweep](scan_files))\n     It walks the folder, keeps the files it can read as code,\n     and drops hidden files, build folders, and any folder\n     that already holds a map of its own.\n\n  the tool checks the ignore list                    ([the sieve](is_ignored))\n     It holds a file against the ignore list of the map:\n     a name in the list covers that file, everything under it,\n     and any file whose name fits the name as a pattern.\n\n  the tool signs a project in                         ([the register](cmd_init))\n     You type: human init hello_server.\n     The tool makes a human folder in the project, puts the\n     reader's own files into it, and writes the code files\n     into the book the reader opens: human/human.json.\n\n  the tool builds the map afresh                        ([the rebuild](fresh_map))\n     It reads the map the project keeps, sweeps the folder\n     again, and keeps only the files the sieve lets through,\n     so a new file shows in the reader without a new init.\n\n  the tool opens the reader                           ([the shelf](cmd_serve))\n     You type: human serve. The tool finds the top of the\n     project and gives its files to a browser, fresh on\n     every ask and quiet unless you add --log.\n\n  the tool hands the skills out                      ([the giver](cmd_skills))\n     It copies every skill folder, and the shapes with it,\n     into the place where your agent looks for skills.\n\n  every other ask goes to the engine                 ([the engine](compiler/cli/human/decompiler.py))\n     Retext, undo, show, lines, and sync are the engine's work.\n     This file only opens the door and points the way.",
       "anchors": [
         {
           "words": "the front door",
           "block": "main",
           "lines": [
             [
-              144,
-              179
+              166,
+              201
             ]
           ]
         },
@@ -27,8 +27,8 @@
           "block": "cmd_map_h",
           "lines": [
             [
-              124,
-              141
+              146,
+              163
             ]
           ]
         },
@@ -67,12 +67,22 @@
           ]
         },
         {
+          "words": "the rebuild",
+          "block": "fresh_map",
+          "lines": [
+            [
+              84,
+              88
+            ]
+          ]
+        },
+        {
           "words": "the shelf",
           "block": "cmd_serve",
           "lines": [
             [
-              96,
-              106
+              118,
+              128
             ]
           ]
         },
@@ -81,8 +91,8 @@
           "block": "cmd_skills",
           "lines": [
             [
-              109,
-              121
+              131,
+              143
             ]
           ]
         },
@@ -97,8 +107,8 @@
       "block": "cmd_serve",
       "block_lines": [
         [
-          96,
-          106
+          118,
+          128
         ]
       ],
       "text": "\u25cf  you open the door                                    ([the shelf](cmd_serve))\n  \u2502     You type: human serve.\n  \u2502     The tool climbs to the top of the project \u2014 the folder\n  \u2502     that holds human/ \u2014 so the command works from any\n  \u2502     folder inside the project.\n  \u2502     Then it takes door 8010 of your machine and stands there.\n  \u2502\n  \u25cf  the browser knocks                             ([the fresh copy](FreshHandler))\n  \u2502     You open http://localhost:8010/human/web.html.\n  \u2502     Each thing on the page \u2014 the reader, the maps, the code \u2014\n  \u2502     is one knock: \"give me this file\".\n  \u2502     The tool hands out only files under the top of the\n  \u2502     project, never anything above it.\n  \u2502\n  \u25cf  every answer says: do not keep me                    ([the note](end_headers))\n  \u2502     The tool marks each file it hands out, so the browser\n  \u2502     asks fresh next time instead of showing an old copy.\n  \u2502     This is why a changed map shows up on a plain reload.\n  \u2502\n  \u25cf  the tool stands at the door until you stop it\n        Ask after ask, it answers. Ctrl-c closes the door.\n        Serving only reads; nothing in the project changes.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  when you want to see the asks                           ([the mute](log_message))\n     human serve --log writes one line per knock.\n     Without it the tool stays silent, because one page load\n     is many knocks and they would flood your screen.\n\n  when a second project wants a door\n     A machine gives each numbered door to one program only,\n     and the first serve holds door 8010. Give the second\n     project its own door: human serve --port 8011, and read\n     it at http://localhost:8011/human/web.html.",
@@ -108,8 +118,8 @@
           "block": "cmd_serve",
           "lines": [
             [
-              96,
-              106
+              118,
+              128
             ]
           ]
         },
@@ -118,8 +128,8 @@
           "block": "FreshHandler",
           "lines": [
             [
-              84,
-              93
+              91,
+              115
             ]
           ]
         },
@@ -128,8 +138,8 @@
           "block": "end_headers",
           "lines": [
             [
-              87,
-              89
+              109,
+              111
             ]
           ]
         },
@@ -138,8 +148,8 @@
           "block": "log_message",
           "lines": [
             [
-              91,
-              93
+              113,
+              115
             ]
           ]
         }
@@ -161,18 +171,21 @@
       55,
       82,
       83,
-      86,
+      89,
       90,
-      94,
-      95,
-      107,
+      93,
       108,
-      122,
-      123,
-      142,
-      143,
-      180,
-      181
+      112,
+      116,
+      117,
+      129,
+      130,
+      144,
+      145,
+      164,
+      165,
+      202,
+      203
     ]
   }
 }

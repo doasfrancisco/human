@@ -81,8 +81,30 @@ def cmd_init(a):
     print(f"read it with: human serve  (from {root})")
 
 
+def fresh_map(root):
+    data = json.loads((root / "human" / "human.json").read_text())
+    patterns = data.get("ignore", [])
+    data["files"] = [f for f in scan_files(root) if not is_ignored(f, patterns)]
+    return data
+
+
 class FreshHandler(SimpleHTTPRequestHandler):
     verbose = False
+
+    def do_GET(self):
+        if self.path.split("?")[0] == "/human/human.json":
+            try:
+                body = json.dumps(fresh_map(Path(self.directory))).encode()
+            except (OSError, ValueError):
+                super().do_GET()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        super().do_GET()
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache")
