@@ -58,6 +58,7 @@
     "compiler/cli/human/__init__.py",
     "compiler/cli/human/cmd_map.py",
     "compiler/cli/human/cmd_project.py",
+    "compiler/cli/human/cmd_store.py",
     "compiler/cli/human/cmd_train.py",
     "compiler/cli/human/cmd_watch.py",
     "compiler/cli/human/decompiler.py",
@@ -74,7 +75,11 @@
     "compiler/cli/human/skills/human/SKILL.md",
     "compiler/cli/human/skills/shapes/SKILL.md",
     "feedback/FEEDBACK.md",
-    "feedback/sessions.json"
+    "feedback/sessions.json",
+    "feedback/lambda/KEYS.md",
+    "feedback/lambda/deploy.sh",
+    "feedback/lambda/handler.py",
+    "feedback/lambda/newkey.sh"
   ],
   "ignore": [
     "legacy/"

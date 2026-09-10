@@ -108,6 +108,7 @@
   <div class="card"><span class="tag">tool</span><div class="path mono">compiler/cli/human/decompiler.py</div><div class="role">Every shared rule: what a block is, what a pin is, the gates, and the commands show, retext, undo, sync. Holds the two letters to claude.</div></div>
   <div class="card"><span class="tag">tool</span><div class="path mono">compiler/cli/human/cmd_map.py</div><div class="role">Saves one entry: numbers it, checks its pins, ties it to its exact lines.</div></div>
   <div class="card"><span class="tag">tool</span><div class="path mono">compiler/cli/human/cmd_train.py</div><div class="role">A training session: opens it, keeps three versions per row, applies the pick, closes it.</div></div>
+  <div class="card"><span class="tag">tool</span><div class="path mono">compiler/cli/human/cmd_store.py</div><div class="role">The training store: the login with a key, and the four calls to the Lambda that keeps the sessions in S3.</div></div>
   <div class="card"><span class="tag">claude reads</span><div class="path mono">skills/decompile/SKILL.md</div><div class="role">How to explain code that exists: the reader, the shape, the pins, the map, the sync.</div></div>
   <div class="card"><span class="tag">claude reads</span><div class="path mono">skills/human/SKILL.md</div><div class="role">How to compile an abstraction into code, then map the code's telling and your own words on top.</div></div>
   <div class="card"><span class="tag">claude reads</span><div class="path mono">skills/shapes/SKILL.md</div><div class="role">The only door into the shape catalog: how a shape enters or changes.</div></div>
@@ -124,7 +125,8 @@
     ├── human.json                     <i>the top: one entry with a pin per file, plus the file list and the ignore list</i>
     ├── explanation_src__app.py.json   <i>the map of one file: its entries, one per abstraction</i>
     ├── web.html · trees.js · feed.html <i>the reader, copied in by init</i>
-    └── training/&lt;session&gt;.json        <i>one training session: the rows, the three versions, the pick</i></div>
+    └── project.json                    <i>the tellings of the whole project</i>
+  the training sessions are not on disk: they live in the training store, an S3 bucket behind a Lambda, one JSON per session under your user id</div>
 
 <h3>One map, read from the top down</h3>
 <div class="layers">
@@ -246,7 +248,7 @@ the rules: mend the words that went wrong, keep every anchor,
   <div class="who you">you</div><div class="step you"><div class="box"><b>swipe and pick</b><div class="sub">sideways for the versions, down for the next file, a comment if you want: "the start explains better how the prompt worked."</div></div></div>
   <div class="who you">you</div><div class="step you"><div class="box"><b>close</b><div class="cmd mono">human train --close</div></div></div>
   <div class="who tool">tool</div><div class="step tool"><div class="box"><b>applies each pick as a retext of the entry, then marks the session finished</b><div class="sub">a row without a pick carries over; the maps never change before the close</div></div></div>
-  <div class="who disk">disk</div><div class="step disk"><div class="box"><b><code>human/training/&lt;session&gt;.json</code></b><div class="sub">the rows, the three versions with their shape tag and history, the pick, the comment, a copy of the code and of the text before — the record the shapes flow reads</div></div></div>
+  <div class="who disk">disk</div><div class="step disk"><div class="box"><b>the training store · <code>sessions/&lt;user&gt;/&lt;session&gt;.json</code> in S3, through the Lambda, with the key of <code>human login</code></b><div class="sub">the rows, the three versions with their shape tag and history, the pick, the comment, a copy of the code and of the text before — the record the shapes flow reads</div></div></div>
 </div>
 
 <h2 id="shapes">Flow 7 · shapes — how the catalog changes</h2>

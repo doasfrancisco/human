@@ -669,10 +669,15 @@ def undo_gate(root, data, name, entry):
         sys.exit(f"entries {kids} point at entry {entry['id']} through anchors; undo them first")
     if name != cmd_project.WORD and cmd_project.pins_into(root, name, entry["id"]):
         sys.exit(f"the project map points at entry {entry['id']} through anchors; retext it first")
-    from . import cmd_train
-    path, session = cmd_train.open_session(root)
+    from . import cmd_store
+    if not cmd_store.credentials():
+        return
+    try:
+        session = cmd_store.open_session()
+    except (cmd_store.Refused, cmd_store.Unreachable) as e:
+        sys.exit(f"the undo cannot check the open training session: {e}")
     rows = [i for i, r in enumerate(session["rows"])
-            if r["file"] == name and r["entry"] == entry["id"] and not r["applied"]] if path else []
+            if r["file"] == name and r["entry"] == entry["id"] and not r["applied"]] if session else []
     if rows:
         sys.exit(f"the open training session holds row {rows[0]} on entry {entry['id']}; close it first")
 

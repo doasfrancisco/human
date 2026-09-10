@@ -99,17 +99,22 @@ function wanted(){
 }
 
 function load(){
-  return fetch("training/",{cache:"no-store"}).then(function(r){return r.json();}).then(function(list){
+  return fetch("training/",{cache:"no-store"}).then(stored).then(function(list){
     sessions=list;
     var id=cur?cur.session_id:wanted();
     if(!id){cur=null;renderEmpty("no session yet — run human train --open");return;}
     if(!sessions.some(function(s){return s.session_id===id;})){cur=null;id=wanted();}
-    return fetch("training/"+id+".json",{cache:"no-store"}).then(function(r){return r.json();}).then(function(d){
+    return fetch("training/"+id+".json",{cache:"no-store"}).then(stored).then(function(d){
       cur=d;
       renderTop();
       renderRows();
     });
-  }).catch(function(){if(!cur)renderEmpty("could not load — run human serve at the project root");});
+  }).catch(function(e){if(!cur)renderEmpty(typeof e==="string"?e:"could not load — run human serve at the project root");});
+}
+
+function stored(r){
+  return r.json().then(function(j){return r.ok?j:Promise.reject(j.error||String(r.status));},
+    function(){return Promise.reject("could not load — run human serve at the project root");});
 }
 
 function renderEmpty(t){

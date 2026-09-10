@@ -10,7 +10,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import cmd_map, cmd_project, cmd_train, cmd_watch, decompiler
+from . import cmd_map, cmd_project, cmd_store, cmd_train, cmd_watch, decompiler
 
 PKG = Path(__file__).parent
 
@@ -61,7 +61,6 @@ def cmd_init(a):
     h.mkdir(exist_ok=True)
     for name in ("web.html", "trees.js", "feed.html"):
         shutil.copy(PKG / "reader" / name, h / name)
-    (h / "training").mkdir(exist_ok=True)
     map_path = h / "human.json"
     if map_path.exists():
         data = json.loads(map_path.read_text())
@@ -115,8 +114,15 @@ class FreshHandler(SimpleHTTPRequestHandler):
             except (OSError, ValueError):
                 super().do_GET()
             return
-        if path == "/human/training/":
-            self.send_json(200, cmd_train.list_sessions(root))
+        m = re.fullmatch(r"/human/training/(?:([^/]+)\.json)?", path)
+        if m:
+            try:
+                out = cmd_store.get_session(m.group(1)) if m.group(1) else cmd_train.list_sessions()
+                self.send_json(200, out)
+            except cmd_store.Refused as e:
+                self.send_json(e.status, {"error": e.message})
+            except cmd_store.Unreachable as e:
+                self.send_json(502, {"error": str(e)})
             return
         if path == "/human/server/queue":
             self.send_json(200, cmd_watch.pending(root))
@@ -250,6 +256,8 @@ def main():
     w.add_argument("--once", action="store_true")
     c = sub.add_parser("ack")
     c.add_argument("seq", type=int)
+    g = sub.add_parser("login")
+    g.add_argument("key")
     a = ap.parse_args()
     if a.cmd in cmd_project.COMMANDS and a.code_file == cmd_project.WORD:
         cmd_project.COMMANDS[a.cmd](a)
@@ -258,7 +266,8 @@ def main():
      "retext": decompiler.cmd_retext, "undo": decompiler.cmd_undo,
      "show": decompiler.cmd_show, "lines": decompiler.cmd_lines,
      "sync": decompiler.cmd_sync, "train": cmd_train.cmd_train,
-     "watch": cmd_watch.cmd_watch, "ack": cmd_watch.cmd_ack}[a.cmd](a)
+     "watch": cmd_watch.cmd_watch, "ack": cmd_watch.cmd_ack,
+     "login": cmd_store.cmd_login}[a.cmd](a)
 
 
 if __name__ == "__main__":

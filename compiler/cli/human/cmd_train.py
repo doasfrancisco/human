@@ -8,7 +8,7 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
-from . import cmd_map, cmd_project, decompiler
+from . import cmd_map, cmd_project, cmd_store, decompiler
 
 SLOTS = ("best", "refinement", "free")
 LOCK = threading.Lock()
@@ -35,46 +35,17 @@ def version(text, shape, old=None):
     return {"text": text, "shape": shape, "at": now(), "history": history}
 
 
-def training_dir(root):
-    return root / "human" / "training"
-
-
-def session_paths(root):
-    d = training_dir(root)
-    if not d.is_dir():
-        return []
-    return sorted(d.glob("*.json"), key=lambda p: p.stem, reverse=True)
-
-
-def load_session(path):
-    return json.loads(path.read_text())
-
-
-def save_session(path, data):
+def save_session(data):
     data["edited"] = now()
-    path.write_text(json.dumps(data, indent=2) + "\n")
+    cmd_store.put_session(data)
 
 
-def open_session(root):
-    d = training_dir(root)
-    d.mkdir(parents=True, exist_ok=True)
-    for p in session_paths(root):
-        data = load_session(p)
-        if not data["finished"]:
-            return p, data
-    return None, None
+def open_session():
+    return cmd_store.open_session()
 
 
-def summary(path, data):
-    rows = data["rows"]
-    return {"session_id": data["session_id"], "created": data["created"],
-            "edited": data["edited"], "finished": data["finished"],
-            "rows": len(rows), "picked": sum(1 for r in rows if r["picked"]),
-            "applied": sum(1 for r in rows if r["applied"])}
-
-
-def list_sessions(root):
-    return [summary(p, load_session(p)) for p in session_paths(root)]
+def list_sessions():
+    return cmd_store.list_sessions()
 
 
 def is_project(code_name):
@@ -132,39 +103,40 @@ def carry_row(root, old, old_sid):
 
 
 def carry(root):
-    paths = session_paths(root)
-    if not paths:
+    sessions = list_sessions()
+    if not sessions:
         return []
-    old = load_session(paths[0])
+    old = cmd_store.get_session(sessions[0]["session_id"])
     rows = [carry_row(root, r, old["session_id"]) for r in old["rows"]
             if not r["picked"] and not r["applied"]]
     return [r for r in rows if r]
 
 
 def cmd_open(root):
-    p, data = open_session(root)
-    if p:
+    data = open_session()
+    if data:
         sys.exit(f"session {data['session_id']} is still open; close it first with human train --close")
     rows = carry(root)
     sid = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2)
-    path = training_dir(root) / f"{sid}.json"
     stamp = now()
-    save_session(path, {"session_id": sid, "created": stamp, "edited": stamp,
-                        "finished": None, "rows": rows})
+    save_session({"session_id": sid, "created": stamp, "edited": stamp,
+                  "finished": None, "rows": rows})
     print(f"session {sid} open" + (f" with {len(rows)} carried rows" if rows else ""))
-    print(f"wrote {path}")
+    print(f"sent to the training store as user {cmd_store.credentials()['user']}")
 
 
 def pick(root, sid, row, slot, comment=None):
-    path = training_dir(root) / f"{sid}.json"
-    if not path.is_file():
-        return 404, f"no session {sid}"
     if slot is not None and slot not in SLOTS:
         return 400, f"picked must be one of {', '.join(SLOTS)} or null"
     if comment is not None and not isinstance(comment, str):
         return 400, "comment must be text or null"
     with LOCK:
-        data = load_session(path)
+        try:
+            data = cmd_store.get_session(sid)
+        except cmd_store.Refused as e:
+            return e.status, e.message
+        except cmd_store.Unreachable as e:
+            return 502, str(e)
         if data["finished"]:
             return 409, f"session {sid} is finished"
         if not isinstance(row, int) or not 0 <= row < len(data["rows"]):
@@ -177,15 +149,24 @@ def pick(root, sid, row, slot, comment=None):
         r["picked"] = slot
         r["comment"] = (comment.strip() or None) if slot and comment else None
         r["edited"] = now()
-        save_session(path, data)
+        try:
+            save_session(data)
+        except cmd_store.Refused as e:
+            return e.status, e.message
+        except cmd_store.Unreachable as e:
+            return 502, str(e)
     return 200, r
 
 
 def refresh_row(root, code_name, eid, old_text, new_text):
-    if new_text == old_text:
+    if new_text == old_text or not cmd_store.credentials():
         return
-    path, session = open_session(root)
-    if not path:
+    try:
+        session = open_session()
+    except (cmd_store.Refused, cmd_store.Unreachable) as e:
+        print(f"warning: the open training session could not follow the retext: {e}")
+        return
+    if not session:
         return
     for i, row in enumerate(session["rows"]):
         if row["file"] != code_name or row["entry"] != eid or row["applied"] or row["level"] != "same":
@@ -198,7 +179,11 @@ def refresh_row(root, code_name, eid, old_text, new_text):
         if followed:
             row["versions"]["refinement"] = version(new_text, None, mid)
         row["edited"] = now()
-        save_session(path, session)
+        try:
+            save_session(session)
+        except (cmd_store.Refused, cmd_store.Unreachable) as e:
+            print(f"warning: the open training session could not follow the retext: {e}")
+            return
         print(f"row {i} of session {session['session_id']} follows the retext: "
               + ("the middle card takes the new text and keeps the old one as v1"
                  if followed else "its reference moves; the rewritten middle card stays"))
@@ -275,8 +260,8 @@ def empty_slots(row):
 def cmd_add(a, root):
     if not a.slot:
         sys.exit("say which version this is: --as best, --as refinement or --as free")
-    path, session = open_session(root)
-    if not path:
+    session = open_session()
+    if not session:
         sys.exit("no open session; start one with human train --open")
     if is_project(a.code_file):
         code_name = a.code_file
@@ -305,7 +290,7 @@ def cmd_add(a, root):
     row["edited"] = now()
     if made:
         session["rows"].append(row)
-    save_session(path, session)
+    save_session(session)
     idx = session["rows"].index(row)
     word = "new row" if made else "row"
     print(f"{word} {idx}: {code_name}, {row['kind']}, {row['level']}"
@@ -320,7 +305,7 @@ def cmd_add(a, root):
     empty = empty_slots(row)
     if empty:
         print(f"empty: {', '.join(empty)}")
-    print(f"wrote {path}")
+    print(f"sent to session {session['session_id']}")
 
 
 def run_with_text(fn, text, **kw):
@@ -349,8 +334,8 @@ def apply_row(root, row):
 
 
 def cmd_close(root):
-    path, session = open_session(root)
-    if not path:
+    session = open_session()
+    if not session:
         sys.exit("no open session")
     order = sorted(range(len(session["rows"])),
                    key=lambda i: (session["rows"][i]["level"] == "below", i))
@@ -375,19 +360,19 @@ def cmd_close(root):
             continue
         row["applied"] = {"entry": eid, "at": now()}
         row["edited"] = now()
-        save_session(path, session)
+        save_session(session)
     rows = session["rows"]
     picked = sum(1 for r in rows if r["picked"])
     if failed:
-        save_session(path, session)
+        save_session(session)
         sys.exit(f"{len(failed)} of {picked} picked rows failed ({', '.join(map(str, failed))}); "
                  f"the session stays open — correct and close again")
     session["finished"] = now()
-    save_session(path, session)
+    save_session(session)
     left = len(rows) - picked
     print(f"session {session['session_id']} finished: {len(rows)} rows, {picked} picked and applied, "
           f"{left} without a pick" + ("; they carry over to the next session" if left else ""))
-    print(f"wrote {path}")
+    print(f"sent to the training store as user {cmd_store.credentials()['user']}")
 
 
 def cmd_train(a):
@@ -395,9 +380,13 @@ def cmd_train(a):
         if a.code_file:
             sys.exit("--open and --close take no file")
         root = decompiler.find_root(Path.cwd())
-        (cmd_open if a.open else cmd_close)(root)
-        return
-    if not a.code_file:
-        sys.exit("give a file, or --open / --close")
-    root = decompiler.find_root(Path.cwd() if is_project(a.code_file) else Path(a.code_file).resolve())
-    cmd_add(a, root)
+        fn, arg = (cmd_open if a.open else cmd_close), root
+    else:
+        if not a.code_file:
+            sys.exit("give a file, or --open / --close")
+        root = decompiler.find_root(Path.cwd() if is_project(a.code_file) else Path(a.code_file).resolve())
+        fn, arg = (lambda r: cmd_add(a, r)), root
+    try:
+        fn(arg)
+    except (cmd_store.Refused, cmd_store.Unreachable) as e:
+        sys.exit(str(e))

@@ -191,7 +191,7 @@ After a retext, an undo, or a sync, report what changed and confirm with `human 
 
 ## 7. Train
 
-`human/training/` holds the sessions, one JSON file each. `human train --open` starts a session; it stays open until `human train --close`. While a session is open, the explain step of §2 writes **the versions** of the same abstraction — two for a new abstraction, three for a sync — and registers them with `human train`, one row per file. The user reads them side by side in the feed — `/human/feed.html` on the same address as the reader — and picks one there. Nothing goes into the map before the close.
+The sessions live in the training store — an S3 bucket behind a Lambda, one JSON object per session under the user's id — and never on disk: every `train` call, the feed, and the pick read and write there. A key names the user; `human login <key>` once per machine writes it to `~/.config/human/credentials.json`, and without it `human train` refuses and says to log in. `human train --open` starts a session; it stays open until `human train --close`. A retext or a sync that makes an open row follow warns and goes on when the store does not answer; an undo that must check the open session refuses instead. While a session is open, the explain step of §2 writes **the versions** of the same abstraction — two for a new abstraction, three for a sync — and registers them with `human train`, one row per file. The user reads them side by side in the feed — `/human/feed.html` on the same address as the reader — and picks one there. Nothing goes into the map before the close.
 
 The versions, in this order:
 

@@ -7,10 +7,10 @@
       "block_lines": [
         [
           1,
-          1068
+          1073
         ]
       ],
-      "text": "import the code reader of python, the line matcher, json, the shell,\n[the map run](compiler/cli/human/cmd_map.py) \u2014 the neighbour that saves one entry \u2014 and\n[the project run](compiler/cli/human/cmd_project.py) \u2014 the neighbour that holds the map of the whole project\n\nANCHOR_RE      = the look of a pin: the words in square brackets, the target in parentheses\nSYNC_PROMPT    = the letter to claude when the code changed: read the whole file, mend the words the change made wrong, and add a sentence for each behaviour the change added\nSTALE_PROMPT   = the letter to claude when the abstractions an entry stands on changed: mend the child's wrong words and carry the new facts down\nPAGE_IMPORT_RE = the look of an import in a web page: a from with a path, or a script with a src\n\n\nfinding the pieces of a file\n\n[block_spans](block_spans)(path, lines)\n    path is the file on disk; lines is its text, one line each.\n    The tool finds every named piece of the file and the lines it covers, so a\n    pin can only point at a real piece. A markdown file gives its headings, a web\n    page its once-only tags and its functions, a python file its functions and\n    classes \u2014 read by python's own reader of code. Any other file has no pieces.\n\n[md_spans](md_spans)(path, lines)\n    Every heading is a piece that runs to the next heading of the same or a\n    higher level. Headings inside a code fence do not count. Two headings with\n    the same words stop the run, because a name must point at one place.\n\n[html_spans](html_spans)(path, lines)\n    The pieces of a web page, from two hands: [the once-only tags](tag_spans) \u2014 a\n    tag that opens once, from its opening line to its closing line \u2014 and the named\n    functions inside every script ([the script regions](script_regions) says where\n    the scripts are). A function with the name of a tag stops the run.\n\n[js_spans](js_spans)(path, lines, regions)\n    regions are the line ranges of the scripts.\n    The tool walks each script, notes where a function starts, and counts the\n    braces line by line ([the brace count](brace_delta), which skips braces inside\n    quotes and after //) to know where it ends. A function named twice stops the run.\n\n\nchecking the pins of a text\n\n[build_anchors](build_anchors)(text, data, spans, self_id, folder)\n    text is one abstraction; data is the map of the file; spans are its pieces;\n    self_id is the entry the text belongs to; folder is the project root.\n    The tool takes the pins one by one. The words must be there and appear once\n    in the text. A pin into the code goes to [the resolving](resolve_code_target);\n    a pin into an earlier abstraction must name an entry that exists, an anchor it\n    holds, and never its own entry. It gives back the list of checked pins, each\n    with its lines. One bad pin stops with the reason.\n\n[parse_target](parse_target)(raw)\n    raw is what stands in the parentheses of a pin.\n    `e3:the start` is a pin into entry 3's anchor; anything else names a piece\n    or a file.\n\n[resolve_code_target](resolve_code_target)(words, raw, spans, folder)\n    A piece of this file wins first. Then `file:piece` \u2014 a piece of another file\n    of the project. Then a file of the project on its own. Anything else stops.\n\n[check_cycle](check_cycle)(data, self_id, anchors)\n    The tool follows the pins into earlier abstractions, and theirs, and stops\n    when the chain comes back to the entry itself. A telling may not stand on\n    itself.\n\n[project_pins](project_pins)(anchors)\n    The pins of the project's own map must all name a file or a piece of a file.\n\n\nthe commands\n\n[cmd_retext](cmd_retext)(a)\n    a is what you typed: the file, the entry id, the text or --text, and\n    --verbatim. You type `human retext file 2 --text words.txt`.\n\n    \u25cf  the tool checks the new text like a new entry\n    \u2502     Every pin real, no two pins with the same words, no circle \u2014 and\n    \u2502     one thing more: every anchor another entry, or the project map,\n    \u2502     points at must still be there.\n    \u2502\n    \u25cf  the tool looks at whose words they are            ([the gate on your words](verbatim_gate))\n    \u2502     With --verbatim the text is yours: the map keeps a copy of it,\n    \u2502     with the pins cut out ([the words without the pins](strip_pins)),\n    \u2502     as the origin. Without it, an entry that already holds your words\n    \u2502     takes new pins but no new word \u2014 one changed character, and the\n    \u2502     tool stops and tells you to say --verbatim.\n    \u2502\n    \u25cf  the text goes in place\n          When a word changed, each entry that points into this one is\n          marked stale, here and in the project map, and the tool names\n          them with the line that mends them\n          ([the word about the project](report_project_stale)). A text\n          that only gained or lost pins marks nobody, and the tool says so.\n          An entry that was stale itself stays stale \u2014 only the repair takes\n          a mark off \u2014 and the tool gives the line that mends it.\n          Last, the open training session: the row that studies this entry\n          [takes a second photo](compiler/cli/human/cmd_train.py:refresh_row)\n          of it, so the feed shows the words the map holds now and keeps\n          the old ones as v1.\n\n[cmd_undo](cmd_undo)(a)\n    The tool removes the last entry of the map, or the entry whose id you\n    name ([the entry that goes](undo_target)); an id no entry carries stops\n    the run. Three things hold an entry back ([the gate](undo_gate)): an\n    entry that others point into stays until they go first; an entry the\n    project map points into stays until you retext the project entry \u2014 the\n    project's own map skips this one; and an entry the open training session\n    still holds a row on stays until you close the session.\n\n[cmd_show](cmd_show)(a)\n    You type `human show file`, or `human show .` for the whole project.\n\n    \u25cf  the tool lists every entry\n    \u2502     Id, piece, lines, pins \u2014 and the marks: the stale mark names every\n    \u2502     explanation the entry waits on ([the stale line](stale_tail)); an\n    \u2502     entry of your own words says so, and when the words were changed\n    \u2502     since you mapped them it says that too, with the line that brings\n    \u2502     them back among the warnings ([the word about your words](verbatim_hint)).\n    \u2502\n    \u25cf  the tool warns\n    \u2502     For every pin that no longer fits its lines, names a piece or a\n    \u2502     file that is gone, or points at an anchor that is gone. For a\n    \u2502     python file it reads [the imported names](import_names) \u2014 plain\n    \u2502     imports and the `from .` ones of the same folder \u2014 and warns when\n    \u2502     a mapped neighbour has no pin in the whole-file entry. For the\n    \u2502     project it adds [the doubled lines](dup_warnings): a line of thirty\n    \u2502     letters or more that stands in the maps of two files, compared with\n    \u2502     pins and punctuation stripped ([the bare line](norm_dup)).\n    \u2502\n    \u25cf  the tool counts\n          How much of the file is covered, and which lines are not.\n\n[cmd_lines](cmd_lines)(a)\n    The file with a number in front of every line.\n\n[cmd_sync](cmd_sync)(a)\n    You type `human sync file`, or `--old copy.py` when the last version does\n    not live in git, or `--stale 3` to mend one dependent entry.\n\n    \u25cf  the tool sees what the change touched\n    \u2502     For the project map it only re-resolves the file pins and reports\n    \u2502     the gone ones. For a file that did not change it re-resolves the\n    \u2502     cross-file pins and stops. Otherwise it holds [the old lines](old_lines_of)\n    \u2502     next to the new ones and sees where each line went ([the line map](line_map)).\n    \u2502\n    \u25cf  the tool names the candidates\n    \u2502     Every entry whose lines ([the lines of an entry](entry_lines_set))\n    \u2502     the change touched, plus every entry whose piece is gone. An entry\n    \u2502     the tool may not reword ([the reword test](rewordable)) \u2014 the\n    \u2502     whole-file entry with no pin into the code \u2014 leaves the list,\n    \u2502     unless its piece is gone.\n    \u2502\n    \u25cf  the tool carries every entry and pin to its new lines    ([the re-resolving](re_resolve))\n    \u2502     With [the refresh of a file pin](refresh_file_anchor) for pins into\n    \u2502     other files. With no candidate it saves and stops \u2014 no claude call.\n    \u2502\n    \u25cf  the tool writes the letter\n    \u2502     The diff, the path of the file to read whole,\n    \u2502     [the line about the neighbours](touched_note) the file imports, the\n    \u2502     pieces, the candidate texts \u2014 each named as your own words when\n    \u2502     they are ([the mark on your words](verbatim_mark)) \u2014, and the anchors\n    \u2502     they must keep.\n    \u2502\n    \u25cf  claude answers, the tool checks                    ([the rebuild](rebuild_all))\n    \u2502     Up to --tries times. Each answer is tried on a copy of the map:\n    \u2502     renamed pieces, new texts, every pin checked, every anchor another\n    \u2502     entry or the project map needs kept. One broken rule goes back to\n    \u2502     claude with its name.\n    \u2502\n    \u25cf  the map is saved\n          The entries that point into a changed one \u2014 in this map and in the\n          project map \u2014 are marked stale, when the words changed and not the\n          pins alone. A text of your own words that the sync reworded gets a\n          warning that names it ([the word when your words moved](warn_reworded)).\n          A candidate that got new lines but kept all its words gets a warning\n          that names [the pieces the new lines fall in](blocks_of).\n\n[repair_stale](repair_stale)(a, code_path, root, map_path, data, lines, spans)\n    \u25cf  the tool gathers the parents\n    \u2502     One stale entry, and for every explanation it waits on the old text,\n    \u2502     the new text and the diff between the two ([the page of one\n    \u2502     parent](parent_note)); a parent that is gone stops the run.\n    \u2502\n    \u25cf  the tool writes the second letter\n    \u2502     The pages, the dependent's text, and the anchors it must keep \u2014 the\n    \u2502     pins of the project map among them. An entry that holds your own\n    \u2502     words adds one rule: the smallest edit, in your voice\n    \u2502     ([the rule about your words](verbatim_rule)).\n    \u2502\n    \u25cf  claude answers, the tool checks\n    \u2502     Up to --tries times; each answer passes the pin checks.\n    \u2502\n    \u25cf  the map is saved\n          Every stale mark goes, and the entry's own dependents, here and in\n          the project map, are marked stale when a word changed. A repair that\n          changed your words is named on the spot.\n\n[ask_claude](ask_claude)(prompt, root)\n    One call to claude with the letter; the answer is read as one JSON object.\n    The letter goes in through the pipe, not on the command line, so a long one\n    is never cut short. The call runs in the project root, so claude can open the\n    files the letter names. A failed call stops the run.\n\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nthe small hands\n\n[numbered](numbered)(lines)                   the lines with a number in front\n[import_names](import_names)(lines)           the names a python file imports\n[sibling_imports](sibling_imports)(code_path, lines, root)\n                                              the files of the project this file imports, from a python\n                                              file or from a web page\n[blocks_of](blocks_of)(lines, spans, code_name)\n                                              the pieces a set of lines falls in\n[touched_note](touched_note)(code_path, old, new, root)\n                                              the letter's line about the neighbours, with the ones the\n                                              change added and removed\n[norm_dup](norm_dup)(line)                    a line with pins and punctuation stripped, lowercase\n[expand](expand)(span_list)                   every line number inside a list of ranges\n[fmt](fmt)(nums)                              line numbers as \"3-5, 9\"\n[children_of](children_of)(data, eid)         the entries that point into entry eid\n[needed_words](needed_words)(data, eid)       the anchors of entry eid that other entries point at\n[stale_notes](stale_notes)(e)                 the stale marks of an entry, always a list\n[add_note](add_note)(e, note)                 adds one stale mark, and not the same one twice\n[mark_children](mark_children)(data, eid, old_text)\n                                              adds a stale mark to the dependents, with the old parent\n                                              text\n[stale_tail](stale_tail)(e, same)             the stale line of the list, naming every explanation\n                                              the entry waits on\n[strip_pins](strip_pins)(text)                a text with every pin cut down to its words\n[origin_of](origin_of)(e)                     your own words as they were mapped, or nothing when the\n                                              entry is not yours\n[reworded](reworded)(e)                       whether your own words changed since they were mapped\n[verbatim_tail](verbatim_tail)(e)             the mark beside an entry of your own words\n[verbatim_hint](verbatim_hint)(e, name)       the warning that brings your words back\n[verbatim_gate](verbatim_gate)(entry, text, flag)\n                                              keeps a copy of your words, or stops a change of them\n[verbatim_mark](verbatim_mark)(e)             the mark on a candidate of your own words in the letter\n[verbatim_rule](verbatim_rule)(e)             the line of the letter that asks for the smallest edit\n[warn_reworded](warn_reworded)(e, before_text, text, by)\n                                              says when a sync or a repair changed your own words\n[parent_note](parent_note)(pid, form, old, new)\n                                              one changed explanation for the letter: the old text, the\n                                              new text and the diff between the two\n[recompute](recompute)(data, lines)           which lines the map covers and which it does not\n[guard_structure](guard_structure)(data, map_path)\n                                              stops on a map of the old kind, and makes a lone stale\n                                              mark a list\n[find_root](find_root)(path)                  the folder at or above path that holds human/human.json\n[rel_name](rel_name)(code_path, root)         the path of a file from the root, like src/app.py\n[map_path_of](map_path_of)(code_path, root)   the map file of a code file: human/explanation_<path>.json,\n                                              the slashes written as __\n[register_file](register_file)(root, rel)     adds a file to the list in human/human.json\n[load_existing](load_existing)(code_path)     the map of a file, or a stop when there is none\n[read_text_arg](read_text_arg)(a)             the text from --text or from the pipe; a stop when empty\n[anchor_counts](anchor_counts)(anchors)       \"7 anchors (5 into the code, 2 into earlier explanations)\"\n[print_coverage](print_coverage)(missing, blank, lines)\n                                              \"covered: 61 of 63 code lines\" and the lines left\n[report_text_diff](report_text_diff)(eid, old, new)\n                                              the changed lines of an entry, - old and + new\n[report_project_stale](report_project_stale)(ids)\n                                              the line that names the entries of the project map now\n                                              stale, and how to mend each\n[undo_target](undo_target)(data, eid)         the entry an undo takes away: the last one, or the one\n                                              you named\n[undo_gate](undo_gate)(root, data, name, entry)\n                                              stops an undo that would leave a dependent, a pin of the\n                                              project map, or an open training row without its entry\n[rewordable](rewordable)(e, code_name)        whether the tool may reword an entry: never the whole-file\n                                              entry with no pin into the code",
+      "text": "import the code reader of python, the line matcher, json, the shell,\n[the map run](compiler/cli/human/cmd_map.py) \u2014 the neighbour that saves one entry \u2014 and\n[the project run](compiler/cli/human/cmd_project.py) \u2014 the neighbour that holds the map of the whole project\n\nANCHOR_RE      = the look of a pin: the words in square brackets, the target in parentheses\nSYNC_PROMPT    = the letter to claude when the code changed: read the whole file, mend the words the change made wrong, and add a sentence for each behaviour the change added\nSTALE_PROMPT   = the letter to claude when the abstractions an entry stands on changed: mend the child's wrong words and carry the new facts down\nPAGE_IMPORT_RE = the look of an import in a web page: a from with a path, or a script with a src\n\n\nfinding the pieces of a file\n\n[block_spans](block_spans)(path, lines)\n    path is the file on disk; lines is its text, one line each.\n    The tool finds every named piece of the file and the lines it covers, so a\n    pin can only point at a real piece. A markdown file gives its headings, a web\n    page its once-only tags and its functions, a python file its functions and\n    classes \u2014 read by python's own reader of code. Any other file has no pieces.\n\n[md_spans](md_spans)(path, lines)\n    Every heading is a piece that runs to the next heading of the same or a\n    higher level. Headings inside a code fence do not count. Two headings with\n    the same words stop the run, because a name must point at one place.\n\n[html_spans](html_spans)(path, lines)\n    The pieces of a web page, from two hands: [the once-only tags](tag_spans) \u2014 a\n    tag that opens once, from its opening line to its closing line \u2014 and the named\n    functions inside every script ([the script regions](script_regions) says where\n    the scripts are). A function with the name of a tag stops the run.\n\n[js_spans](js_spans)(path, lines, regions)\n    regions are the line ranges of the scripts.\n    The tool walks each script, notes where a function starts, and counts the\n    braces line by line ([the brace count](brace_delta), which skips braces inside\n    quotes and after //) to know where it ends. A function named twice stops the run.\n\n\nchecking the pins of a text\n\n[build_anchors](build_anchors)(text, data, spans, self_id, folder)\n    text is one abstraction; data is the map of the file; spans are its pieces;\n    self_id is the entry the text belongs to; folder is the project root.\n    The tool takes the pins one by one. The words must be there and appear once\n    in the text. A pin into the code goes to [the resolving](resolve_code_target);\n    a pin into an earlier abstraction must name an entry that exists, an anchor it\n    holds, and never its own entry. It gives back the list of checked pins, each\n    with its lines. One bad pin stops with the reason.\n\n[parse_target](parse_target)(raw)\n    raw is what stands in the parentheses of a pin.\n    `e3:the start` is a pin into entry 3's anchor; anything else names a piece\n    or a file.\n\n[resolve_code_target](resolve_code_target)(words, raw, spans, folder)\n    A piece of this file wins first. Then `file:piece` \u2014 a piece of another file\n    of the project. Then a file of the project on its own. Anything else stops.\n\n[check_cycle](check_cycle)(data, self_id, anchors)\n    The tool follows the pins into earlier abstractions, and theirs, and stops\n    when the chain comes back to the entry itself. A telling may not stand on\n    itself.\n\n[project_pins](project_pins)(anchors)\n    The pins of the project's own map must all name a file or a piece of a file.\n\n\nthe commands\n\n[cmd_retext](cmd_retext)(a)\n    a is what you typed: the file, the entry id, the text or --text, and\n    --verbatim. You type `human retext file 2 --text words.txt`.\n\n    \u25cf  the tool checks the new text like a new entry\n    \u2502     Every pin real, no two pins with the same words, no circle \u2014 and\n    \u2502     one thing more: every anchor another entry, or the project map,\n    \u2502     points at must still be there.\n    \u2502\n    \u25cf  the tool looks at whose words they are            ([the gate on your words](verbatim_gate))\n    \u2502     With --verbatim the text is yours: the map keeps a copy of it,\n    \u2502     with the pins cut out ([the words without the pins](strip_pins)),\n    \u2502     as the origin. Without it, an entry that already holds your words\n    \u2502     takes new pins but no new word \u2014 one changed character, and the\n    \u2502     tool stops and tells you to say --verbatim.\n    \u2502\n    \u25cf  the text goes in place\n          When a word changed, each entry that points into this one is\n          marked stale, here and in the project map, and the tool names\n          them with the line that mends them\n          ([the word about the project](report_project_stale)). A text\n          that only gained or lost pins marks nobody, and the tool says so.\n          An entry that was stale itself stays stale \u2014 only the repair takes\n          a mark off \u2014 and the tool gives the line that mends it.\n          Last, the open training session: the row that studies this entry\n          [takes a second photo](compiler/cli/human/cmd_train.py:refresh_row)\n          of it, so the feed shows the words the map holds now and keeps\n          the old ones as v1.\n\n[cmd_undo](cmd_undo)(a)\n    The tool removes the last entry of the map, or the entry whose id you\n    name ([the entry that goes](undo_target)); an id no entry carries stops\n    the run. Three things hold an entry back ([the gate](undo_gate)): an\n    entry that others point into stays until they go first; an entry the\n    project map points into stays until you retext the project entry \u2014 the\n    project's own map skips this one; and an entry the open training session\n    still holds a row on stays until you close the session. The session comes\n    from [the training store](compiler/cli/human/cmd_store.py), over the\n    network: a machine with no key lets the undo through without this last\n    look, and a store that refuses or does not answer stops the run.\n\n[cmd_show](cmd_show)(a)\n    You type `human show file`, or `human show .` for the whole project.\n\n    \u25cf  the tool lists every entry\n    \u2502     Id, piece, lines, pins \u2014 and the marks: the stale mark names every\n    \u2502     explanation the entry waits on ([the stale line](stale_tail)); an\n    \u2502     entry of your own words says so, and when the words were changed\n    \u2502     since you mapped them it says that too, with the line that brings\n    \u2502     them back among the warnings ([the word about your words](verbatim_hint)).\n    \u2502\n    \u25cf  the tool warns\n    \u2502     For every pin that no longer fits its lines, names a piece or a\n    \u2502     file that is gone, or points at an anchor that is gone. For a\n    \u2502     python file it reads [the imported names](import_names) \u2014 plain\n    \u2502     imports and the `from .` ones of the same folder \u2014 and warns when\n    \u2502     a mapped neighbour has no pin in the whole-file entry. For the\n    \u2502     project it adds [the doubled lines](dup_warnings): a line of thirty\n    \u2502     letters or more that stands in the maps of two files, compared with\n    \u2502     pins and punctuation stripped ([the bare line](norm_dup)).\n    \u2502\n    \u25cf  the tool counts\n          How much of the file is covered, and which lines are not.\n\n[cmd_lines](cmd_lines)(a)\n    The file with a number in front of every line.\n\n[cmd_sync](cmd_sync)(a)\n    You type `human sync file`, or `--old copy.py` when the last version does\n    not live in git, or `--stale 3` to mend one dependent entry.\n\n    \u25cf  the tool sees what the change touched\n    \u2502     For the project map it only re-resolves the file pins and reports\n    \u2502     the gone ones. For a file that did not change it re-resolves the\n    \u2502     cross-file pins and stops. Otherwise it holds [the old lines](old_lines_of)\n    \u2502     next to the new ones and sees where each line went ([the line map](line_map)).\n    \u2502\n    \u25cf  the tool names the candidates\n    \u2502     Every entry whose lines ([the lines of an entry](entry_lines_set))\n    \u2502     the change touched, plus every entry whose piece is gone. An entry\n    \u2502     the tool may not reword ([the reword test](rewordable)) \u2014 the\n    \u2502     whole-file entry with no pin into the code \u2014 leaves the list,\n    \u2502     unless its piece is gone.\n    \u2502\n    \u25cf  the tool carries every entry and pin to its new lines    ([the re-resolving](re_resolve))\n    \u2502     With [the refresh of a file pin](refresh_file_anchor) for pins into\n    \u2502     other files. With no candidate it saves and stops \u2014 no claude call.\n    \u2502\n    \u25cf  the tool writes the letter\n    \u2502     The diff, the path of the file to read whole,\n    \u2502     [the line about the neighbours](touched_note) the file imports, the\n    \u2502     pieces, the candidate texts \u2014 each named as your own words when\n    \u2502     they are ([the mark on your words](verbatim_mark)) \u2014, and the anchors\n    \u2502     they must keep.\n    \u2502\n    \u25cf  claude answers, the tool checks                    ([the rebuild](rebuild_all))\n    \u2502     Up to --tries times. Each answer is tried on a copy of the map:\n    \u2502     renamed pieces, new texts, every pin checked, every anchor another\n    \u2502     entry or the project map needs kept. One broken rule goes back to\n    \u2502     claude with its name.\n    \u2502\n    \u25cf  the map is saved\n          The entries that point into a changed one \u2014 in this map and in the\n          project map \u2014 are marked stale, when the words changed and not the\n          pins alone. A text of your own words that the sync reworded gets a\n          warning that names it ([the word when your words moved](warn_reworded)).\n          A candidate that got new lines but kept all its words gets a warning\n          that names [the pieces the new lines fall in](blocks_of).\n\n[repair_stale](repair_stale)(a, code_path, root, map_path, data, lines, spans)\n    \u25cf  the tool gathers the parents\n    \u2502     One stale entry, and for every explanation it waits on the old text,\n    \u2502     the new text and the diff between the two ([the page of one\n    \u2502     parent](parent_note)); a parent that is gone stops the run.\n    \u2502\n    \u25cf  the tool writes the second letter\n    \u2502     The pages, the dependent's text, and the anchors it must keep \u2014 the\n    \u2502     pins of the project map among them. An entry that holds your own\n    \u2502     words adds one rule: the smallest edit, in your voice\n    \u2502     ([the rule about your words](verbatim_rule)).\n    \u2502\n    \u25cf  claude answers, the tool checks\n    \u2502     Up to --tries times; each answer passes the pin checks.\n    \u2502\n    \u25cf  the map is saved\n          Every stale mark goes, and the entry's own dependents, here and in\n          the project map, are marked stale when a word changed. A repair that\n          changed your words is named on the spot.\n\n[ask_claude](ask_claude)(prompt, root)\n    One call to claude with the letter; the answer is read as one JSON object.\n    The letter goes in through the pipe, not on the command line, so a long one\n    is never cut short. The call runs in the project root, so claude can open the\n    files the letter names. A failed call stops the run.\n\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nthe small hands\n\n[numbered](numbered)(lines)                   the lines with a number in front\n[import_names](import_names)(lines)           the names a python file imports\n[sibling_imports](sibling_imports)(code_path, lines, root)\n                                              the files of the project this file imports, from a python\n                                              file or from a web page\n[blocks_of](blocks_of)(lines, spans, code_name)\n                                              the pieces a set of lines falls in\n[touched_note](touched_note)(code_path, old, new, root)\n                                              the letter's line about the neighbours, with the ones the\n                                              change added and removed\n[norm_dup](norm_dup)(line)                    a line with pins and punctuation stripped, lowercase\n[expand](expand)(span_list)                   every line number inside a list of ranges\n[fmt](fmt)(nums)                              line numbers as \"3-5, 9\"\n[children_of](children_of)(data, eid)         the entries that point into entry eid\n[needed_words](needed_words)(data, eid)       the anchors of entry eid that other entries point at\n[stale_notes](stale_notes)(e)                 the stale marks of an entry, always a list\n[add_note](add_note)(e, note)                 adds one stale mark, and not the same one twice\n[mark_children](mark_children)(data, eid, old_text)\n                                              adds a stale mark to the dependents, with the old parent\n                                              text\n[stale_tail](stale_tail)(e, same)             the stale line of the list, naming every explanation\n                                              the entry waits on\n[strip_pins](strip_pins)(text)                a text with every pin cut down to its words\n[origin_of](origin_of)(e)                     your own words as they were mapped, or nothing when the\n                                              entry is not yours\n[reworded](reworded)(e)                       whether your own words changed since they were mapped\n[verbatim_tail](verbatim_tail)(e)             the mark beside an entry of your own words\n[verbatim_hint](verbatim_hint)(e, name)       the warning that brings your words back\n[verbatim_gate](verbatim_gate)(entry, text, flag)\n                                              keeps a copy of your words, or stops a change of them\n[verbatim_mark](verbatim_mark)(e)             the mark on a candidate of your own words in the letter\n[verbatim_rule](verbatim_rule)(e)             the line of the letter that asks for the smallest edit\n[warn_reworded](warn_reworded)(e, before_text, text, by)\n                                              says when a sync or a repair changed your own words\n[parent_note](parent_note)(pid, form, old, new)\n                                              one changed explanation for the letter: the old text, the\n                                              new text and the diff between the two\n[recompute](recompute)(data, lines)           which lines the map covers and which it does not\n[guard_structure](guard_structure)(data, map_path)\n                                              stops on a map of the old kind, and makes a lone stale\n                                              mark a list\n[find_root](find_root)(path)                  the folder at or above path that holds human/human.json\n[rel_name](rel_name)(code_path, root)         the path of a file from the root, like src/app.py\n[map_path_of](map_path_of)(code_path, root)   the map file of a code file: human/explanation_<path>.json,\n                                              the slashes written as __\n[register_file](register_file)(root, rel)     adds a file to the list in human/human.json\n[load_existing](load_existing)(code_path)     the map of a file, or a stop when there is none\n[read_text_arg](read_text_arg)(a)             the text from --text or from the pipe; a stop when empty\n[anchor_counts](anchor_counts)(anchors)       \"7 anchors (5 into the code, 2 into earlier explanations)\"\n[print_coverage](print_coverage)(missing, blank, lines)\n                                              \"covered: 61 of 63 code lines\" and the lines left\n[report_text_diff](report_text_diff)(eid, old, new)\n                                              the changed lines of an entry, - old and + new\n[report_project_stale](report_project_stale)(ids)\n                                              the line that names the entries of the project map now\n                                              stale, and how to mend each\n[undo_target](undo_target)(data, eid)         the entry an undo takes away: the last one, or the one\n                                              you named\n[undo_gate](undo_gate)(root, data, name, entry)\n                                              stops an undo that would leave a dependent, a pin of the\n                                              project map, or an open training row without its entry;\n                                              asks the store for the open session, and lets a machine\n                                              with no key through\n[rewordable](rewordable)(e, code_name)        whether the tool may reword an entry: never the whole-file\n                                              entry with no pin into the code",
       "anchors": [
         {
           "words": "the map run",
@@ -196,8 +196,8 @@
           "block": "refresh_row",
           "lines": [
             [
-              184,
-              205
+              161,
+              190
             ]
           ]
         },
@@ -206,8 +206,8 @@
           "block": "cmd_undo",
           "lines": [
             [
-              680,
-              696
+              685,
+              701
             ]
           ]
         },
@@ -227,17 +227,21 @@
           "lines": [
             [
               666,
-              677
+              682
             ]
           ]
+        },
+        {
+          "words": "the training store",
+          "file": "compiler/cli/human/cmd_store.py"
         },
         {
           "words": "cmd_show",
           "block": "cmd_show",
           "lines": [
             [
-              699,
-              770
+              704,
+              775
             ]
           ]
         },
@@ -296,8 +300,8 @@
           "block": "cmd_lines",
           "lines": [
             [
-              773,
-              777
+              778,
+              782
             ]
           ]
         },
@@ -306,8 +310,8 @@
           "block": "cmd_sync",
           "lines": [
             [
-              954,
-              1068
+              959,
+              1073
             ]
           ]
         },
@@ -316,8 +320,8 @@
           "block": "old_lines_of",
           "lines": [
             [
-              780,
-              788
+              785,
+              793
             ]
           ]
         },
@@ -326,8 +330,8 @@
           "block": "line_map",
           "lines": [
             [
-              791,
-              806
+              796,
+              811
             ]
           ]
         },
@@ -336,8 +340,8 @@
           "block": "entry_lines_set",
           "lines": [
             [
-              809,
-              814
+              814,
+              819
             ]
           ]
         },
@@ -346,8 +350,8 @@
           "block": "rewordable",
           "lines": [
             [
-              817,
-              818
+              822,
+              823
             ]
           ]
         },
@@ -356,8 +360,8 @@
           "block": "re_resolve",
           "lines": [
             [
-              833,
-              851
+              838,
+              856
             ]
           ]
         },
@@ -366,8 +370,8 @@
           "block": "refresh_file_anchor",
           "lines": [
             [
-              821,
-              830
+              826,
+              835
             ]
           ]
         },
@@ -396,8 +400,8 @@
           "block": "rebuild_all",
           "lines": [
             [
-              854,
-              885
+              859,
+              890
             ]
           ]
         },
@@ -426,8 +430,8 @@
           "block": "repair_stale",
           "lines": [
             [
-              888,
-              951
+              893,
+              956
             ]
           ]
         },
@@ -837,7 +841,7 @@
           "lines": [
             [
               666,
-              677
+              682
             ]
           ]
         },
@@ -846,8 +850,8 @@
           "block": "rewordable",
           "lines": [
             [
-              817,
-              818
+              822,
+              823
             ]
           ]
         }
@@ -1020,30 +1024,30 @@
       656,
       664,
       665,
-      678,
-      679,
-      697,
-      698,
-      771,
-      772,
-      778,
-      779,
-      789,
-      790,
-      807,
-      808,
-      815,
-      816,
-      819,
+      683,
+      684,
+      702,
+      703,
+      776,
+      777,
+      783,
+      784,
+      794,
+      795,
+      812,
+      813,
       820,
-      831,
-      832,
-      852,
-      853,
-      886,
-      887,
-      952,
-      953
+      821,
+      824,
+      825,
+      836,
+      837,
+      857,
+      858,
+      891,
+      892,
+      957,
+      958
     ]
   }
 }

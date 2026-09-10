@@ -7,10 +7,10 @@
       "block_lines": [
         [
           1,
-          403
+          392
         ]
       ],
-      "text": "import the clock, json, the scratch files, a lock, and three neighbours:\n[the map run](compiler/cli/human/cmd_map.py) that saves an entry,\n[the engine](compiler/cli/human/decompiler.py) that checks pins and rewords an entry, and\n[the project run](compiler/cli/human/cmd_project.py) that holds the map of the whole project\n\nSLOTS = best, refinement, free \u2014 the three versions a row can hold, one slot each\nLOCK  = one lock, so two picks never write at once\n\n\n[cmd_open](cmd_open)(root)\n    root is the project folder, the one that holds human/.\n    You type `human train --open` anywhere in the project.\n    The tool refuses while another session is still open. A session is one JSON\n    file in human/training/, named by the moment it opened; it holds rows, and it\n    stays open until the close writes \"finished\" into it.\n    The tool brings the rows nobody picked last time along, then makes the new\n    session file, so every pick of this round has one home.\n\n[carry](carry)(root)\n    The tool looks at the newest session and takes every row with no pick\n    and no apply. Each one is made again; the ones that cannot be made stay behind.\n    When there is no session yet, nothing comes along.\n\n[carry_row](carry_row)(root, old, old_sid)\n    old is one row of the last session; old_sid is that session's id.\n    The tool makes the row again against [what the row is about today](source_of) \u2014\n    the file and its map, or the whole project \u2014 so the copy it keeps is fresh.\n    Each written version whose pins still hold comes over with its history; the\n    others are dropped, and the tool says their names so claude writes them again.\n    A sync row's middle comes fresh from the map, unless it was a rewrite.\n    A file that is gone, or a row that cannot be made, stays in the old session.\n\n[cmd_add](cmd_add)(a, root)\n    a is what you typed: the file \u2014 or the word \"project\" \u2014, --as, --shape,\n    --kind, --entry, --block, --text.\n    Claude pipes one text in: `human train <file> --as best --shape sections`,\n    or `human train project --kind sync --entry 1 --as best`.\n    The tool needs --as, an open session, and a real file or the word.\n    It finds the row of this file, or makes it, and refuses when what the row is\n    about changed since the row was made \u2014 the file's text, or for the project\n    [the copy the project run keeps](compiler/cli/human/cmd_project.py:snapshot).\n    It refuses --as refinement on a create row, whose two versions are best and\n    free; the middle slot is a sync row's.\n    It checks the text and makes it the version of that slot \u2014 with the shape it\n    follows and the moment \u2014 and saves.\n    A slot written twice keeps the new text on top and the old one in its history.\n    It says the row number, the kind, the level, the entry, the shape, the pins,\n    [the slots filled](slots_of), [the slots still empty](empty_slots), and how\n    many earlier texts a rewrite keeps.\n\n[new_row](new_row)(a, root, code_path, code_name, data, src)\n    code_path is the file on disk, none for the project; code_name is its path\n    from the root, or the word; data is its map; src is its text, or the project's copy.\n    A row is one file's turn in a session: which file, what the picked text will\n    do to its map, a copy of the code, the three versions, and the pick.\n    The level says where the picked text lands. The tool reads it from what you\n    typed: --kind sync takes the entry given, or the whole-file one, and lands on\n    \"same\" \u2014 the text replaces that entry's text; --entry lands on \"same\" too;\n    --block lands on \"above\" \u2014 a new zoom on one block, refused for the project,\n    whose map has no blocks of its own; neither is \"first\" on an empty map \u2014 the\n    first entry of the file \u2014 else \"below\" \u2014 a plainer layer under the whole-file entry.\n    The row it makes holds the file, the kind, [the path of the map](map_rel), the\n    entry, the level, the block, a copy of the old text, a copy of the code, three\n    empty slots, no pick, no comment, not applied, and the times.\n    A sync row gets the old text into its middle slot, as a version with no shape.\n\n[whole_file_entry](whole_file_entry)(data, code_name)\n    The tool finds the lowest entry whose block is the file itself \u2014 or the word\n    \"project\" in the project map.\n    It exists only so a sync row without --entry knows which entry it refines.\n\n[check_text](check_text)(text, row, data, spans, root)\n    text is one version; spans are the blocks of the file with their lines.\n    The tool checks the pins as the map would: every pin names a real block or\n    a real earlier entry, a text that replaces an entry keeps the pins other\n    entries depend on, and no circle forms. A text that replaces an entry of a file\n    also keeps [the anchors the project map pins into it](compiler/cli/human/cmd_project.py:pins_into),\n    so a version cannot break the map of the whole project.\n    A project row is checked the project's\n    way, so a pin into a file, or into an entry of another file's map, passes.\n    A failed check stops with the reason.\n    This is why a picked text can always be applied later.\n\n[pick](pick)(root, sid, row, slot, comment)\n    The feed sends sid, the session id in its address; row, the row's place in\n    the list from 0; slot, the version you picked, or none to take a pick back;\n    and comment, your reason, or none.\n    Outside the lock the tool refuses a session it does not have, a slot it does\n    not know, and a comment that is not text. Under the lock it refuses a\n    finished session, a row it does not have, the refinement of a create row \u2014\n    which holds best and free only \u2014 and an empty slot; then it writes\n    the pick, the comment, and the time.\n    It gives back a status and the row, or a status and the error text.\n\n[refresh_row](refresh_row)(root, code_name, eid, old_text, new_text)\n    code_name is the file, or the word \"project\"; eid is the entry a retext just\n    rewrote; old_text and new_text are its words before and after.\n    A row is a photo of its entry, taken when the row is made. This is the\n    second photo. [The retext of a file](compiler/cli/human/decompiler.py:cmd_retext)\n    and [the retext of the project](compiler/cli/human/cmd_project.py:cmd_retext)\n    call it, so an open session never trains against words that are gone.\n    Nothing happens when the words did not change, or when no session is open.\n    The tool takes the row about that entry \u2014 not yet applied, landing on \"same\" \u2014\n    and leaves it alone when its picked version already says the new text: that\n    is the close applying the pick.\n    Otherwise the row's copy of the old text becomes the new text. When the\n    middle slot still holds the old text untouched, it takes the new text too\n    and keeps the old one as v1; a middle already rewritten by hand stays, and\n    the feed stops calling it \"current\". The tool says which row followed and how.\n\n[cmd_close](cmd_close)(root)\n    You type `human train --close`. The tool needs an open session.\n    First it names every row not yet applied that still misses a version, so an\n    unfinished row is seen before the applying starts.\n    It takes the picked rows in order, \"below\" rows last, so a plainer layer\n    finds the entry it points at. When what a row is about changed since the row\n    was made, the tool marks the row and says so. It applies each row; on a\n    failure it remembers the row and goes on.\n    Any failure leaves the session open and names the rows. With none, the tool\n    marks the session finished, says the counts, and says that the rows without\n    a pick carry over.\n\n[apply_row](apply_row)(root, row)\n    The tool takes the latest text of the picked version.\n    A \"same\" row rewrites its entry with retext and gives the entry's id back;\n    a project row goes to the project's own retext.\n    Any other row maps a new entry, with the block for a zoom \u2014 into the project\n    map for a project row \u2014 and gives the new id back.\n    The close writes that id into the row, so the row and the map can be joined later.\n\n[run_with_text](run_with_text)(fn, text, ...)\n    fn is the old command, map or retext; text is the picked version.\n    The tool writes the text to a scratch file, calls the command with it,\n    and removes the file. It exists only so a picked text reaches the old\n    commands the way a typed text would.\n\n[cmd_train](cmd_train)(a)\n    The door. --open and --close allow no file and find the project from\n    where you stand. A hand-in needs a file and finds the project from the file;\n    a hand-in of the word \"project\" finds it from where you stand.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nthe small hands\n\n[now](now)()                              the moment as text, with the machine's own time zone\n[as_version](as_version)(v)               a plain text of an old session read as a version;\n                                          a version, or none, comes back as it is\n[version_text](version_text)(v)           the text inside a version; none when there is none\n[version](version)(text, shape, old)      a new version: the text, its shape, the moment, and\n                                          the old version pushed onto its history\n[training_dir](training_dir)(root)        the folder human/training/ under the root\n[session_paths](session_paths)(root)      every session file in that folder, newest first\n[load_session](load_session)(path)        one session file read as data\n[save_session](save_session)(path, data)  stamps \"edited\" with the moment, writes the file\n[open_session](open_session)(root)        the path and the data of the newest session not\n                                          finished; none, none when every session is closed\n[summary](summary)(path, data)            the short form of one session: id, times, finished,\n                                          and how many rows, picks, applied\n[list_sessions](list_sessions)(root)      one summary per session \u2014 the list the feed reads first\n[is_project](is_project)(code_name)       true when the name is the word \"project\"\n[map_rel](map_rel)(root, code_path, code_name)\n                                          the path of the map from the root: the project map, or\n                                          the map of that file\n[source_of](source_of)(root, code_name, kind)\n                                          what a row is made against: the file, its text, its\n                                          blocks, its map \u2014 for the project, its copy in place of\n                                          a text \u2014 and nothing for a file that is gone\n[slots_of](slots_of)(row)                 the slots a row can hold: all three for a sync row,\n                                          best and free for a create row\n[empty_slots](empty_slots)(row)           the slots of the row with no text written yet",
+      "text": "import the clock, json, the scratch files, a lock, and four neighbours:\n[the map run](compiler/cli/human/cmd_map.py) that saves an entry,\n[the engine](compiler/cli/human/decompiler.py) that checks pins and rewords an entry,\n[the project run](compiler/cli/human/cmd_project.py) that holds the map of the whole project, and\n[the store](compiler/cli/human/cmd_store.py) that keeps the sessions off this machine\n\nSLOTS = best, refinement, free \u2014 the three versions a row can hold, one slot each\nLOCK  = one lock, so two picks never write at once\n\n\n[cmd_open](cmd_open)(root)\n    root is the project folder, the one that holds human/.\n    You type `human train --open` anywhere in the project.\n    The tool refuses while another session is still open. A session is one record\n    in [the training store](compiler/cli/human/cmd_store.py), named by the moment\n    it opened; it holds rows, and it stays open until the close writes \"finished\"\n    into it.\n    The tool brings the rows nobody picked last time along, then sends the new\n    session to the store, so every pick of this round has one home, and it names\n    the user the key on this machine belongs to.\n\n[carry](carry)(root)\n    The tool looks at the newest session and takes every row with no pick\n    and no apply. Each one is made again; the ones that cannot be made stay behind.\n    When there is no session yet, nothing comes along.\n\n[carry_row](carry_row)(root, old, old_sid)\n    old is one row of the last session; old_sid is that session's id.\n    The tool makes the row again against [what the row is about today](source_of) \u2014\n    the file and its map, or the whole project \u2014 so the copy it keeps is fresh.\n    Each written version whose pins still hold comes over with its history; the\n    others are dropped, and the tool says their names so claude writes them again.\n    A sync row's middle comes fresh from the map, unless it was a rewrite.\n    A file that is gone, or a row that cannot be made, stays in the old session.\n\n[cmd_add](cmd_add)(a, root)\n    a is what you typed: the file \u2014 or the word \"project\" \u2014, --as, --shape,\n    --kind, --entry, --block, --text.\n    Claude pipes one text in: `human train <file> --as best --shape sections`,\n    or `human train project --kind sync --entry 1 --as best`.\n    The tool needs --as, an open session, and a real file or the word.\n    It finds the row of this file, or makes it, and refuses when what the row is\n    about changed since the row was made \u2014 the file's text, or for the project\n    [the copy the project run keeps](compiler/cli/human/cmd_project.py:snapshot).\n    It refuses --as refinement on a create row, whose two versions are best and\n    free; the middle slot is a sync row's.\n    It checks the text and makes it the version of that slot \u2014 with the shape it\n    follows and the moment \u2014 and sends the session back to the store.\n    A slot written twice keeps the new text on top and the old one in its history.\n    It says the row number, the kind, the level, the entry, the shape, the pins,\n    [the slots filled](slots_of), [the slots still empty](empty_slots), how\n    many earlier texts a rewrite keeps, and the session the row went to.\n\n[new_row](new_row)(a, root, code_path, code_name, data, src)\n    code_path is the file on disk, none for the project; code_name is its path\n    from the root, or the word; data is its map; src is its text, or the project's copy.\n    A row is one file's turn in a session: which file, what the picked text will\n    do to its map, a copy of the code, the three versions, and the pick.\n    The level says where the picked text lands. The tool reads it from what you\n    typed: --kind sync takes the entry given, or the whole-file one, and lands on\n    \"same\" \u2014 the text replaces that entry's text; --entry lands on \"same\" too;\n    --block lands on \"above\" \u2014 a new zoom on one block, refused for the project,\n    whose map has no blocks of its own; neither is \"first\" on an empty map \u2014 the\n    first entry of the file \u2014 else \"below\" \u2014 a plainer layer under the whole-file entry.\n    The row it makes holds the file, the kind, [the path of the map](map_rel), the\n    entry, the level, the block, a copy of the old text, a copy of the code, three\n    empty slots, no pick, no comment, not applied, and the times.\n    A sync row gets the old text into its middle slot, as a version with no shape.\n\n[whole_file_entry](whole_file_entry)(data, code_name)\n    The tool finds the lowest entry whose block is the file itself \u2014 or the word\n    \"project\" in the project map.\n    It exists only so a sync row without --entry knows which entry it refines.\n\n[check_text](check_text)(text, row, data, spans, root)\n    text is one version; spans are the blocks of the file with their lines.\n    The tool checks the pins as the map would: every pin names a real block or\n    a real earlier entry, a text that replaces an entry keeps the pins other\n    entries depend on, and no circle forms. A text that replaces an entry of a file\n    also keeps [the anchors the project map pins into it](compiler/cli/human/cmd_project.py:pins_into),\n    so a version cannot break the map of the whole project.\n    A project row is checked the project's\n    way, so a pin into a file, or into an entry of another file's map, passes.\n    A failed check stops with the reason.\n    This is why a picked text can always be applied later.\n\n[pick](pick)(root, sid, row, slot, comment)\n    The feed sends sid, the session id in its address; row, the row's place in\n    the list from 0; slot, the version you picked, or none to take a pick back;\n    and comment, your reason, or none.\n    Outside the lock the tool refuses a slot it does not know and a comment that\n    is not text. Under the lock it asks the store for the session and hands a\n    refusal of the store back as it came \u2014 no such session, no key on this\n    machine \u2014 while a store that does not answer becomes 502. Then it refuses a\n    finished session, a row it does not have, the refinement of a create row \u2014\n    which holds best and free only \u2014 and an empty slot; then it writes\n    the pick, the comment, and the time and sends the session back, and a refusal\n    or a silence on that write is answered the same way.\n    It gives back a status and the row, or a status and the error text.\n\n[refresh_row](refresh_row)(root, code_name, eid, old_text, new_text)\n    code_name is the file, or the word \"project\"; eid is the entry a retext just\n    rewrote; old_text and new_text are its words before and after.\n    A row is a photo of its entry, taken when the row is made. This is the\n    second photo. [The retext of a file](compiler/cli/human/decompiler.py:cmd_retext)\n    and [the retext of the project](compiler/cli/human/cmd_project.py:cmd_retext)\n    call it, so an open session never trains against words that are gone.\n    Nothing happens when the words did not change, when this machine has no key\n    for the store, or when no session is open. A store that refuses or does not\n    answer only prints a warning; the retext itself stands.\n    The tool takes the row about that entry \u2014 not yet applied, landing on \"same\" \u2014\n    and leaves it alone when its picked version already says the new text: that\n    is the close applying the pick.\n    Otherwise the row's copy of the old text becomes the new text. When the\n    middle slot still holds the old text untouched, it takes the new text too\n    and keeps the old one as v1; a middle already rewritten by hand stays, and\n    the feed stops calling it \"current\". The tool says which row followed and how.\n\n[cmd_close](cmd_close)(root)\n    You type `human train --close`. The tool needs an open session.\n    First it names every row not yet applied that still misses a version, so an\n    unfinished row is seen before the applying starts.\n    It takes the picked rows in order, \"below\" rows last, so a plainer layer\n    finds the entry it points at. When what a row is about changed since the row\n    was made, the tool marks the row and says so. It applies each row; on a\n    failure it remembers the row and goes on.\n    Any failure leaves the session open and names the rows. With none, the tool\n    marks the session finished, says the counts, says that the rows without\n    a pick carry over, and names the user the session went to the store under.\n\n[apply_row](apply_row)(root, row)\n    The tool takes the latest text of the picked version.\n    A \"same\" row rewrites its entry with retext and gives the entry's id back;\n    a project row goes to the project's own retext.\n    Any other row maps a new entry, with the block for a zoom \u2014 into the project\n    map for a project row \u2014 and gives the new id back.\n    The close writes that id into the row, so the row and the map can be joined later.\n\n[run_with_text](run_with_text)(fn, text, ...)\n    fn is the old command, map or retext; text is the picked version.\n    The tool writes the text to a scratch file, calls the command with it,\n    and removes the file. It exists only so a picked text reaches the old\n    commands the way a typed text would.\n\n[cmd_train](cmd_train)(a)\n    The door. --open and --close allow no file and find the project from\n    where you stand. A hand-in needs a file and finds the project from the file;\n    a hand-in of the word \"project\" finds it from where you stand.\n    Whichever run it calls, a store that refuses \u2014 no key, no such session \u2014 or\n    does not answer stops the command in this one place, with that reason.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nthe small hands\n\n[now](now)()                              the moment as text, with the machine's own time zone\n[as_version](as_version)(v)               a plain text of an old session read as a version;\n                                          a version, or none, comes back as it is\n[version_text](version_text)(v)           the text inside a version; none when there is none\n[version](version)(text, shape, old)      a new version: the text, its shape, the moment, and\n                                          the old version pushed onto its history\n[save_session](save_session)(data)        stamps \"edited\" with the moment, sends the session to\n                                          the store\n[open_session](open_session)()            the data of the newest session not finished; none when\n                                          every session is closed\n[list_sessions](list_sessions)()          the short form of every session \u2014 id, times, finished,\n                                          and how many rows, picks, applied \u2014 newest first, the\n                                          list the feed reads first\n[is_project](is_project)(code_name)       true when the name is the word \"project\"\n[map_rel](map_rel)(root, code_path, code_name)\n                                          the path of the map from the root: the project map, or\n                                          the map of that file\n[source_of](source_of)(root, code_name, kind)\n                                          what a row is made against: the file, its text, its\n                                          blocks, its map \u2014 for the project, its copy in place of\n                                          a text \u2014 and nothing for a file that is gone\n[slots_of](slots_of)(row)                 the slots a row can hold: all three for a sync row,\n                                          best and free for a create row\n[empty_slots](empty_slots)(row)           the slots of the row with no text written yet",
       "anchors": [
         {
           "words": "the map run",
@@ -25,22 +25,30 @@
           "file": "compiler/cli/human/cmd_project.py"
         },
         {
+          "words": "the store",
+          "file": "compiler/cli/human/cmd_store.py"
+        },
+        {
           "words": "cmd_open",
           "block": "cmd_open",
           "lines": [
             [
-              144,
-              155
+              115,
+              125
             ]
           ]
+        },
+        {
+          "words": "the training store",
+          "file": "compiler/cli/human/cmd_store.py"
         },
         {
           "words": "carry",
           "block": "carry",
           "lines": [
             [
-              134,
-              141
+              105,
+              112
             ]
           ]
         },
@@ -49,8 +57,8 @@
           "block": "carry_row",
           "lines": [
             [
-              102,
-              131
+              73,
+              102
             ]
           ]
         },
@@ -59,8 +67,8 @@
           "block": "source_of",
           "lines": [
             [
-              90,
-              99
+              61,
+              70
             ]
           ]
         },
@@ -69,8 +77,8 @@
           "block": "cmd_add",
           "lines": [
             [
-              275,
-              323
+              260,
+              308
             ]
           ]
         },
@@ -80,8 +88,8 @@
           "block": "snapshot",
           "lines": [
             [
-              507,
-              513
+              505,
+              511
             ]
           ]
         },
@@ -90,8 +98,8 @@
           "block": "slots_of",
           "lines": [
             [
-              267,
-              268
+              252,
+              253
             ]
           ]
         },
@@ -100,8 +108,8 @@
           "block": "empty_slots",
           "lines": [
             [
-              271,
-              272
+              256,
+              257
             ]
           ]
         },
@@ -110,8 +118,8 @@
           "block": "new_row",
           "lines": [
             [
-              213,
-              247
+              198,
+              232
             ]
           ]
         },
@@ -120,8 +128,8 @@
           "block": "map_rel",
           "lines": [
             [
-              84,
-              87
+              55,
+              58
             ]
           ]
         },
@@ -130,8 +138,8 @@
           "block": "whole_file_entry",
           "lines": [
             [
-              208,
-              210
+              193,
+              195
             ]
           ]
         },
@@ -140,8 +148,8 @@
           "block": "check_text",
           "lines": [
             [
-              250,
-              264
+              235,
+              249
             ]
           ]
         },
@@ -161,8 +169,8 @@
           "block": "pick",
           "lines": [
             [
-              158,
-              181
+              128,
+              158
             ]
           ]
         },
@@ -171,8 +179,8 @@
           "block": "refresh_row",
           "lines": [
             [
-              184,
-              205
+              161,
+              190
             ]
           ]
         },
@@ -203,8 +211,8 @@
           "block": "cmd_close",
           "lines": [
             [
-              351,
-              390
+              336,
+              375
             ]
           ]
         },
@@ -213,8 +221,8 @@
           "block": "apply_row",
           "lines": [
             [
-              336,
-              348
+              321,
+              333
             ]
           ]
         },
@@ -223,8 +231,8 @@
           "block": "run_with_text",
           "lines": [
             [
-              326,
-              333
+              311,
+              318
             ]
           ]
         },
@@ -233,8 +241,8 @@
           "block": "cmd_train",
           "lines": [
             [
-              393,
-              403
+              378,
+              392
             ]
           ]
         },
@@ -279,42 +287,12 @@
           ]
         },
         {
-          "words": "training_dir",
-          "block": "training_dir",
-          "lines": [
-            [
-              38,
-              39
-            ]
-          ]
-        },
-        {
-          "words": "session_paths",
-          "block": "session_paths",
-          "lines": [
-            [
-              42,
-              46
-            ]
-          ]
-        },
-        {
-          "words": "load_session",
-          "block": "load_session",
-          "lines": [
-            [
-              49,
-              50
-            ]
-          ]
-        },
-        {
           "words": "save_session",
           "block": "save_session",
           "lines": [
             [
-              53,
-              55
+              38,
+              40
             ]
           ]
         },
@@ -323,18 +301,8 @@
           "block": "open_session",
           "lines": [
             [
-              58,
-              65
-            ]
-          ]
-        },
-        {
-          "words": "summary",
-          "block": "summary",
-          "lines": [
-            [
-              68,
-              73
+              43,
+              44
             ]
           ]
         },
@@ -343,8 +311,8 @@
           "block": "list_sessions",
           "lines": [
             [
-              76,
-              77
+              47,
+              48
             ]
           ]
         },
@@ -353,8 +321,8 @@
           "block": "is_project",
           "lines": [
             [
-              80,
-              81
+              51,
+              52
             ]
           ]
         },
@@ -363,8 +331,8 @@
           "block": "map_rel",
           "lines": [
             [
-              84,
-              87
+              55,
+              58
             ]
           ]
         },
@@ -373,8 +341,8 @@
           "block": "source_of",
           "lines": [
             [
-              90,
-              99
+              61,
+              70
             ]
           ]
         },
@@ -383,8 +351,8 @@
           "block": "slots_of",
           "lines": [
             [
-              267,
-              268
+              252,
+              253
             ]
           ]
         },
@@ -393,8 +361,8 @@
           "block": "empty_slots",
           "lines": [
             [
-              271,
-              272
+              256,
+              257
             ]
           ]
         }
@@ -416,54 +384,46 @@
       31,
       36,
       37,
-      40,
       41,
-      47,
-      48,
-      51,
-      52,
-      56,
-      57,
-      66,
-      67,
-      74,
-      75,
-      78,
-      79,
-      82,
-      83,
-      88,
-      89,
-      100,
-      101,
-      132,
-      133,
-      142,
-      143,
-      156,
-      157,
-      182,
-      183,
-      206,
-      207,
-      211,
-      212,
-      248,
-      249,
-      265,
-      266,
-      269,
-      270,
-      273,
-      274,
-      324,
-      325,
+      42,
+      45,
+      46,
+      49,
+      50,
+      53,
+      54,
+      59,
+      60,
+      71,
+      72,
+      103,
+      104,
+      113,
+      114,
+      126,
+      127,
+      159,
+      160,
+      191,
+      192,
+      196,
+      197,
+      233,
+      234,
+      250,
+      251,
+      254,
+      255,
+      258,
+      259,
+      309,
+      310,
+      319,
+      320,
       334,
       335,
-      349,
-      350,
-      391,
-      392
+      376,
+      377
     ]
   }
 }
