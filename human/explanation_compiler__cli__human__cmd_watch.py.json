@@ -7,10 +7,10 @@
       "block_lines": [
         [
           1,
-          216
+          235
         ]
       ],
-      "text": "import json, the pattern matcher, the shell, a lock, the clock, and two neighbours:\n[the tool](compiler/cli/human/decompiler.py) \u2014 the project folder, the map of a file \u2014\nand [the project hand](compiler/cli/human/cmd_project.py), which knows the word project and its map\n\nFOLDER = server \u2014 the folder under human/ where a writing from the reader waits\nKINDS  = the seven kinds of writing: retext, map, code, decompile, expand, create, delete\nWRITTEN = the three kinds that carry words of your own: retext, map, code\nENTRY_RE = the look of the line \"entry 3: \u2026\" the map command prints, so the new number can be read back\n\n\n[compile_writing](compile_writing)(root, name, kind, eid, text, words)\n    root is the project folder; name is the file as the reader names it,\n    like src/app.py, or the word project; kind is one of the seven; eid is\n    the entry the words replace, or the entry an ask stands on, or\n    nothing; text is what you typed in the reader and sent with the\n    compile button, and it may be empty on an ask; words are the words\n    you highlighted in an entry for an expand.\n\n    \u25cf  the tool checks the ask\n    \u2502     An unknown kind stops here. An empty text stops the three kinds\n    \u2502     that carry your words; an ask for claude may come with no text\n    \u2502     at all. A name that is not a file of the project stops too, and\n    \u2502     so does a file under human/ \u2014 the maps take no writing. The\n    \u2502     map of the name is read ([the map of a name](map_of)) \u2014 it may\n    \u2502     not exist yet.\n    \u2502\n    \u25cf  the tool runs the same command you would have typed          ([the command run](run_cli))\n    \u2502     A rewrite of an entry runs human retext <name> <id> --verbatim:\n    \u2502     your words go in as your own, the origin is reset, and the\n    \u2502     entries that stood on the old words are marked stale. A first\n    \u2502     telling runs human map <name> --verbatim: plain words, a pin in\n    \u2502     them refused; on a file that has a map already the run stops \u2014\n    \u2502     write on its entries instead. Code on a file with no map is\n    \u2502     written to the file as it is; on a file with a map the run stops,\n    \u2502     because the words come first there.\n    \u2502\n    \u25cf  an ask only claude can answer is queued as it stands\n    \u2502     A decompile asks for a first telling of a file: the project has\n    \u2502     no code of its own and stops, and a file that has a map stops\n    \u2502     too \u2014 expand or create on its entries. A create asks for a top\n    \u2502     abstraction over an entry. An expand asks for more words under\n    \u2502     the words you highlighted, and stops when no words came with it.\n    \u2502     A create and an expand stop when the map holds no such entry.\n    \u2502     An expand sent with a text of your own runs human map <name>\n    \u2502     --verbatim first, so your words go in at once and the ask\n    \u2502     carries the new entry with it.\n    \u2502\n    \u25cf  a delete takes the entry out at once and queues nothing\n    \u2502     It stops when the map holds no such entry. Otherwise it runs\n    \u2502     human undo <name> --entry <id>: the entry leaves the map, and the\n    \u2502     run stops when another entry, or the project map, points at it\n    \u2502     through an anchor. The reader gets what the command said, joined\n    \u2502     in one line, without the line that names the written map.\n    \u2502\n    \u25cf  a refusal goes back to the reader in the command's own words\n    \u2502     The gates are the same as on the command line. Nothing is queued\n    \u2502     when a gate speaks.\n    \u2502\n    \u25cf  the tool looks for the tellings that stand on a code write        ([the pins that reach a file](pins_reaching))\n    \u2502     Every map is read for a pin that names the file. With no pin the\n    \u2502     file is saved and nothing more happens \u2014 no telling depends on\n    \u2502     it. With pins, they go into the event, so claude knows which\n    \u2502     tellings the change may have made wrong.\n    \u2502\n    \u25cf  one event joins the queue                                        ([the queue](append_event))\n          The kind, the name, the absolute paths of the map and the file,\n          the entry number \u2014 read from the output for a first telling \u2014,\n          the old text and the new, the pins, and what the command printed.\n          An ask adds the entry it stands on as its target, an expand adds\n          the highlighted words, and the output of an ask says what waits\n          for claude.\n          The reader gets the number of the event and the printed lines.\n\n[cmd_watch](cmd_watch)(a)\n    a is what you typed: human watch, or human watch --once.\n\n    \u25cf  claude arms it once per session, from the project root\n    \u2502     Every event not yet done is printed, one JSON line each, in the\n    \u2502     order it came. An event printed in an earlier session comes with\n    \u2502     replay true, so claude checks the maps before it syncs anything.\n    \u2502\n    \u25cf  the tool follows\n          Every second it reads the queue again ([the events](read_events)) and prints\n          what is new. The cursor's seen mark moves to the last printed\n          event ([the cursor](read_cursor)). With --once it prints and stops.\n\n[cmd_ack](cmd_ack)(a)\n    a holds the number of the event claude finished: human ack 3.\n\n    \u25cf  the tool moves the done mark\n          The number must be above the last done and not beyond the last\n          event; otherwise the tool says what is done and what is last.\n          Then it says how many events still wait. The reader drops the\n          compiling mark of the entry when the queue tells it the event is done.\n\n[pending](pending)(root)\n    \u25cf  the reader asks what still waits\n          The done and seen marks, and one line per event above done: its\n          number, kind, name, and entry. The reader polls this to mark an\n          entry as compiling.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nthe small hands\n\n[folder](folder)(root)                        human/server/ under the root, made on first use\n[events_path](events_path)(root)              the queue file, events.jsonl\n[cursor_path](cursor_path)(root)              the cursor file, cursor.json\n[read_events](read_events)(root)              every event of the queue, oldest first\n[read_cursor](read_cursor)(root)              the done and seen marks; zero and zero when none\n[write_cursor](write_cursor)(root, c)         writes the marks back\n[append_event](append_event)(root, event)     numbers the event one above the last, stamps the moment, adds it\n[run_cli](run_cli)(root, args, text)          runs the human command in the project folder with the text on its\n                                              stdin; gives back whether it passed and what it printed\n[map_of](map_of)(root, name)                  the map file of a name and its content, or nothing when there is none\n[pins_reaching](pins_reaching)(root, name)    every pin of every map that names the file: the map, the entry,\n                                              the words, and the block or anchor it points at",
+      "text": "import json, the pattern matcher, the shell, a lock, the clock, and two neighbours:\n[the tool](compiler/cli/human/decompiler.py) \u2014 the project folder, the map of a file \u2014\nand [the project hand](compiler/cli/human/cmd_project.py), which knows the word project and its map;\nfor a training, it also calls on [the training store](compiler/cli/human/cmd_store.py) \u2014 your login and its refusals \u2014\nand [the training hand](compiler/cli/human/cmd_train.py), which keeps one session open\n\nFOLDER = server \u2014 the folder under human/ where a writing from the reader waits\nKINDS  = the eight kinds of writing: retext, map, code, decompile, expand, create, delete, link\nTRAINED = the three asks claude answers with a training: decompile, expand, create\nWRITTEN = the three kinds that carry words of your own: retext, map, code\nENTRY_RE = the look of the line \"entry 3: \u2026\" the map command prints, so the new number can be read back\n\n\n[compile_writing](compile_writing)(root, name, kind, eid, text, words)\n    root is the project folder; name is the file as the reader names it,\n    like src/app.py, or the word project; kind is one of the seven the\n    reader may send \u2014 every kind but link; eid is\n    the entry the words replace, or the entry an ask stands on, or\n    nothing; text is what you typed in the reader and sent with the\n    compile button, and it may be empty on an ask; words are the words\n    you highlighted in an entry for an expand.\n\n    \u25cf  the tool checks the ask\n    \u2502     An unknown kind stops here, and so does a link. An empty text stops the three kinds\n    \u2502     that carry your words; an ask for claude may come with no text\n    \u2502     at all. A name that is not a file of the project stops too, and\n    \u2502     so does a file under human/ \u2014 the maps take no writing. The\n    \u2502     map of the name is read ([the map of a name](map_of)) \u2014 it may\n    \u2502     not exist yet.\n    \u2502\n    \u25cf  the tool runs the same command you would have typed          ([the command run](run_cli))\n    \u2502     A rewrite of an entry runs human retext <name> <id> --verbatim:\n    \u2502     your words go in as your own, the origin is reset, and the\n    \u2502     entries that stood on the old words are marked stale. A first\n    \u2502     telling runs human map <name> --verbatim: plain words, a pin in\n    \u2502     them refused; on a file that has a map already the run stops \u2014\n    \u2502     write on its entries instead. Code on a file with no map is\n    \u2502     written to the file as it is; on a file with a map the run stops,\n    \u2502     because the words come first there.\n    \u2502\n    \u25cf  an ask only claude can answer is queued as it stands\n    \u2502     A decompile asks for a first telling of a file: the project has\n    \u2502     no code of its own and stops, and a file that has a map stops\n    \u2502     too \u2014 expand or create on its entries. An empty file stops as\n    \u2502     well \u2014 there is no code to tell yet, so write its telling first\n    \u2502     and claude writes the code under it. A create asks for a top\n    \u2502     abstraction over an entry. An expand asks for more words under\n    \u2502     the words you highlighted, and stops when no words came with it.\n    \u2502     A create and an expand stop when the map holds no such entry.\n    \u2502     An expand sent with a text of your own runs human map <name>\n    \u2502     --verbatim first, so your words go in at once and the ask\n    \u2502     carries the new entry with it.\n    \u2502\n    \u25cf  a delete takes the entry out at once and queues nothing\n    \u2502     It stops when the map holds no such entry. Otherwise it runs\n    \u2502     human undo <name> --entry <id>: the entry leaves the map, and the\n    \u2502     run stops when another entry, or the project map, points at it\n    \u2502     through an anchor. The reader gets what the command said, joined\n    \u2502     in one line, without the line that names the written map.\n    \u2502\n    \u25cf  a refusal goes back to the reader in the command's own words\n    \u2502     The gates are the same as on the command line. Nothing is queued\n    \u2502     when a gate speaks.\n    \u2502\n    \u25cf  the tool looks for the tellings that stand on a code write        ([the pins that reach a file](pins_reaching))\n    \u2502     Every map is read for a pin that names the file. With no pin the\n    \u2502     file is saved and nothing more happens \u2014 no telling depends on\n    \u2502     it. With pins, they go into the event, so claude knows which\n    \u2502     tellings the change may have made wrong.\n    \u2502\n    \u25cf  an ask claude writes gets a training session                   ([the training of an ask](training_for))\n    \u2502     A decompile, a create, or an expand with no words of your own\n    \u2502     gets one when you are logged in: the open session of the\n    \u2502     training store, or a new one when none is open. The event\n    \u2502     carries the session number, and the output names it and says\n    \u2502     when it was opened. When the store refuses or does not answer,\n    \u2502     the event carries no session, the output says why, and the ask\n    \u2502     is queued all the same.\n    \u2502\n    \u25cf  one event joins the queue                                        ([the queue](append_event))\n          The kind, the name, the absolute paths of the map and the file,\n          the entry number \u2014 read from the output for a first telling \u2014,\n          the old text and the new, the pins, and what the command printed.\n          An ask adds the entry it stands on as its target, an expand adds\n          the highlighted words, and the output of an ask says what waits\n          for claude.\n          The reader gets the number of the event and the printed lines.\n\n[cmd_watch](cmd_watch)(a)\n    a is what you typed: human watch, or human watch --once.\n\n    \u25cf  claude arms it once per session, from the project root\n    \u2502     Every event not yet done is printed, one JSON line each, in the\n    \u2502     order it came. An event printed in an earlier session comes with\n    \u2502     replay true, so claude checks the maps before it syncs anything.\n    \u2502\n    \u25cf  the tool follows\n          Every second it reads the queue again ([the events](read_events)) and prints\n          what is new. The cursor's seen mark moves to the last printed\n          event ([the cursor](read_cursor)). With --once it prints and stops.\n\n[cmd_ack](cmd_ack)(a)\n    a holds the number of the event claude finished: human ack 3.\n\n    \u25cf  the tool moves the done mark\n          The number must be above the last done and not beyond the last\n          event; otherwise the tool says what is done and what is last.\n          Then it says how many events still wait. The reader drops the\n          compiling mark of the entry when the queue tells it the event is done.\n\n[pending](pending)(root)\n    \u25cf  the reader asks what still waits\n          The done and seen marks, and one line per event above done: its\n          number, kind, name, and entry. The reader polls this to mark an\n          entry as compiling.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nthe small hands\n\n[folder](folder)(root)                        human/server/ under the root, made on first use\n[events_path](events_path)(root)              the queue file, events.jsonl\n[cursor_path](cursor_path)(root)              the cursor file, cursor.json\n[read_events](read_events)(root)              every event of the queue, oldest first\n[read_cursor](read_cursor)(root)              the done and seen marks; zero and zero when none\n[write_cursor](write_cursor)(root, c)         writes the marks back\n[append_event](append_event)(root, event)     numbers the event one above the last, stamps the moment, adds it\n[run_cli](run_cli)(root, args, text)          runs the human command in the project folder with the text on its\n                                              stdin; gives back whether it passed and what it printed\n[map_of](map_of)(root, name)                  the map file of a name and its content, or nothing when there is none\n[pins_reaching](pins_reaching)(root, name)    every pin of every map that names the file: the map, the entry,\n                                              the words, and the block or anchor it points at\n[training_for](training_for)(root, event)     ties an ask claude writes to the open training session, or opens\n                                              one; says in the output which session, or why there is none",
       "anchors": [
         {
           "words": "the tool",
@@ -21,12 +21,20 @@
           "file": "compiler/cli/human/cmd_project.py"
         },
         {
+          "words": "the training store",
+          "file": "compiler/cli/human/cmd_store.py"
+        },
+        {
+          "words": "the training hand",
+          "file": "compiler/cli/human/cmd_train.py"
+        },
+        {
           "words": "compile_writing",
           "block": "compile_writing",
           "lines": [
             [
-              101,
-              184
+              117,
+              203
             ]
           ]
         },
@@ -35,8 +43,8 @@
           "block": "map_of",
           "lines": [
             [
-              73,
-              80
+              74,
+              81
             ]
           ]
         },
@@ -45,8 +53,8 @@
           "block": "run_cli",
           "lines": [
             [
-              67,
-              70
+              68,
+              71
             ]
           ]
         },
@@ -55,8 +63,18 @@
           "block": "pins_reaching",
           "lines": [
             [
-              83,
-              98
+              84,
+              99
+            ]
+          ]
+        },
+        {
+          "words": "the training of an ask",
+          "block": "training_for",
+          "lines": [
+            [
+              102,
+              114
             ]
           ]
         },
@@ -65,8 +83,8 @@
           "block": "append_event",
           "lines": [
             [
-              51,
-              57
+              52,
+              58
             ]
           ]
         },
@@ -75,8 +93,8 @@
           "block": "cmd_watch",
           "lines": [
             [
-              187,
-              203
+              206,
+              222
             ]
           ]
         },
@@ -85,8 +103,8 @@
           "block": "read_events",
           "lines": [
             [
-              33,
-              37
+              34,
+              38
             ]
           ]
         },
@@ -95,8 +113,8 @@
           "block": "read_cursor",
           "lines": [
             [
-              40,
-              44
+              41,
+              45
             ]
           ]
         },
@@ -105,8 +123,8 @@
           "block": "cmd_ack",
           "lines": [
             [
-              206,
-              216
+              225,
+              235
             ]
           ]
         },
@@ -115,8 +133,8 @@
           "block": "pending",
           "lines": [
             [
-              60,
-              64
+              61,
+              65
             ]
           ]
         },
@@ -125,8 +143,8 @@
           "block": "folder",
           "lines": [
             [
-              19,
-              22
+              20,
+              23
             ]
           ]
         },
@@ -135,8 +153,8 @@
           "block": "events_path",
           "lines": [
             [
-              25,
-              26
+              26,
+              27
             ]
           ]
         },
@@ -145,8 +163,8 @@
           "block": "cursor_path",
           "lines": [
             [
-              29,
-              30
+              30,
+              31
             ]
           ]
         },
@@ -155,8 +173,8 @@
           "block": "read_events",
           "lines": [
             [
-              33,
-              37
+              34,
+              38
             ]
           ]
         },
@@ -165,8 +183,8 @@
           "block": "read_cursor",
           "lines": [
             [
-              40,
-              44
+              41,
+              45
             ]
           ]
         },
@@ -175,8 +193,8 @@
           "block": "write_cursor",
           "lines": [
             [
-              47,
-              48
+              48,
+              49
             ]
           ]
         },
@@ -185,8 +203,8 @@
           "block": "append_event",
           "lines": [
             [
-              51,
-              57
+              52,
+              58
             ]
           ]
         },
@@ -195,8 +213,8 @@
           "block": "run_cli",
           "lines": [
             [
-              67,
-              70
+              68,
+              71
             ]
           ]
         },
@@ -205,8 +223,8 @@
           "block": "map_of",
           "lines": [
             [
-              73,
-              80
+              74,
+              81
             ]
           ]
         },
@@ -215,8 +233,18 @@
           "block": "pins_reaching",
           "lines": [
             [
-              83,
-              98
+              84,
+              99
+            ]
+          ]
+        },
+        {
+          "words": "training_for",
+          "block": "training_for",
+          "lines": [
+            [
+              102,
+              114
             ]
           ]
         }
@@ -228,34 +256,36 @@
     "blank_lines": [
       9,
       11,
-      17,
       18,
-      23,
+      19,
       24,
-      27,
+      25,
       28,
-      31,
+      29,
       32,
-      38,
+      33,
       39,
-      45,
+      40,
       46,
-      49,
+      47,
       50,
-      58,
+      51,
       59,
-      65,
+      60,
       66,
-      71,
+      67,
       72,
-      81,
+      73,
       82,
-      99,
+      83,
       100,
-      185,
-      186,
+      101,
+      115,
+      116,
       204,
-      205
+      205,
+      223,
+      224
     ]
   }
 }

@@ -7,10 +7,10 @@
       "block_lines": [
         [
           1,
-          131
+          134
         ]
       ],
-      "text": "The skill claude reads when you give an abstraction and want the code under it.\n\n  you: \"/human an http server using python that returns hello world\"\n       the tool registers the project first \u2014 the file list, the reader,\n       the empty project map \u2014 so there is a place for your words before\n       there is any code                                           ([the skill](human))\n       claude hands your words to the project map as they are: no spelling\n       fixed, no word trimmed, no pin; the entry is flagged as yours and\n       keeps that first copy as its origin\n       claude writes the code files, no comments; the gate is static like a\n       compiler's \u2014 the file must parse \u2014 and there is no run and no test\n       claude maps the detailed telling of each file, in a shape from the\n       catalog beside this skill \u2014 the rail by default          ([the shape](The rail shape))\n       claude hands your words back with pins in them, through a plain\n       retext; the gate strips the pins and compares the rest with the words\n       it holds, character for character \u2014 one changed character is a\n       refusal, so the pins go in and your words do not move\n       when the project has more than one file, claude maps one more telling\n       of the project \u2014 what you can ask for and which file answers each part\n       claude reports each file and the project, gives you the reader, and\n       stays listening for what you write in it\n                                                                      ([the run](The run))\n\n  you: \"I would say it differently\"\n       your new words go in with --verbatim, pins and all; the origin is reset\n       to them, and the entries that stood on the old words are marked stale\n\n  you: change the code yourself, then \"sync\"\n       claude rewords your abstraction only where the code forces it \u2014 the\n       smallest edit, in your voice \u2014 and the tool warns you with the changed\n       lines; the origin stays in the map, show marks the entry against it,\n       and a retext --verbatim with the origin brings your words back\n\n  you: write in the reader instead of the terminal\n       every entry is a notepad: a click on its text opens it in place, in its\n       raw form, pins and all, and a click outside, or Escape, draws it again;\n       a file with no map offers you an abstraction or the code itself, and\n       the empty project map offers a new abstraction      ([the writing](The reader writes))\n       once a map holds an entry that line is gone\n       typing saves nothing; Ctrl+S keeps your draft in the browser, and the\n       head bar says \"unsaved\" until you press it\n       the \"compile\" button at the top right shows while a text differs from\n       the map, and the map changes only when you press it\n       the server runs the command you would have typed, one per changed text\n       \u2014 a retext of your own words, a first telling, or the code written to\n       disk \u2014 and a refusal comes back to you in the tool's own words\n       one event joins the queue; claude hears it through human watch,\n       reads the diff of your words, writes the code they ask for, syncs\n       every map that stood on them, pins the new sentences back in, and\n       marks the event done with human ack\n       a delete needs no compile and no event: right-click an entry head, the\n       head turns into a delete button with a cancel beside it, and one click\n       takes the entry out at once, because nothing is left for claude to do\n       the tool refuses the delete while another entry, the project map, or an\n       open training row still stands on that entry\n\n  you: ask claude for a telling instead of writing one\n       on a file with no map the open box carries a \"decompile\" button in\n       place of your words, and one click asks claude for the whole-file\n       telling\n       highlight words inside an entry and right-click \"expand abstraction\":\n       a write space opens on top and its head is the button; words of your\n       own go into the map first and claude writes the code under them, with\n       none claude writes the expansion itself\n       an expansion is a deeper telling of the words you highlighted; it\n       stands above the entry, and the entry pins those words down into it,\n       as a zoom on one block stands above the telling of the whole file\n       right-click an entry head for \"create abstraction\": nothing to write,\n       and claude tells the same thing again in plainer words below it\n       a road you write nothing on queues the event alone, and claude maps\n       what it writes\n\n  the pins tie a few words to a block, an earlier entry, another file, or an\n  entry of another file's map; unique words, real targets, no circle, the\n  detailed entry before the plainer one                              ([the pins](Pins))\n\n  afterwards: sync runs exactly once per change, then once more for the\n  project map, and with --stale when a file's entry made your abstraction\n  wrong; an abstraction mapped before the flag existed takes the flag with\n  a retext of its own text                                          ([the rules](Rules))",
+      "text": "The skill claude reads when you give an abstraction and want the code under it.\n\n  you: \"/human an http server using python that returns hello world\"\n       the tool registers the project first \u2014 the file list, the reader,\n       the empty project map \u2014 so there is a place for your words before\n       there is any code                                           ([the skill](human))\n       claude hands your words to the project map as they are: no spelling\n       fixed, no word trimmed, no pin; the entry is flagged as yours and\n       keeps that first copy as its origin\n       claude writes the code files, no comments; the gate is static like a\n       compiler's \u2014 the file must parse \u2014 and there is no run and no test\n       claude maps the detailed telling of each file, in a shape from the\n       catalog beside this skill \u2014 the rail by default          ([the shape](The rail shape))\n       claude hands your words back with pins in them, through a plain\n       retext; the gate strips the pins and compares the rest with the words\n       it holds, character for character \u2014 one changed character is a\n       refusal, so the pins go in and your words do not move\n       when the project has more than one file, claude maps one more telling\n       of the project \u2014 what you can ask for and which file answers each part\n       claude reports each file and the project, gives you the reader, and\n       stays listening for what you write in it\n                                                                      ([the run](The run))\n\n  you: \"I would say it differently\"\n       your new words go in with --verbatim, pins and all; the origin is reset\n       to them, and the entries that stood on the old words are marked stale\n\n  you: change the code yourself, then \"sync\"\n       claude rewords your abstraction only where the code forces it \u2014 the\n       smallest edit, in your voice \u2014 and the tool warns you with the changed\n       lines; the origin stays in the map, show marks the entry against it,\n       and a retext --verbatim with the origin brings your words back\n\n  you: write in the reader instead of the terminal\n       every entry is a notepad: a click on its text opens it in place, in its\n       raw form, pins and all, and a click outside, or Escape, draws it again;\n       a file with no map offers you an abstraction or the code itself, and\n       the empty project map offers a new abstraction      ([the writing](The reader writes))\n       a \"new file\" line at the top of the file tree makes an empty file:\n       you type a path from the root, folders and all, like src/app.py, and\n       the file opens on a new abstraction, with no event, because nothing\n       is left for claude to do\n       the file tree follows the files on disk, so a file claude writes\n       shows without a reload\n       once a map holds an entry that line is gone\n       typing saves nothing; Ctrl+S keeps your draft in the browser, and the\n       head bar says \"unsaved\" until you press it\n       the \"compile\" button at the top right shows while a text differs from\n       the map, and the map changes only when you press it\n       the server runs the command you would have typed, one per changed text\n       \u2014 a retext of your own words, a first telling, or the code written to\n       disk \u2014 and a refusal comes back to you in the tool's own words\n       one event joins the queue; claude hears it through human watch,\n       reads the diff of your words, writes the code they ask for, syncs\n       every map that stood on them, pins the new sentences back in, and\n       marks the event done with human ack\n       a file made in the reader is empty and git holds no old copy of it,\n       so its first sync runs against an empty old version\n       when your words ask for a thing no file of the project holds, claude\n       makes the file next to the others, outside the human folder, maps its\n       whole-file telling, syncs the project map, and pins your words into it\n       a delete needs no compile and no event: right-click an entry head, the\n       head turns into a delete button with a cancel beside it, and one click\n       takes the entry out at once, because nothing is left for claude to do\n       the tool refuses the delete while another entry, the project map, or an\n       open training row still stands on that entry\n\n  you: ask claude for a telling instead of writing one\n       on a file with no map the open box carries a \"decompile\" button in\n       place of your words, and one click asks claude for the whole-file\n       telling\n       on an empty file the server refuses the decompile, because your words\n       come first and the code goes under them\n       highlight words inside an entry and right-click \"expand abstraction\":\n       a write space opens on top and its head is the button; words of your\n       own go into the map first and claude writes the code under them, with\n       none claude writes the expansion itself\n       an expansion is a deeper telling of the words you highlighted; it\n       stands above the entry, and the entry pins those words down into it,\n       as a zoom on one block stands above the telling of the whole file\n       right-click an entry head for \"create abstraction\": nothing to write,\n       and claude tells the same thing again in plainer words below it\n       a road you write nothing on queues the event alone\n       when the machine is logged in to the training store, the server opens\n       a training session if none is open; claude writes two versions into\n       a row and maps nothing, you pick one in a layer over the reader, and\n       the close maps the pick\n       the pick of an expansion queues one more event, and claude pins the\n       words you highlighted down into it\n       with no login, or when the store does not answer, claude maps what\n       it writes\n\n  the pins tie a few words to a block, an earlier entry, another file, or an\n  entry of another file's map; unique words, real targets, no circle, the\n  detailed entry before the plainer one                              ([the pins](Pins))\n\n  afterwards: sync runs exactly once per change, then once more for the\n  project map, and with --stale when a file's entry made your abstraction\n  wrong; an abstraction mapped before the flag existed takes the flag with\n  a retext of its own text                                          ([the rules](Rules))",
       "anchors": [
         {
           "words": "the skill",
@@ -18,7 +18,7 @@
           "lines": [
             [
               6,
-              131
+              134
             ]
           ]
         },
@@ -27,8 +27,8 @@
           "block": "The rail shape",
           "lines": [
             [
-              94,
-              125
+              97,
+              128
             ]
           ]
         },
@@ -48,7 +48,7 @@
           "lines": [
             [
               52,
-              76
+              79
             ]
           ]
         },
@@ -57,8 +57,8 @@
           "block": "Pins",
           "lines": [
             [
-              77,
-              93
+              80,
+              96
             ]
           ]
         },
@@ -67,8 +67,8 @@
           "block": "Rules",
           "lines": [
             [
-              126,
-              131
+              129,
+              134
             ]
           ]
         }
@@ -102,20 +102,21 @@
       63,
       65,
       67,
-      76,
-      78,
-      80,
-      84,
-      86,
-      93,
-      95,
-      97,
-      110,
-      112,
-      121,
-      123,
-      125,
-      127
+      77,
+      79,
+      81,
+      83,
+      87,
+      89,
+      96,
+      98,
+      100,
+      113,
+      115,
+      124,
+      126,
+      128,
+      130
     ]
   }
 }

@@ -10,7 +10,8 @@ from pathlib import Path
 from . import cmd_project, decompiler
 
 FOLDER = "server"
-KINDS = ("retext", "map", "code", "decompile", "expand", "create", "delete")
+KINDS = ("retext", "map", "code", "decompile", "expand", "create", "delete", "link")
+TRAINED = ("decompile", "expand", "create")
 WRITTEN = ("retext", "map", "code")
 LOCK = threading.Lock()
 ENTRY_RE = re.compile(r"^entry (\d+)", re.M)
@@ -98,9 +99,24 @@ def pins_reaching(root, name):
     return out
 
 
+def training_for(root, event):
+    from . import cmd_store, cmd_train
+    if event["kind"] not in TRAINED or event.get("new_text") is not None or not cmd_store.credentials():
+        return
+    notes = []
+    try:
+        session, made = cmd_train.ensure_open(root, notes)
+    except (cmd_store.Refused, cmd_store.Unreachable) as e:
+        event["session"] = None
+        event["output"] += f"  ·  no training: {e}"
+        return
+    event["session"] = session["session_id"]
+    event["output"] += f"  ·  training {session['session_id']}" + (" opened" if made else "")
+
+
 def compile_writing(root, name, kind, eid, text, words=None):
-    if kind not in KINDS:
-        return 400, f"unknown kind {kind!r}; one of {', '.join(KINDS)}"
+    if kind not in KINDS or kind == "link":
+        return 400, f"unknown kind {kind!r}; one of {', '.join(KINDS[:-1])}"
     if kind in WRITTEN and (not text or not text.strip()):
         return 400, "the text is empty"
     is_project = name == cmd_project.WORD
@@ -134,6 +150,8 @@ def compile_writing(root, name, kind, eid, text, words=None):
             return 400, "the project has no code of its own"
         if data:
             return 400, f"{name} has a map; expand or create on its entries"
+        if not file_path.read_text(errors="replace").strip():
+            return 400, f"{name} is empty; write its telling, and claude writes the code under it"
         event.update({"entry": None, "old_text": None, "new_text": None,
                       "output": f"decompile of {name} waits for claude"})
     elif kind == "create":
@@ -179,6 +197,7 @@ def compile_writing(root, name, kind, eid, text, words=None):
             return 200, {"seq": None, "output": f"{name} saved; no telling stands on it"}
         event.update({"map": None, "entry": None, "old_text": old, "new_text": text,
                       "pins": pins, "output": f"{name} saved; {len(pins)} pins reach it"})
+    training_for(root, event)
     with LOCK:
         seq = append_event(root, event)
     return 200, {"seq": seq, "output": event["output"]}

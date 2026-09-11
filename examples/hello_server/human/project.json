@@ -1,0 +1,30 @@
+{
+  "code_file": "project",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "project",
+      "block_lines": [],
+      "text": "an [http server](server.py) using python that returns [hello world](server.py:e1:the answer)",
+      "anchors": [
+        {
+          "words": "http server",
+          "file": "server.py"
+        },
+        {
+          "words": "hello world",
+          "file": "server.py",
+          "entry": 1,
+          "anchor": "the answer"
+        }
+      ],
+      "verbatim": {
+        "origin": "an http server using python that returns hello world"
+      }
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": []
+  }
+}

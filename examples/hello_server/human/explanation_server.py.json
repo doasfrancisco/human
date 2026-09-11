@@ -10,10 +10,10 @@
           19
         ]
       ],
-      "text": "import BaseHTTPRequestHandler, HTTPserver\n\nclass [Hello](Hello)\n    ([answers every call](do_GET) with \"hello world\" as plain text)\n\n[main](main)()\n    serve on port 8000 \"Hello\" forever\n\nif file is launched directly\n    main()",
+      "text": "\u25cf  you ask the server for a page                          ([the answerer](Hello))\n  \u2502     You open http://localhost:8000 in a browser, or any address on that port.\n  \u2502     The server keeps one answerer for every call that comes in.\n  \u2502\n  \u25cf  the server answers every call with hello world        ([the answer](do_GET))\n  \u2502     It says the call went well, that the answer is plain text,\n  \u2502     and how long the answer is.\n  \u2502     Then it writes the two words, and the call is done.\n  \u2502     It does this for every address, so any page you ask for says hello world.\n  \u2502\n  \u25cf  the server starts and waits forever                   ([the start](main))\n        It opens port 8000 and hands every call to the answerer.\n        It never stops on its own; you stop it with Ctrl+C.",
       "anchors": [
         {
-          "words": "Hello",
+          "words": "the answerer",
           "block": "Hello",
           "lines": [
             [
@@ -23,7 +23,7 @@
           ]
         },
         {
-          "words": "answers every call",
+          "words": "the answer",
           "block": "do_GET",
           "lines": [
             [
@@ -33,7 +33,7 @@
           ]
         },
         {
-          "words": "main",
+          "words": "the start",
           "block": "main",
           "lines": [
             [
@@ -41,29 +41,6 @@
               15
             ]
           ]
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "block": "server.py",
-      "block_lines": [
-        [
-          1,
-          19
-        ]
-      ],
-      "text": "an [http server](e1:Hello) using python that returns [hello world](e1:answers every call)",
-      "anchors": [
-        {
-          "words": "http server",
-          "explanation": 1,
-          "anchor": "Hello"
-        },
-        {
-          "words": "hello world",
-          "explanation": 1,
-          "anchor": "answers every call"
         }
       ]
     }

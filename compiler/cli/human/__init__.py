@@ -59,8 +59,9 @@ def cmd_init(a):
     root.mkdir(parents=True, exist_ok=True)
     h = root / "human"
     h.mkdir(exist_ok=True)
-    for name in ("web.html", "trees.js", "feed.html"):
+    for name in ("web.html", "trees.js"):
         shutil.copy(PKG / "reader" / name, h / name)
+    (h / "feed.html").unlink(missing_ok=True)
     map_path = h / "human.json"
     if map_path.exists():
         data = json.loads(map_path.read_text())
@@ -69,12 +70,7 @@ def cmd_init(a):
         data = {"code_file": root.name, "explanations": [],
                 "not_covered": {"code_lines": [], "blank_lines": []}}
     data["code_file"] = root.name
-    patterns = data.get("ignore", [])
-    found = scan_files(root)
-    data["ignore"] = patterns
-    data["files"] = [f for f in found if not is_ignored(f, patterns)]
-    data.pop("ignored", None)
-    map_path.write_text(json.dumps(data, indent=2) + "\n")
+    found, data = write_files(root, data)
     if not cmd_project.map_path(root).exists():
         cmd_project.save(root, cmd_project.load(root))
     if (root / cmd_project.WORD).exists():
@@ -87,11 +83,56 @@ def cmd_init(a):
     print(f"read it with: human serve  (from {root})")
 
 
+def write_files(root, data=None):
+    map_path = root / "human" / "human.json"
+    if data is None:
+        data = json.loads(map_path.read_text())
+    patterns = data.get("ignore", [])
+    found = scan_files(root)
+    data["ignore"] = patterns
+    data["files"] = [f for f in found if not is_ignored(f, patterns)]
+    data.pop("ignored", None)
+    map_path.write_text(json.dumps(data, indent=2) + "\n")
+    return found, data
+
+
 def fresh_map(root):
     data = json.loads((root / "human" / "human.json").read_text())
     patterns = data.get("ignore", [])
     data["files"] = [f for f in scan_files(root) if not is_ignored(f, patterns)]
     return data
+
+
+def new_file(root, name):
+    if not isinstance(name, str) or not name.strip():
+        return 400, "no file name"
+    rel = Path(name.strip().replace("\\", "/"))
+    if rel.is_absolute() or ".." in rel.parts or not rel.parts:
+        return 400, f"{name} leaves the project; name a path from the root, like src/app.py"
+    shown = rel.as_posix()
+    if rel.parts[0] == "human":
+        return 400, f"{shown} is in the human folder; the maps take no file"
+    for part in rel.parts[:-1]:
+        if part.startswith(".") or part in IGNORE_DIRS:
+            return 400, f"{shown} is in {part}, a folder the file tree skips"
+    if rel.name.startswith("."):
+        return 400, f"{shown} starts with a dot; the file tree skips it"
+    for i in range(1, len(rel.parts)):
+        d = root.joinpath(*rel.parts[:i])
+        if (d / "human" / "human.json").is_file():
+            return 400, f"{shown} is in {d.relative_to(root).as_posix()}, a project of its own"
+    if rel.suffix.lower() not in SUFFIXES:
+        return 400, f"{shown} has no suffix the file tree knows; one of {', '.join(sorted(SUFFIXES))}"
+    data = json.loads((root / "human" / "human.json").read_text())
+    if is_ignored(shown, data.get("ignore", [])):
+        return 400, f"{shown} is ignored by human/human.json"
+    p = root / rel
+    if p.exists():
+        return 400, f"{shown} exists"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.touch()
+    write_files(root, data)
+    return 200, {"name": shown, "output": f"{shown} made, empty; write its telling"}
 
 
 class FreshHandler(SimpleHTTPRequestHandler):
@@ -136,12 +177,16 @@ class FreshHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         path = self.path.split("?")[0]
         root = Path(self.directory)
-        m = re.fullmatch(r"/human/training/([^/]+)/pick", path)
+        m = re.fullmatch(r"/human/training/([^/]+)/(pick|close)", path)
         try:
             if path == "/human/compile":
                 body = self.read_body()
                 status, out = cmd_watch.compile_writing(root, body.get("name"), body.get("kind"),
                                                         body.get("id"), body.get("text"), body.get("words"))
+            elif path == "/human/file":
+                status, out = new_file(root, self.read_body().get("name"))
+            elif m and m.group(2) == "close":
+                status, out = cmd_train.close_road(root, m.group(1))
             elif m:
                 body = self.read_body()
                 status, out = cmd_train.pick(root, m.group(1),
@@ -186,7 +231,8 @@ def cmd_serve(a):
     tip = tailnet_ip()
     if tip:
         print(f"http://{tip}:{a.port}/human/web.html")
-    print("the feed is at /human/feed.html on the same address")
+    print("an open training session shows as a layer over the reader")
+    print("a new file from the reader lands next to the others, empty, ready for its telling")
     print("a writing in the reader lands in human/server/; read it with: human watch")
     try:
         srv.serve_forever()
@@ -251,6 +297,8 @@ def main():
     t.add_argument("--kind", choices=("create", "sync"), default="create")
     t.add_argument("--entry", type=int)
     t.add_argument("--block")
+    t.add_argument("--target", type=int)
+    t.add_argument("--words")
     t.add_argument("--text")
     w = sub.add_parser("watch")
     w.add_argument("--once", action="store_true")

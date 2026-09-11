@@ -7,10 +7,10 @@
       "block_lines": [
         [
           1,
-          274
+          322
         ]
       ],
-      "text": "This file is the front desk of the human tool. It does not do the\nwork itself: it reads what you typed and passes it to the hand\nthat does it. Here is what each thing you can type becomes.\n\nhuman init                                     ([the register](cmd_init))\n    Makes the human folder in the project: the reader page,\n    the feed page, and the book human/human.json with the list\n    of the project's files.\n    The list comes from [the sweep](scan_files) \u2014 a walk over\n    the folder that keeps the code files and drops hidden\n    files, build folders, and folders with a map of their own \u2014\n    passed through [the sieve](is_ignored), the ignore list of\n    the book.\n    It also starts the second book, human/project.json, the map\n    of the whole project, when that book is not there yet.\n    If a file named \"project\" sits at the top of the folder it\n    says so, because that word names the project map and the\n    file then needs a path like ./project to be told apart.\n\nhuman serve                                        ([the shelf](cmd_serve))\n    Finds the top of the project and opens a door for the\n    browser, 8010 unless you say --port. Prints the localhost\n    address, the [tailnet address](tailnet_ip) when the machine\n    is on one, and the line that says where a writing from the\n    reader lands. Behind the door stands [the fresh copy](FreshHandler).\n    It answers five kinds of asks:\n      a file of the project                 \u2014 handed out as it is on disk\n      /human/human.json                     \u2014 [rebuilt](fresh_map) on every ask,\n                                              so a new file shows on reload\n      /human/training/                      \u2014 the list of training sessions, kept in\n                                              the training store away from this machine\n      /human/training/<name>.json           \u2014 one of those sessions, by its name\n      /human/server/queue                   \u2014 the writings that still wait for claude\n    and takes two kinds of writing, [the body](read_body) read as JSON:\n      a pick from the feed                  ([the pick](do_POST)) \u2014 the row, the\n                                              version and your reason go into the\n                                              session file\n      a writing from the reader             \u2014 your own words on an entry, a first\n                                              telling for a file with no map, or the\n                                              code of that file; the desk hands it to\n                                              [the queue](compiler/cli/human/cmd_watch.py:compile_writing),\n                                              which runs the command you would have\n                                              typed and keeps the writing for claude.\n                                              When the writing grows a few words of an\n                                              entry, the desk passes those marked words\n                                              along with it, so the queue knows which\n                                              part to grow\n    Any other writing gets \"not found\". An ask for training when\n    the machine has no key, or when the store does not answer,\n    gets the reason back in place of the sessions. Every answer\n    carries \"do not keep me\" ([the note](end_headers)), so a\n    reload never shows an old copy, and the desk stays quiet\n    unless you add --log ([the mute](log_message)).\n\nhuman map file --verbatim                    ([the map run](compiler/cli/human/cmd_map.py))\n    Your own words, marked as yours. --verbatim is a yes or no\n    now: the desk hands the whole line to the map run, and\n    [the guard](compiler/cli/human/cmd_map.py) there keeps the\n    words as you wrote them \u2014 they go in plain, and a pin in\n    them is refused.\n\nhuman retext, undo, show, lines, sync <file>       ([the engine](compiler/cli/human/decompiler.py))\n    All the work on a map that exists. The desk only points\n    the way. retext takes --verbatim too, to put words of your\n    own in the place of the ones already mapped. undo takes\n    --entry, the number of the entry to drop; without it the\n    last entry written goes.\n\nhuman retext, undo, show, lines, sync project      ([the project hand](compiler/cli/human/cmd_project.py))\n    The same commands with the word \"project\" where the file\n    goes: the desk sends them to the hand that works on the\n    map of the whole project, before the engine sees them.\n\nhuman train --open / file --as best --shape sections / --close\n                                                  ([the trainer](compiler/cli/human/cmd_train.py))\n    Three versions of one abstraction, each with the name of\n    the shape it follows; a pick in the feed; the pick mapped\n    at the close.\n\nhuman watch / human ack <number>                   ([the watch](compiler/cli/human/cmd_watch.py))\n    The other side of a writing from the reader. watch prints\n    every writing claude has not finished, one line each, and\n    stays at the queue for the next; --once prints and returns.\n    ack marks the writing with that number as done and says\n    how many still wait.\n\nhuman login <key>                                  ([the store hand](compiler/cli/human/cmd_store.py))\n    Gives this machine the key to the training store. The desk\n    hands the key on; the store says who the key belongs to and\n    the key is kept in your home folder, so every later ask for\n    a training session carries it.\n\nhuman skills                                        ([the giver](cmd_skills))\n    Copies the skill folders, shapes included, to where your\n    agent looks for them.\n\nThe one line that ties it together is [the front door](main):\nit names every command above, says which flags each one takes \u2014\nfor map and retext: --verbatim; for undo: --entry; for train:\n--open, --close, --as, --shape, --kind, --entry, --block, --text;\nfor watch: --once, for ack the number of the writing, and for\nlogin the key \u2014 and hands the parsed line to the right hand.",
+      "text": "This file is the front desk of the human tool. It does not do the\nwork itself: it reads what you typed and passes it to the hand\nthat does it. Here is what each thing you can type becomes.\n\nhuman init                                     ([the register](cmd_init))\n    Makes the human folder in the project: the reader page\n    and the book human/human.json with the list\n    of the project's files.\n    A feed page that an older version left in the folder is\n    taken away, because the training now shows in the reader.\n    The list comes from [the sweep](scan_files) \u2014 a walk over\n    the folder that keeps the code files and drops hidden\n    files, build folders, and folders with a map of their own \u2014\n    passed through [the sieve](is_ignored), the ignore list of\n    the book.\n    [The writer](write_files) puts that list in the book. It is\n    the same hand that writes the list again when the reader\n    makes a new file.\n    It also starts the second book, human/project.json, the map\n    of the whole project, when that book is not there yet.\n    If a file named \"project\" sits at the top of the folder it\n    says so, because that word names the project map and the\n    file then needs a path like ./project to be told apart.\n\nhuman serve                                        ([the shelf](cmd_serve))\n    Finds the top of the project and opens a door for the\n    browser, 8010 unless you say --port. Prints the localhost\n    address, the [tailnet address](tailnet_ip) when the machine\n    is on one, the line that says an open training session\n    shows as a layer over the reader, the line that says a new\n    file from the reader lands empty next to the others, and\n    the line that says where a writing from the\n    reader lands. Behind the door stands [the fresh copy](FreshHandler).\n    It answers five kinds of asks:\n      a file of the project                 \u2014 handed out as it is on disk\n      /human/human.json                     \u2014 [rebuilt](fresh_map) on every ask,\n                                              so a new file shows on reload\n      /human/training/                      \u2014 the list of training sessions, kept in\n                                              the training store away from this machine\n      /human/training/<name>.json           \u2014 one of those sessions, by its name\n      /human/server/queue                   \u2014 the writings that still wait for claude\n    and takes four kinds of writing, [the body](read_body) read as JSON:\n      a pick from the training layer        ([the pick](do_POST)) \u2014 the row, the\n                                              version and your reason go into the\n                                              session file\n      a close from the training layer       \u2014 the session closes as with\n                                              human train --close: each picked row\n                                              goes into its map. A close for a\n                                              session that is not the open one is\n                                              refused\n      a writing from the reader             \u2014 your own words on an entry, a first\n                                              telling for a file with no map, or the\n                                              code of that file; the desk hands it to\n                                              [the queue](compiler/cli/human/cmd_watch.py:compile_writing),\n                                              which runs the command you would have\n                                              typed and keeps the writing for claude.\n                                              When the writing grows a few words of an\n                                              entry, the desk passes those marked words\n                                              along with it, so the queue knows which\n                                              part to grow\n      a new file from the reader            ([the new file](new_file)) \u2014 you name a\n                                              path from the top of the project; the\n                                              desk makes the file there, empty, and\n                                              puts it in the list of the book, so it\n                                              waits for its telling. A path that leaves\n                                              the project, goes into the human folder,\n                                              a hidden or build folder, or a project of\n                                              its own, a name with a dot in front, a\n                                              suffix the list does not know, a path the\n                                              ignore list drops, or a file that is\n                                              already there is refused, with the reason\n    Any other writing gets \"not found\". An ask for training when\n    the machine has no key, or when the store does not answer,\n    gets the reason back in place of the sessions. Every answer\n    carries \"do not keep me\" ([the note](end_headers)), so a\n    reload never shows an old copy, and the desk stays quiet\n    unless you add --log ([the mute](log_message)).\n\nhuman map file --verbatim                    ([the map run](compiler/cli/human/cmd_map.py))\n    Your own words, marked as yours. --verbatim is a yes or no\n    now: the desk hands the whole line to the map run, and\n    [the guard](compiler/cli/human/cmd_map.py) there keeps the\n    words as you wrote them \u2014 they go in plain, and a pin in\n    them is refused.\n\nhuman retext, undo, show, lines, sync <file>       ([the engine](compiler/cli/human/decompiler.py))\n    All the work on a map that exists. The desk only points\n    the way. retext takes --verbatim too, to put words of your\n    own in the place of the ones already mapped. undo takes\n    --entry, the number of the entry to drop; without it the\n    last entry written goes.\n\nhuman retext, undo, show, lines, sync project      ([the project hand](compiler/cli/human/cmd_project.py))\n    The same commands with the word \"project\" where the file\n    goes: the desk sends them to the hand that works on the\n    map of the whole project, before the engine sees them.\n\nhuman train --open / file --as best --shape sections / --close\n                                                  ([the trainer](compiler/cli/human/cmd_train.py))\n    Three versions of one abstraction, each with the name of\n    the shape it follows; a pick in the feed; the pick mapped\n    at the close.\n    With --target and --words the versions grow the marked\n    words of that entry: at the close the new entry is mapped,\n    and the pin of the target into it waits for claude.\n\nhuman watch / human ack <number>                   ([the watch](compiler/cli/human/cmd_watch.py))\n    The other side of a writing from the reader. watch prints\n    every writing claude has not finished, one line each, and\n    stays at the queue for the next; --once prints and returns.\n    ack marks the writing with that number as done and says\n    how many still wait.\n\nhuman login <key>                                  ([the store hand](compiler/cli/human/cmd_store.py))\n    Gives this machine the key to the training store. The desk\n    hands the key on; the store says who the key belongs to and\n    the key is kept in your home folder, so every later ask for\n    a training session carries it.\n\nhuman skills                                        ([the giver](cmd_skills))\n    Copies the skill folders, shapes included, to where your\n    agent looks for them.\n\nThe one line that ties it together is [the front door](main):\nit names every command above, says which flags each one takes \u2014\nfor map and retext: --verbatim; for undo: --entry; for train:\n--open, --close, --as, --shape, --kind, --entry, --block, --target,\n--words, --text;\nfor watch: --once, for ack the number of the writing, and for\nlogin the key \u2014 and hands the parsed line to the right hand.",
       "anchors": [
         {
           "words": "the register",
@@ -18,7 +18,7 @@
           "lines": [
             [
               57,
-              87
+              83
             ]
           ]
         },
@@ -43,12 +43,22 @@
           ]
         },
         {
+          "words": "The writer",
+          "block": "write_files",
+          "lines": [
+            [
+              86,
+              96
+            ]
+          ]
+        },
+        {
           "words": "the shelf",
           "block": "cmd_serve",
           "lines": [
             [
-              179,
-              194
+              224,
+              240
             ]
           ]
         },
@@ -57,8 +67,8 @@
           "block": "tailnet_ip",
           "lines": [
             [
-              164,
-              176
+              209,
+              221
             ]
           ]
         },
@@ -67,8 +77,8 @@
           "block": "FreshHandler",
           "lines": [
             [
-              97,
-              161
+              138,
+              206
             ]
           ]
         },
@@ -77,8 +87,8 @@
           "block": "fresh_map",
           "lines": [
             [
-              90,
-              94
+              99,
+              103
             ]
           ]
         },
@@ -87,8 +97,8 @@
           "block": "read_body",
           "lines": [
             [
-              132,
-              134
+              173,
+              175
             ]
           ]
         },
@@ -97,8 +107,8 @@
           "block": "do_POST",
           "lines": [
             [
-              136,
-              153
+              177,
+              198
             ]
           ]
         },
@@ -108,8 +118,18 @@
           "block": "compile_writing",
           "lines": [
             [
-              101,
-              184
+              117,
+              203
+            ]
+          ]
+        },
+        {
+          "words": "the new file",
+          "block": "new_file",
+          "lines": [
+            [
+              106,
+              135
             ]
           ]
         },
@@ -118,8 +138,8 @@
           "block": "end_headers",
           "lines": [
             [
-              155,
-              157
+              200,
+              202
             ]
           ]
         },
@@ -128,8 +148,8 @@
           "block": "log_message",
           "lines": [
             [
-              159,
-              161
+              204,
+              206
             ]
           ]
         },
@@ -166,8 +186,8 @@
           "block": "cmd_skills",
           "lines": [
             [
-              197,
-              209
+              243,
+              255
             ]
           ]
         },
@@ -176,8 +196,8 @@
           "block": "main",
           "lines": [
             [
-              212,
-              270
+              258,
+              318
             ]
           ]
         }
@@ -188,19 +208,19 @@
       "block": "cmd_serve",
       "block_lines": [
         [
-          179,
-          194
+          224,
+          240
         ]
       ],
-      "text": "\u25cf  you open the door                                    ([the shelf](cmd_serve))\n  \u2502     You type: human serve.\n  \u2502     The tool climbs to the top of the project \u2014 the folder\n  \u2502     that holds human/ \u2014 so the command works from any\n  \u2502     folder inside the project.\n  \u2502     Then it takes door 8010 of your machine and stands there.\n  \u2502     It prints the addresses to read at, and the line that\n  \u2502     tells you a writing in the reader lands in human/server/.\n  \u2502\n  \u25cf  the browser knocks                             ([the fresh copy](FreshHandler))\n  \u2502     You open http://localhost:8010/human/web.html.\n  \u2502     Each thing on the page \u2014 the reader, the maps, the code \u2014\n  \u2502     is one knock: \"give me this file\".\n  \u2502     The tool hands out only files under the top of the\n  \u2502     project, never anything above it.\n  \u2502\n  \u25cf  the feed sends a pick back                          ([the pick](do_POST))\n  \u2502     The feed page at /human/feed.html shows you two texts\n  \u2502     and you choose one. The choice comes back as one knock\n  \u2502     of its own, and the tool writes it into the training\n  \u2502     session.\n  \u2502\n  \u25cf  the reader sends a writing back\n  \u2502     In the reader you can write yourself: new words for an\n  \u2502     entry, a first telling for a file with no map, or the\n  \u2502     code of that file. The writing comes back as its own\n  \u2502     knock and the tool puts it in the queue in human/server/,\n  \u2502     where the agent takes it with human watch. When you mark\n  \u2502     a few words of an entry to grow them, those words go with\n  \u2502     the writing, so the agent knows which part to grow.\n  \u2502     The page can also ask for that queue and see what still\n  \u2502     waits.\n  \u2502     A knock that is neither a pick nor a writing gets\n  \u2502     \"not found\".\n  \u2502\n  \u25cf  every answer says: do not keep me                    ([the note](end_headers))\n  \u2502     The tool marks each file it hands out, so the browser\n  \u2502     asks fresh next time instead of showing an old copy.\n  \u2502     This is why a changed map shows up on a plain reload.\n  \u2502\n  \u25cf  the tool stands at the door until you stop it\n        Ask after ask, it answers. Ctrl-c closes the door.\n        Only a pick or a writing changes the project; every\n        other knock reads and leaves it as it is.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  when the answer is not a file                         ([the answer](send_json))\n     The fresh map, the list of training sessions, the queue\n     of waiting writings, and the word back from a pick or a\n     writing are not files on disk. The tool writes them out\n     as one block of JSON with its length in front.\n\n  when the page asks for training                      ([the reading](do_GET))\n     The list of sessions, and one session by its name, do not\n     live on this machine: the tool asks the training store for\n     them and hands the answer on. When this machine has no key,\n     or the store does not answer, the page gets the reason in\n     place of the sessions.\n\n  when you want to see the asks                           ([the mute](log_message))\n     human serve --log writes one line per knock.\n     Without it the tool stays silent, because one page load\n     is many knocks and they would flood your screen.\n\n  when a second project wants a door\n     A machine gives each numbered door to one program only,\n     and the first serve holds door 8010. Give the second\n     project its own door: human serve --port 8011, and read\n     it at http://localhost:8011/human/web.html.",
+      "text": "\u25cf  you open the door                                    ([the shelf](cmd_serve))\n  \u2502     You type: human serve.\n  \u2502     The tool climbs to the top of the project \u2014 the folder\n  \u2502     that holds human/ \u2014 so the command works from any\n  \u2502     folder inside the project.\n  \u2502     Then it takes door 8010 of your machine and stands there.\n  \u2502     It prints the addresses to read at, the line that tells\n  \u2502     you an open training session shows as a layer over the\n  \u2502     reader, the line that tells you a new file from the\n  \u2502     reader lands empty next to the others, and the line that\n  \u2502     tells you a writing in the reader lands in human/server/.\n  \u2502\n  \u25cf  the browser knocks                             ([the fresh copy](FreshHandler))\n  \u2502     You open http://localhost:8010/human/web.html.\n  \u2502     Each thing on the page \u2014 the reader, the maps, the code \u2014\n  \u2502     is one knock: \"give me this file\".\n  \u2502     The tool hands out only files under the top of the\n  \u2502     project, never anything above it.\n  \u2502\n  \u25cf  the feed sends a pick back                          ([the pick](do_POST))\n  \u2502     The training layer over the reader shows you two texts\n  \u2502     and you choose one. The choice comes back as one knock\n  \u2502     of its own, and the tool writes it into the training\n  \u2502     session.\n  \u2502     When you close the session from the layer, that is one\n  \u2502     knock too: the tool closes it as human train --close\n  \u2502     does, and each picked row goes into its map. A close for\n  \u2502     a session that is not the open one is refused.\n  \u2502\n  \u25cf  the reader sends a writing back\n  \u2502     In the reader you can write yourself: new words for an\n  \u2502     entry, a first telling for a file with no map, or the\n  \u2502     code of that file. The writing comes back as its own\n  \u2502     knock and the tool puts it in the queue in human/server/,\n  \u2502     where the agent takes it with human watch. When you mark\n  \u2502     a few words of an entry to grow them, those words go with\n  \u2502     the writing, so the agent knows which part to grow.\n  \u2502     The page can also ask for that queue and see what still\n  \u2502     waits.\n  \u2502\n  \u25cf  the reader asks for a new file                  ([the new file](new_file))\n  \u2502     In the reader you can name a path from the top of the\n  \u2502     project. The tool makes the file there, empty, and puts\n  \u2502     it in the list of files in human/human.json, so it waits\n  \u2502     for its telling. It refuses, with the reason, a path that\n  \u2502     leaves the project, goes into the human folder, a hidden\n  \u2502     or build folder, or a project of its own, a name with a\n  \u2502     dot in front, a suffix the file tree does not know, a\n  \u2502     path the ignore list drops, or a file that is already\n  \u2502     there.\n  \u2502     A knock that is not a pick, a close, a writing, or a new\n  \u2502     file gets \"not found\".\n  \u2502\n  \u25cf  every answer says: do not keep me                    ([the note](end_headers))\n  \u2502     The tool marks each file it hands out, so the browser\n  \u2502     asks fresh next time instead of showing an old copy.\n  \u2502     This is why a changed map shows up on a plain reload.\n  \u2502\n  \u25cf  the tool stands at the door until you stop it\n        Ask after ask, it answers. Ctrl-c closes the door.\n        Only a pick, a close, a writing, or a new file changes the project; every\n        other knock reads and leaves it as it is.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  when the answer is not a file                         ([the answer](send_json))\n     The fresh map, the list of training sessions, the queue\n     of waiting writings, and the word back from a pick, a close, a\n     writing, or a new file are not files on disk. The tool writes them out\n     as one block of JSON with its length in front.\n\n  when the page asks for training                      ([the reading](do_GET))\n     The list of sessions, and one session by its name, do not\n     live on this machine: the tool asks the training store for\n     them and hands the answer on. When this machine has no key,\n     or the store does not answer, the page gets the reason in\n     place of the sessions.\n\n  when you want to see the asks                           ([the mute](log_message))\n     human serve --log writes one line per knock.\n     Without it the tool stays silent, because one page load\n     is many knocks and they would flood your screen.\n\n  when a second project wants a door\n     A machine gives each numbered door to one program only,\n     and the first serve holds door 8010. Give the second\n     project its own door: human serve --port 8011, and read\n     it at http://localhost:8011/human/web.html.",
       "anchors": [
         {
           "words": "the shelf",
           "block": "cmd_serve",
           "lines": [
             [
-              179,
-              194
+              224,
+              240
             ]
           ]
         },
@@ -209,8 +229,8 @@
           "block": "FreshHandler",
           "lines": [
             [
-              97,
-              161
+              138,
+              206
             ]
           ]
         },
@@ -219,8 +239,18 @@
           "block": "do_POST",
           "lines": [
             [
-              136,
-              153
+              177,
+              198
+            ]
+          ]
+        },
+        {
+          "words": "the new file",
+          "block": "new_file",
+          "lines": [
+            [
+              106,
+              135
             ]
           ]
         },
@@ -229,8 +259,8 @@
           "block": "end_headers",
           "lines": [
             [
-              155,
-              157
+              200,
+              202
             ]
           ]
         },
@@ -239,8 +269,8 @@
           "block": "send_json",
           "lines": [
             [
-              100,
-              106
+              141,
+              147
             ]
           ]
         },
@@ -249,8 +279,8 @@
           "block": "do_GET",
           "lines": [
             [
-              108,
-              130
+              149,
+              171
             ]
           ]
         },
@@ -259,8 +289,8 @@
           "block": "log_message",
           "lines": [
             [
-              159,
-              161
+              204,
+              206
             ]
           ]
         }
@@ -280,26 +310,30 @@
       48,
       55,
       56,
-      88,
-      89,
-      95,
-      96,
-      99,
-      107,
-      131,
-      135,
-      154,
-      158,
-      162,
-      163,
-      177,
-      178,
-      195,
-      196,
-      210,
-      211,
-      271,
-      272
+      84,
+      85,
+      97,
+      98,
+      104,
+      105,
+      136,
+      137,
+      140,
+      148,
+      172,
+      176,
+      199,
+      203,
+      207,
+      208,
+      222,
+      223,
+      241,
+      242,
+      256,
+      257,
+      319,
+      320
     ]
   }
 }

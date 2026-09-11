@@ -70,18 +70,19 @@ def source_of(root, code_name, kind):
     return code_path, src, spans, data
 
 
-def carry_row(root, old, old_sid):
+def carry_row(root, old, old_sid, notes):
     code_path, src, spans, data = source_of(root, old["file"], old["kind"])
     if src is None:
-        print(f"{old['file']} is gone; its row stays in {old_sid}")
+        notes.append(f"{old['file']} is gone; its row stays in {old_sid}")
         return None
     a = argparse.Namespace(kind=old["kind"],
                            entry=old["entry"] if old["level"] == "same" else None,
-                           block=old["block"] if old["level"] == "above" else None)
+                           block=old["block"] if old["level"] == "above" else None,
+                           target=old.get("target"), words=old.get("words"))
     try:
         row = new_row(a, root, code_path, old["file"], data, src)
     except SystemExit as e:
-        print(f"{old['file']}: {e}; its row stays in {old_sid}")
+        notes.append(f"{old['file']}: {e}; its row stays in {old_sid}")
         return None
     row["carried_from"] = old_sid
     kept, dropped = [], []
@@ -97,31 +98,46 @@ def carry_row(root, old, old_sid):
         row["versions"][s] = v
         kept.append(s)
     note = "the code changed; " if src != old["code"] else ""
-    print(f"carried {old['file']} from {old_sid}: {note}kept {', '.join(kept) or 'nothing'}"
-          + (f", dropped {', '.join(dropped)} — write them again" if dropped else ""))
+    notes.append(f"carried {old['file']} from {old_sid}: {note}kept {', '.join(kept) or 'nothing'}"
+                 + (f", dropped {', '.join(dropped)} — write them again" if dropped else ""))
     return row
 
 
-def carry(root):
+def carry(root, notes):
     sessions = list_sessions()
     if not sessions:
         return []
     old = cmd_store.get_session(sessions[0]["session_id"])
-    rows = [carry_row(root, r, old["session_id"]) for r in old["rows"]
+    rows = [carry_row(root, r, old["session_id"], notes) for r in old["rows"]
             if not r["picked"] and not r["applied"]]
     return [r for r in rows if r]
+
+
+def open_new(root, notes):
+    rows = carry(root, notes)
+    sid = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2)
+    stamp = now()
+    session = {"session_id": sid, "created": stamp, "edited": stamp, "finished": None, "rows": rows}
+    save_session(session)
+    notes.append(f"session {sid} open" + (f" with {len(rows)} carried rows" if rows else ""))
+    return session
+
+
+def ensure_open(root, notes):
+    with LOCK:
+        session = open_session()
+        if session:
+            return session, False
+        return open_new(root, notes), True
 
 
 def cmd_open(root):
     data = open_session()
     if data:
         sys.exit(f"session {data['session_id']} is still open; close it first with human train --close")
-    rows = carry(root)
-    sid = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2)
-    stamp = now()
-    save_session({"session_id": sid, "created": stamp, "edited": stamp,
-                  "finished": None, "rows": rows})
-    print(f"session {sid} open" + (f" with {len(rows)} carried rows" if rows else ""))
+    notes = []
+    open_new(root, notes)
+    print("\n".join(notes))
     print(f"sent to the training store as user {cmd_store.credentials()['user']}")
 
 
@@ -219,10 +235,19 @@ def new_row(a, root, code_path, code_name, data, src):
     else:
         level = "first" if not data["explanations"] else "below"
     stamp = now()
+    target = getattr(a, "target", None)
+    if target is not None:
+        if level == "same":
+            sys.exit("--target names the entry an expansion hangs from; it goes with --block or alone, not with --entry")
+        if not getattr(a, "words", None) or not a.words.strip():
+            sys.exit("--target needs --words, the highlighted words of the target")
+        if cmd_project.entry_of(data, target) is None:
+            sys.exit(f"no entry {target} in {Path(map_rel(root, code_path, code_name)).name}")
     row = {"file": code_name, "kind": a.kind,
            "map": map_rel(root, code_path, code_name),
            "entry": entry["id"] if entry else None, "level": level,
            "block": entry["block"] if entry else a.block,
+           "target": target, "words": a.words if target is not None else None,
            "before": entry["text"] if entry else None,
            "code": src,
            "versions": {s: None for s in SLOTS}, "picked": None, "comment": None, "applied": None,
@@ -245,6 +270,10 @@ def check_text(text, row, data, spans, root):
         gone = need - {x["words"] for x in anchors}
         assert not gone, f"[RETEXT-ANCHORS] other entries point at the anchors {sorted(gone)}; " \
                          "the text must keep them"
+    if row.get("target") is not None:
+        assert not any(x.get("explanation") == row["target"] for x in anchors), \
+            f"[EXPAND-CIRCLE] the expansion pins into entry {row['target']}, the entry it hangs from; " \
+            "the target pins down into the expansion at the close, so the expansion must not pin up"
     decompiler.check_cycle(data, self_id, anchors)
     return anchors
 
@@ -255,6 +284,14 @@ def slots_of(row):
 
 def empty_slots(row):
     return [s for s in slots_of(row) if row["versions"][s] is None]
+
+
+def same_row(row, a, code_name):
+    if row["file"] != code_name or row["applied"] is not None:
+        return False
+    if a.kind == "sync" or a.entry is not None:
+        return row["level"] == "same" and (a.entry is None or row["entry"] == a.entry)
+    return row["level"] != "same" and row["block"] == a.block and row.get("target") == a.target
 
 
 def cmd_add(a, root):
@@ -270,7 +307,7 @@ def cmd_add(a, root):
         if not code_path.is_file():
             sys.exit(f"{a.code_file} is not a file")
         code_name = decompiler.rel_name(code_path, root)
-    row = next((r for r in session["rows"] if r["file"] == code_name and r["applied"] is None), None)
+    row = next((r for r in session["rows"] if same_row(r, a, code_name)), None)
     made = row is None
     kind = a.kind if made else row["kind"]
     if kind == "create" and a.slot == "refinement":
@@ -295,6 +332,7 @@ def cmd_add(a, root):
     word = "new row" if made else "row"
     print(f"{word} {idx}: {code_name}, {row['kind']}, {row['level']}"
           + (f" (entry {row['entry']})" if row["entry"] is not None else "")
+          + (f" (expands entry {row['target']})" if row.get("target") is not None else "")
           + f", {a.slot}" + (f" as {a.shape}" if a.shape else "")
           + f": {decompiler.anchor_counts(anchors)}")
     if old is not None:
@@ -333,45 +371,96 @@ def apply_row(root, row):
     return eid
 
 
+def default_slot(row):
+    if row["kind"] == "sync" or row["picked"] or row["applied"]:
+        return None
+    return next((s for s in ("best", "free") if row["versions"][s] is not None), None)
+
+
+def link_event(root, row, eid):
+    from . import cmd_watch
+    proj = is_project(row["file"])
+    event = {"kind": "link", "name": row["file"], "map": str(root / row["map"]),
+             "entry": row["target"], "file": None if proj else str(root / row["file"]),
+             "target": row["target"], "words": row["words"], "expansion": eid,
+             "old_text": None, "new_text": None,
+             "output": f"the pin of entry {row['target']} into entry {eid} waits for claude"}
+    with cmd_watch.LOCK:
+        return cmd_watch.append_event(root, event)
+
+
+def close(root, said):
+    with LOCK:
+        session = open_session()
+        if not session:
+            return 404, "no open session"
+        order = sorted(range(len(session["rows"])),
+                       key=lambda i: (session["rows"][i]["level"] == "below", i))
+        failed = []
+        for i in order:
+            row = session["rows"][i]
+            if row["applied"]:
+                continue
+            slot = default_slot(row)
+            if slot:
+                row["picked"], row["defaulted"] = slot, True
+                said.append(f"row {i}: {row['file']}, no pick; takes {slot}")
+            if not row["picked"]:
+                empty = empty_slots(row)
+                said.append(f"row {i}: {row['file']}, "
+                            + (f"no {' and no '.join(empty)} version" if empty else "no pick")
+                            + "; it carries over")
+                continue
+            if not slot:
+                said.append(f"row {i}: {row['file']}, {row['picked']} picked")
+            if source_of(root, row["file"], row["kind"])[1] != row["code"]:
+                row["code_changed"] = True
+                said.append(f"row {i}: the file changed since the row was made; the versions describe the old code")
+            try:
+                eid = apply_row(root, row)
+            except SystemExit as e:
+                failed.append(i)
+                said.append(f"row {i} failed: {e}")
+                continue
+            row["applied"] = {"entry": eid, "at": now()}
+            row["edited"] = now()
+            if row.get("target") is not None:
+                seq = link_event(root, row, eid)
+                said.append(f"row {i}: the pin of entry {row['target']} into entry {eid} waits for claude (event {seq})")
+            save_session(session)
+        rows = session["rows"]
+        picked = sum(1 for r in rows if r["picked"])
+        if failed:
+            save_session(session)
+            said.append(f"{len(failed)} of {picked} picked rows failed ({', '.join(map(str, failed))}); "
+                        f"the session stays open — correct and close again")
+            return 409, "\n".join(said)
+        session["finished"] = now()
+        save_session(session)
+        left = len(rows) - picked
+        said.append(f"session {session['session_id']} finished: {len(rows)} rows, {picked} picked and applied, "
+                    f"{left} without a pick" + ("; they carry over to the next session" if left else ""))
+        return 200, "\n".join(said)
+
+
+def close_road(root, sid):
+    try:
+        session = open_session()
+        if not session or session["session_id"] != sid:
+            return 409, f"session {sid} is not the open session"
+        status, out = close(root, [])
+    except cmd_store.Refused as e:
+        return e.status, e.message
+    except cmd_store.Unreachable as e:
+        return 502, str(e)
+    return status, {"output": out, "finished": status == 200} if status == 200 else out
+
+
 def cmd_close(root):
-    session = open_session()
-    if not session:
-        sys.exit("no open session")
-    order = sorted(range(len(session["rows"])),
-                   key=lambda i: (session["rows"][i]["level"] == "below", i))
-    failed = []
-    for i, row in enumerate(session["rows"]):
-        empty = empty_slots(row)
-        if empty and not row["applied"]:
-            print(f"row {i}: {row['file']}, no {' and no '.join(empty)} version")
-    for i in order:
-        row = session["rows"][i]
-        if not row["picked"] or row["applied"]:
-            continue
-        print(f"row {i}: {row['file']}, {row['picked']} picked")
-        if source_of(root, row["file"], row["kind"])[1] != row["code"]:
-            row["code_changed"] = True
-            print(f"row {i}: the file changed since the row was made; the versions describe the old code")
-        try:
-            eid = apply_row(root, row)
-        except SystemExit as e:
-            failed.append(i)
-            print(f"row {i} failed: {e}")
-            continue
-        row["applied"] = {"entry": eid, "at": now()}
-        row["edited"] = now()
-        save_session(session)
-    rows = session["rows"]
-    picked = sum(1 for r in rows if r["picked"])
-    if failed:
-        save_session(session)
-        sys.exit(f"{len(failed)} of {picked} picked rows failed ({', '.join(map(str, failed))}); "
-                 f"the session stays open — correct and close again")
-    session["finished"] = now()
-    save_session(session)
-    left = len(rows) - picked
-    print(f"session {session['session_id']} finished: {len(rows)} rows, {picked} picked and applied, "
-          f"{left} without a pick" + ("; they carry over to the next session" if left else ""))
+    status, out = close(root, [])
+    if status != 200:
+        sys.exit(out)
+    print(out)
     print(f"sent to the training store as user {cmd_store.credentials()['user']}")
 
 
