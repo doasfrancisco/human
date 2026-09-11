@@ -673,7 +673,7 @@ def undo_gate(root, data, name, entry):
     if not cmd_store.credentials():
         return
     try:
-        session = cmd_store.open_session()
+        session = cmd_store.open_session(cmd_store.project_id(root))
     except (cmd_store.Refused, cmd_store.Unreachable) as e:
         sys.exit(f"the undo cannot check the open training session: {e}")
     rows = [i for i, r in enumerate(session["rows"])

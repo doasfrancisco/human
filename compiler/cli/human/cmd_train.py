@@ -40,12 +40,12 @@ def save_session(data):
     cmd_store.put_session(data)
 
 
-def open_session():
-    return cmd_store.open_session()
+def open_session(root):
+    return cmd_store.open_session(cmd_store.project_id(root))
 
 
-def list_sessions():
-    return cmd_store.list_sessions()
+def list_sessions(root):
+    return cmd_store.list_sessions(cmd_store.project_id(root))
 
 
 def is_project(code_name):
@@ -104,7 +104,7 @@ def carry_row(root, old, old_sid, notes):
 
 
 def carry(root, notes):
-    sessions = list_sessions()
+    sessions = list_sessions(root)
     if not sessions:
         return []
     old = cmd_store.get_session(sessions[0]["session_id"])
@@ -117,7 +117,8 @@ def open_new(root, notes):
     rows = carry(root, notes)
     sid = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2)
     stamp = now()
-    session = {"session_id": sid, "created": stamp, "edited": stamp, "finished": None, "rows": rows}
+    session = {"session_id": sid, "project": cmd_store.project_id(root),
+               "created": stamp, "edited": stamp, "finished": None, "rows": rows}
     save_session(session)
     notes.append(f"session {sid} open" + (f" with {len(rows)} carried rows" if rows else ""))
     return session
@@ -125,14 +126,14 @@ def open_new(root, notes):
 
 def ensure_open(root, notes):
     with LOCK:
-        session = open_session()
+        session = open_session(root)
         if session:
             return session, False
         return open_new(root, notes), True
 
 
 def cmd_open(root):
-    data = open_session()
+    data = open_session(root)
     if data:
         sys.exit(f"session {data['session_id']} is still open; close it first with human train --close")
     notes = []
@@ -153,6 +154,8 @@ def pick(root, sid, row, slot, comment=None):
             return e.status, e.message
         except cmd_store.Unreachable as e:
             return 502, str(e)
+        if data.get("project") != cmd_store.project_id(root):
+            return 404, f"session {sid} is not a session of this project"
         if data["finished"]:
             return 409, f"session {sid} is finished"
         if not isinstance(row, int) or not 0 <= row < len(data["rows"]):
@@ -178,7 +181,7 @@ def refresh_row(root, code_name, eid, old_text, new_text):
     if new_text == old_text or not cmd_store.credentials():
         return
     try:
-        session = open_session()
+        session = open_session(root)
     except (cmd_store.Refused, cmd_store.Unreachable) as e:
         print(f"warning: the open training session could not follow the retext: {e}")
         return
@@ -297,7 +300,7 @@ def same_row(row, a, code_name):
 def cmd_add(a, root):
     if not a.slot:
         sys.exit("say which version this is: --as best, --as refinement or --as free")
-    session = open_session()
+    session = open_session(root)
     if not session:
         sys.exit("no open session; start one with human train --open")
     if is_project(a.code_file):
@@ -391,7 +394,7 @@ def link_event(root, row, eid):
 
 def close(root, said):
     with LOCK:
-        session = open_session()
+        session = open_session(root)
         if not session:
             return 404, "no open session"
         order = sorted(range(len(session["rows"])),
@@ -445,7 +448,7 @@ def close(root, said):
 
 def close_road(root, sid):
     try:
-        session = open_session()
+        session = open_session(root)
         if not session or session["session_id"] != sid:
             return 409, f"session {sid} is not the open session"
         status, out = close(root, [])

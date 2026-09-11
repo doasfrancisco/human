@@ -4,6 +4,7 @@ import ipaddress
 import json
 import os
 import re
+import secrets
 import shutil
 import socket
 from functools import partial
@@ -70,6 +71,8 @@ def cmd_init(a):
         data = {"code_file": root.name, "explanations": [],
                 "not_covered": {"code_lines": [], "blank_lines": []}}
     data["code_file"] = root.name
+    if not data.get("project"):
+        data["project"] = secrets.token_hex(4)
     found, data = write_files(root, data)
     if not cmd_project.map_path(root).exists():
         cmd_project.save(root, cmd_project.load(root))
@@ -78,7 +81,7 @@ def cmd_init(a):
               f"map, the file needs a path like ./{cmd_project.WORD}")
     hidden = len(found) - len(data["files"])
     tail = f", {hidden} ignored" if hidden else ""
-    print(f"project {root.name}: {len(data['files'])} files{tail}")
+    print(f"project {root.name}: {len(data['files'])} files{tail}, id {data['project']}")
     print(f"wrote {map_path}")
     print(f"read it with: human serve  (from {root})")
 
@@ -158,7 +161,12 @@ class FreshHandler(SimpleHTTPRequestHandler):
         m = re.fullmatch(r"/human/training/(?:([^/]+)\.json)?", path)
         if m:
             try:
-                out = cmd_store.get_session(m.group(1)) if m.group(1) else cmd_train.list_sessions()
+                if m.group(1):
+                    out = cmd_store.get_session(m.group(1))
+                    if out.get("project") != cmd_store.project_id(root):
+                        raise cmd_store.Refused(404, f"no session {m.group(1)} in this project")
+                else:
+                    out = cmd_train.list_sessions(root)
                 self.send_json(200, out)
             except cmd_store.Refused as e:
                 self.send_json(e.status, {"error": e.message})

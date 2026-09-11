@@ -2,12 +2,14 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
 URL = "https://gtfaf35mzbskdlynb3aysviyoy0aokpp.lambda-url.us-east-1.on.aws"
 HEADER = "x-human-key"
 LOGIN = "no key on this machine; log in first with human login <key>"
+NO_PROJECT = "no project id in human/human.json; run human init once at the root"
 
 
 class Refused(Exception):
@@ -63,8 +65,19 @@ def ask(method, path, payload=None):
     return out
 
 
-def list_sessions():
-    return ask("GET", "/sessions")
+def project_id(root):
+    try:
+        pid = json.loads((root / "human" / "human.json").read_text()).get("project")
+    except (OSError, ValueError):
+        pid = None
+    if not isinstance(pid, str) or not pid:
+        raise Refused(409, NO_PROJECT)
+    return pid
+
+
+def list_sessions(project):
+    out = ask("GET", "/sessions?project=" + urllib.parse.quote(project))
+    return [s for s in out if s.get("project") == project]
 
 
 def get_session(sid):
@@ -75,8 +88,8 @@ def put_session(data):
     return ask("PUT", f"/sessions/{data['session_id']}", data)
 
 
-def open_session():
-    for s in list_sessions():
+def open_session(project):
+    for s in list_sessions(project):
         if not s["finished"]:
             return get_session(s["session_id"])
     return None

@@ -47,6 +47,6 @@ human train --open    # start a session; /decompile now writes three versions pe
 human train --close   # map the versions you picked and finish the session
 ```
 
-Pick in the reader at `http://localhost:8010/human/web.html`: an open session shows as a layer over it, swipe sideways for the versions, down for the next file, and say why you picked if you want. A "close training" button applies the picks; a new abstraction you do not pick takes best, a sync you do not pick carries over. A write in the reader that asks claude for a telling opens a session by itself. The sessions live in the training store, one JSON per session under your user, with a copy of the code and of the abstraction each row worked on; `human login <key>` once per machine names you.
+Pick in the reader at `http://localhost:8010/human/web.html`: an open session shows as a layer over it, swipe sideways for the versions, down for the next file, and say why you picked if you want. A "close training" button applies the picks; a new abstraction you do not pick takes best, a sync you do not pick carries over. A write in the reader that asks claude for a telling opens a session by itself. The sessions live in the training store, one JSON per session under your user and per project, with a copy of the code and of the abstraction each row worked on; `human login <key>` once per machine names you, and `human init` gives the project its id.
 
 Everything the project writes lives in the `human/` folder — one `rm -rf human/` removes it completely.

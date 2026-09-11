@@ -7,18 +7,18 @@
       "block_lines": [
         [
           1,
-          102
+          115
         ]
       ],
-      "text": "\u25cf  you log in once on this machine                    ([the login](cmd_login))\n  \u2502     You type human login <key>, the key that was handed to you.\n  \u2502     The tool sends the key to the training store and gets back\n  \u2502     your user id. [It writes both](login) into one small file in\n  \u2502     your home folder, ~/.config/human/credentials.json, that only\n  \u2502     you can read. Every later call carries the key from that file.\n  \u2502\n  \u25cf  the tool knows where the store is             ([the address](store_url))\n  \u2502     The store is one web address, held in this file. An address\n  \u2502     in the environment, HUMAN_STORE, takes its place for a test.\n  \u2502     [The file of the key](credentials_path) can move the same way,\n  \u2502     with HUMAN_CREDENTIALS, and [the tool reads it](credentials)\n  \u2502     before every call - no file, no user.\n  \u2502\n  \u25cf  the tool makes one call to the store                ([the call](call))\n  \u2502     It sends the method, the path, the key in a header, and the\n  \u2502     JSON body when there is one, and waits up to a minute.\n  \u2502     An answer that is not 200 comes back as its status and its\n  \u2502     words. A store that does not answer at all raises\n  \u2502     [one named stop](Unreachable), so the caller chooses: a\n  \u2502     retext warns and goes on, an undo refuses.\n  \u2502\n  \u25cf  the tool asks with your key                          ([the ask](ask))\n  \u2502     It reads the key file first: no key, and the ask ends with\n  \u2502     [a refusal](Refused) that says to log in. A refusal from the\n  \u2502     store comes back the same way, with the store's status and\n  \u2502     words, so the command prints them and stops.\n  \u2502\n  \u25cf  the four roads                          ([the list](list_sessions))\n        [The list](list_sessions) gives every session of yours, newest first,\n        with its counts. [One session](get_session) comes whole by its id.\n        [A put](put_session) sends a whole session, and the store keeps it\n        under its id and refreshes the list. [The open one](open_session)\n        walks the list for the session not yet finished and brings it\n        whole, or nothing.",
+      "text": "\u25cf  you log in once on this machine                    ([the login](cmd_login))\n  \u2502     You type human login <key>, the key that was handed to you.\n  \u2502     The tool sends the key to the training store and gets back\n  \u2502     your user id. [It writes both](login) into one small file in\n  \u2502     your home folder, ~/.config/human/credentials.json, that only\n  \u2502     you can read. Every later call carries the key from that file.\n  \u2502\n  \u25cf  the tool knows where the store is             ([the address](store_url))\n  \u2502     The store is one web address, held in this file. An address\n  \u2502     in the environment, HUMAN_STORE, takes its place for a test.\n  \u2502     [The file of the key](credentials_path) can move the same way,\n  \u2502     with HUMAN_CREDENTIALS, and [the tool reads it](credentials)\n  \u2502     before every call - no file, no user.\n  \u2502\n  \u25cf  the tool makes one call to the store                ([the call](call))\n  \u2502     It sends the method, the path, the key in a header, and the\n  \u2502     JSON body when there is one, and waits up to a minute.\n  \u2502     An answer that is not 200 comes back as its status and its\n  \u2502     words. A store that does not answer at all raises\n  \u2502     [one named stop](Unreachable), so the caller chooses: a\n  \u2502     retext warns and goes on, an undo refuses.\n  \u2502\n  \u25cf  the tool asks with your key                          ([the ask](ask))\n  \u2502     It reads the key file first: no key, and the ask ends with\n  \u2502     [a refusal](Refused) that says to log in. A refusal from the\n  \u2502     store comes back the same way, with the store's status and\n  \u2502     words, so the command prints them and stops.\n  \u2502\n  \u25cf  the tool knows which project it works on   ([the project](project_id))\n  \u2502     The project id stands in human/human.json at the root of the\n  \u2502     project. No id there, and the tool stops with a refusal that\n  \u2502     says to run human init once at the root.\n  \u2502\n  \u25cf  the four roads                          ([the list](list_sessions))\n        [The list](list_sessions) gives every session of yours in this\n        project, newest first, with its counts. A session of another\n        project never comes in the list. [One session](get_session) comes\n        whole by its id. [A put](put_session) sends a whole session, and\n        the store keeps it under its id and refreshes the list.\n        [The open one](open_session) walks the list of this project for\n        the session not yet finished and brings it whole, or nothing.",
       "anchors": [
         {
           "words": "the login",
           "block": "cmd_login",
           "lines": [
             [
-              96,
-              102
+              109,
+              115
             ]
           ]
         },
@@ -27,8 +27,8 @@
           "block": "login",
           "lines": [
             [
-              85,
-              93
+              98,
+              106
             ]
           ]
         },
@@ -37,8 +37,8 @@
           "block": "store_url",
           "lines": [
             [
-              24,
-              25
+              26,
+              27
             ]
           ]
         },
@@ -47,8 +47,8 @@
           "block": "credentials_path",
           "lines": [
             [
-              28,
-              29
+              30,
+              31
             ]
           ]
         },
@@ -57,8 +57,8 @@
           "block": "credentials",
           "lines": [
             [
-              32,
-              36
+              34,
+              38
             ]
           ]
         },
@@ -67,8 +67,8 @@
           "block": "call",
           "lines": [
             [
-              39,
-              53
+              41,
+              55
             ]
           ]
         },
@@ -77,8 +77,8 @@
           "block": "Unreachable",
           "lines": [
             [
-              20,
-              21
+              22,
+              23
             ]
           ]
         },
@@ -87,8 +87,8 @@
           "block": "ask",
           "lines": [
             [
-              56,
-              63
+              58,
+              65
             ]
           ]
         },
@@ -97,8 +97,18 @@
           "block": "Refused",
           "lines": [
             [
-              13,
-              17
+              15,
+              19
+            ]
+          ]
+        },
+        {
+          "words": "the project",
+          "block": "project_id",
+          "lines": [
+            [
+              68,
+              75
             ]
           ]
         },
@@ -107,8 +117,8 @@
           "block": "list_sessions",
           "lines": [
             [
-              66,
-              67
+              78,
+              80
             ]
           ]
         },
@@ -117,8 +127,8 @@
           "block": "list_sessions",
           "lines": [
             [
-              66,
-              67
+              78,
+              80
             ]
           ]
         },
@@ -127,8 +137,8 @@
           "block": "get_session",
           "lines": [
             [
-              70,
-              71
+              83,
+              84
             ]
           ]
         },
@@ -137,8 +147,8 @@
           "block": "put_session",
           "lines": [
             [
-              74,
-              75
+              87,
+              88
             ]
           ]
         },
@@ -147,8 +157,8 @@
           "block": "open_session",
           "lines": [
             [
-              78,
-              82
+              91,
+              95
             ]
           ]
         }
@@ -158,33 +168,35 @@
   "not_covered": {
     "code_lines": [],
     "blank_lines": [
-      7,
-      11,
-      12,
-      18,
-      19,
-      22,
-      23,
-      26,
-      27,
-      30,
-      31,
-      37,
-      38,
-      54,
-      55,
-      64,
-      65,
-      68,
-      69,
-      72,
-      73,
+      8,
+      13,
+      14,
+      20,
+      21,
+      24,
+      25,
+      28,
+      29,
+      32,
+      33,
+      39,
+      40,
+      56,
+      57,
+      66,
+      67,
       76,
       77,
-      83,
-      84,
-      94,
-      95
+      81,
+      82,
+      85,
+      86,
+      89,
+      90,
+      96,
+      97,
+      107,
+      108
     ]
   }
 }
