@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -42,6 +43,18 @@ def human_names(root):
         return []
     return sorted(p.name[len(HUMAN_PREFIX):-len(".json")]
                   for p in folder.glob(f"{HUMAN_PREFIX}*.json"))
+
+
+def human_place(root, name):
+    path = human_map_path(root, name)
+    try:
+        return json.loads(path.read_text()).get("place") or ""
+    except Exception:
+        return ""
+
+
+def human_entries(root):
+    return [{"name": n, "place": human_place(root, n)} for n in human_names(root)]
 
 
 def is_bare(name):

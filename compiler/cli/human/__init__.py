@@ -95,7 +95,7 @@ def write_files(root, data=None):
     found = scan_files(root)
     data["ignore"] = patterns
     data["files"] = [f for f in found if not is_ignored(f, patterns)]
-    data["humans"] = helpers.human_names(root)
+    data["humans"] = helpers.human_entries(root)
     data.pop("ignored", None)
     map_path.write_text(json.dumps(data, indent=2) + "\n")
     return found, data
@@ -105,7 +105,7 @@ def fresh_map(root):
     data = json.loads((root / "human" / "human.json").read_text())
     patterns = data.get("ignore", [])
     data["files"] = [f for f in scan_files(root) if not is_ignored(f, patterns)]
-    data["humans"] = helpers.human_names(root)
+    data["humans"] = helpers.human_entries(root)
     return data
 
 
@@ -141,7 +141,20 @@ def new_file(root, name):
     return 200, {"name": shown, "output": f"{shown} made, empty; write its telling"}
 
 
-def new_human(root, name):
+def human_place(root, place):
+    if not isinstance(place, str) or not place.strip():
+        return ""
+    rel = Path(place.strip().replace("\\", "/"))
+    if rel.is_absolute() or ".." in rel.parts or not rel.parts:
+        return ""
+    if rel.parts[0] == "human" or any(part.startswith(".") or part in IGNORE_DIRS for part in rel.parts):
+        return ""
+    if not (root / rel).is_dir():
+        return ""
+    return rel.as_posix()
+
+
+def new_human(root, name, place=""):
     if not isinstance(name, str) or not name.strip():
         return 400, "no name"
     bare = name.strip()
@@ -154,10 +167,15 @@ def new_human(root, name):
         return 400, f"{bare} is held by another human file"
     if (root / bare).exists():
         return 400, f"{bare} is held by a file at the root"
-    p.write_text(json.dumps({"code_file": bare, "explanations": [],
-                             "not_covered": {"code_lines": [], "blank_lines": []}}, indent=2) + "\n")
+    where = human_place(root, place)
+    data = {"code_file": bare, "explanations": [],
+            "not_covered": {"code_lines": [], "blank_lines": []}}
+    if where:
+        data["place"] = where
+    p.write_text(json.dumps(data, indent=2) + "\n")
+    shown = f"{where}/{bare}.human" if where else f"{bare}.human"
     return 200, {"name": f"human/{helpers.HUMAN_PREFIX}{bare}.json",
-                 "output": f"{bare} made, empty; write its abstraction, with no file under it"}
+                 "output": f"{shown} made, empty; write its abstraction, with no file under it"}
 
 
 class FreshHandler(SimpleHTTPRequestHandler):
@@ -216,7 +234,8 @@ class FreshHandler(SimpleHTTPRequestHandler):
             elif path == "/human/file":
                 status, out = new_file(root, self.read_body().get("name"))
             elif path == "/human/human":
-                status, out = new_human(root, self.read_body().get("name"))
+                body = self.read_body()
+                status, out = new_human(root, body.get("name"), body.get("place"))
             elif m and m.group(2) == "close":
                 status, out = cmd_train.close_road(root, m.group(1))
             elif m:

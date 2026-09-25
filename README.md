@@ -38,7 +38,7 @@ Then in Claude Code:
 human serve
 ```
 
-Open `http://localhost:8010/human/web.html`. Every entry opens as a notepad, and "compile" hands your words to claude. A "new file" line at the top of the file tree makes an empty file, in a new folder too; write its abstraction and claude writes the code under it.
+Open `http://localhost:8010/human/web.html`. Every entry opens as a notepad, and "compile" hands your words to claude. A right click on the file tree gives "create file" and "create human"; "create file" makes an empty file, in a new folder too, under the folder you clicked; write its abstraction and claude writes the code under it.
 
 ## Train
 

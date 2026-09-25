@@ -84,5 +84,14 @@
     "harness_idea/"
   ],
   "project": "51c05dc2",
-  "humans": []
+  "humans": [
+    {
+      "name": "decompile",
+      "place": "compiler/cli"
+    },
+    {
+      "name": "skills",
+      "place": "compiler/cli"
+    }
+  ]
 }

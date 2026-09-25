@@ -7,18 +7,18 @@
       "block_lines": [
         [
           1,
-          77
+          90
         ]
       ],
-      "text": "[name_to_map](name_to_map)(name, project_root):\n a helper function which takes a name from the command and returns a path:\n   if path is a folder, return human/human.json and sort type folder.\n   if a file's abstraction like app.py then returns human/explanation_src__app.py.json and sort type file.\n   if project then it's the abstraction of the whole project so human/project.json and sort type project.\n   if a new abstraction. similar to project.json which abstracts to multiple files. then it's not a single file's abstraction and it's human/human_<name>.json, and sort type human file.\n if a file at the top of the folder answers to project or human file bare name. human init gives a warning.\n\n[find_root](find_root)(path)                  \n given a path return the folder at or above path that holds human/human.json\n\n\n[rel_name](rel_name)(code_path, project_root)\n the path of a file from the root, like src/app.py\n\n\n[map_path_of](map_path_of)(code_path, project_root)\n the map file of a code file: human/explanation_<path>.json, the slashes written as __\n if map is folder, return human/human.json",
+      "text": "[name_to_map](name_to_map)(name, project_root):\n a helper function which takes a name from the command and returns a path:\n   if path is a folder, return human/human.json and sort type folder.\n   if a file's abstraction like app.py then returns human/explanation_src__app.py.json and sort type file.\n   if project then it's the abstraction of the whole project so human/project.json and sort type project.\n   if a new abstraction. similar to project.json which abstracts to multiple files. then it's not a single file's abstraction and it's human/human_<name>.json, and sort type human file.\n if a file at the top of the folder answers to project or human file bare name. human init gives a warning.\n\n[find_root](find_root)(path)                  \n given a path return the folder at or above path that holds human/human.json\n\n\n[rel_name](rel_name)(code_path, project_root)\n the path of a file from the root, like src/app.py\n\n\n[map_path_of](map_path_of)(code_path, project_root)\n the map file of a code file: human/explanation_<path>.json, the slashes written as __\n if map is folder, return human/human.json\n\n[human_place](human_place)(root, name)\n read the human file's map.\n return the folder a human file shows in\n if empty, return emty text\n\n[human_entries](human_entries)(root)\n every human file of the project: its bare name and that folder, for human.json",
       "anchors": [
         {
           "words": "name_to_map",
           "block": "name_to_map",
           "lines": [
             [
-              51,
-              62
+              64,
+              75
             ]
           ]
         },
@@ -27,8 +27,8 @@
           "block": "find_root",
           "lines": [
             [
-              10,
-              17
+              11,
+              18
             ]
           ]
         },
@@ -37,8 +37,8 @@
           "block": "rel_name",
           "lines": [
             [
-              20,
-              24
+              21,
+              25
             ]
           ]
         },
@@ -47,39 +47,63 @@
           "block": "map_path_of",
           "lines": [
             [
-              27,
-              32
+              28,
+              33
+            ]
+          ]
+        },
+        {
+          "words": "human_place",
+          "block": "human_place",
+          "lines": [
+            [
+              48,
+              53
+            ]
+          ]
+        },
+        {
+          "words": "human_entries",
+          "block": "human_entries",
+          "lines": [
+            [
+              56,
+              57
             ]
           ]
         }
       ],
       "verbatim": {
-        "origin": "name_to_map(name, project_root):\n a helper function which takes a name from the command and returns a path:\n   if path is a folder, return human/human.json and sort type folder.\n   if a file's abstraction like app.py then returns human/explanation_src__app.py.json and sort type file.\n   if project then it's the abstraction of the whole project so human/project.json and sort type project.\n   if a new abstraction. similar to project.json which abstracts to multiple files. then it's not a single file's abstraction and it's human/human_<name>.json, and sort type human file.\n if a file at the top of the folder answers to project or human file bare name. human init gives a warning.\n\nfind_root(path)                  \n given a path return the folder at or above path that holds human/human.json\n\n\nrel_name(code_path, project_root)\n the path of a file from the root, like src/app.py\n\n\nmap_path_of(code_path, project_root)\n the map file of a code file: human/explanation_<path>.json, the slashes written as __\n if map is folder, return human/human.json"
+        "origin": "name_to_map(name, project_root):\n a helper function which takes a name from the command and returns a path:\n   if path is a folder, return human/human.json and sort type folder.\n   if a file's abstraction like app.py then returns human/explanation_src__app.py.json and sort type file.\n   if project then it's the abstraction of the whole project so human/project.json and sort type project.\n   if a new abstraction. similar to project.json which abstracts to multiple files. then it's not a single file's abstraction and it's human/human_<name>.json, and sort type human file.\n if a file at the top of the folder answers to project or human file bare name. human init gives a warning.\n\nfind_root(path)                  \n given a path return the folder at or above path that holds human/human.json\n\n\nrel_name(code_path, project_root)\n the path of a file from the root, like src/app.py\n\n\nmap_path_of(code_path, project_root)\n the map file of a code file: human/explanation_<path>.json, the slashes written as __\n if map is folder, return human/human.json\n\nhuman_place(root, name)\n read the human file's map.\n return the folder a human file shows in\n if empty, return emty text\n\nhuman_entries(root)\n every human file of the project: its bare name and that folder, for human.json"
       }
     }
   ],
   "not_covered": {
     "code_lines": [],
     "blank_lines": [
-      3,
-      8,
+      4,
       9,
-      18,
+      10,
       19,
-      25,
+      20,
       26,
-      33,
+      27,
       34,
-      37,
+      35,
       38,
-      45,
+      39,
       46,
-      49,
-      50,
+      47,
+      54,
+      55,
+      58,
+      59,
+      62,
       63,
-      64,
-      67,
-      68
+      76,
+      77,
+      80,
+      81
     ]
   }
 }

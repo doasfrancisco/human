@@ -1,0 +1,9 @@
+{
+  "code_file": "skills",
+  "explanations": [],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": []
+  },
+  "place": "compiler/cli"
+}
