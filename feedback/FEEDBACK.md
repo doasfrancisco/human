@@ -63,3 +63,36 @@ What the change implies: a rename is the first act that writes many maps at once
 In the reader the user writes a first telling on a file, on the project, or on a human file, and the things they name are already there. The refusal makes them compile once with no pin, then open the same text again and compile a second time.
 
 The change: drop the refusal, and let the pins of a first telling go through the check every other pin gets — `build_anchors` and `check_cycle` in `compiler/cli/human/decompiler.py`. It is deterministic and makes no claude call: a target that is not a real block, not a file of the project, or not an existing anchor of an existing entry comes back as an error in the same words as a retext gives. The user reads it in the reader and mends the text before it lands.
+
+## 6. Nothing says the running server is older than the page
+
+`human init` writes the reader page out of the installed tool at every run (`cmd_init` in `compiler/cli/human/__init__.py`), but a `human serve` that already runs keeps the old code in memory. An upgrade and an init give the browser a new page while the door behind it stays old, and nothing on either side says so.
+
+Example, 2026-09-25. The user made two human files from a folder in the tree. The new page sent the folder with the name; the server, started before the upgrade, ran the old `new_human`, which takes a name alone. Both records landed with no place and the two maps showed at the root. The refusal never came, because the old door does not know the word.
+
+The change: give the tool one hand that reads its own version, write that version into `human/human.json` at init, put the running version in the answer of `fresh_map`, and let the reader compare the two on the refresh it already runs every five seconds. A difference shows one line: the server runs 0.0.34, the page is 0.0.43, stop it and serve again. It only makes the tool tell you when the server is behind the page, instead of you finding it by a lost folder.
+
+## 7. The reader asks for the map of every file before it draws anything
+
+At the start the page reads `human.json` and then runs `Promise.all(names.map(loadFile))` (`compiler/cli/human/reader/web.html`): `loadFile` asks for `explanation_<path>.json` of **every** file in the list, not only the files that have a map. `buildTree` and `open` stand after that `Promise.all`, so the frame stays empty until the last ask lands.
+
+Example, 2026-09-25, the project `mina`:
+
+| Thing | Value |
+|---|---|
+| Files in `human/human.json` | 628 |
+| Maps that exist in `human/` | 127 |
+| Asks the page makes at start | 628 |
+| Asks that answer "not found" | ~524 |
+| Round trip over the tailnet | 264 ms |
+| The same 628 asks on the server machine | 0.39 s |
+
+A browser holds six connections to one host, so 628 asks become about 105 rounds: 25 to 30 seconds of blank page. On localhost the same asks cost 0.39 s, which is why a small project on one machine feels instant. Two things make it worse: each ask carries `cache: "no-store"` and each answer `Cache-Control: no-cache`, so a reload pays it again; and 524 of the asks cost a full round trip to learn that no map exists.
+
+The server is not the cause: `fresh_map` walks the project in 0.05 s, the tree draws 628 rows fast, and the code of a file is fetched only when it opens.
+
+Roads, from the smallest:
+
+- **Name the mapped files in `human/human.json`.** `write_files` already lists the files; it can mark which of them have a map. The page then asks only for the 127 that exist — 105 rounds become 21.
+- **Draw the tree first.** `buildTree` needs the names alone, not the maps. Draw it, open the first file, and let the other maps land after, so nothing waits on a full set.
+- **One answer for all the maps.** A road like `/human/maps` that hands out every map in one block: one round trip instead of 127, at the price of a bigger answer.

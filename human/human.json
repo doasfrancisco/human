@@ -92,6 +92,10 @@
     {
       "name": "skills",
       "place": "compiler/cli"
+    },
+    {
+      "name": "test",
+      "place": ""
     }
   ]
 }
