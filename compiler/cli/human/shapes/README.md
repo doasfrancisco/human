@@ -1,6 +1,6 @@
 # Shapes
 
-The catalog of validated abstraction shapes. One file per shape: when it fits, the rules, one general example. A shape enters or changes only when the user validates a real instance of it — the shapes skill is the only door into this folder.
+The catalog of validated abstraction shapes. One file per shape: when it fits, the rules, one general example. A shape enters or changes only when the user validates a real instance of it.
 
 | shape | fits |
 |---|---|

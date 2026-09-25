@@ -30,8 +30,8 @@
   #treewrap{flex:1;min-height:0;display:flex;flex-direction:column;}
   #tree{flex:1;min-height:0;}
   #newline{display:flex;align-items:center;gap:8px;padding:6px 14px;font-family:var(--mono);font-size:12px;border-bottom:1px solid var(--hair);flex-shrink:0;}
-  #newfile{color:var(--spec);cursor:pointer;white-space:nowrap;}
-  #newfile:hover{text-decoration:underline;}
+  #newfile,#newhuman{color:var(--spec);cursor:pointer;white-space:nowrap;}
+  #newfile:hover,#newhuman:hover{text-decoration:underline;}
   #newname{flex:1;min-width:0;font:inherit;font-size:12px;padding:2px 6px;border:1px solid var(--hair);border-radius:6px;background:var(--surface);color:var(--ink);}
   #newname[hidden]{display:none;}
   #reader{flex:1;min-height:0;display:flex;flex-direction:column;}
@@ -141,7 +141,7 @@
 <main>
   <div id="side">
     <section class="pane" id="projbar"><span id="projname"></span></section>
-    <section class="pane" id="treewrap"><div id="newline"><span id="newfile">new file</span><input id="newname" hidden spellcheck="false" placeholder="src/app.py"></div><div id="tree"></div></section>
+    <section class="pane" id="treewrap"><div id="newline"><span id="newfile">new file</span><span id="newhuman">new human file</span><input id="newname" hidden spellcheck="false" placeholder="src/app.py"></div><div id="tree"></div></section>
   </div>
   <div id="wrap">
     <div id="readwrap">
@@ -184,18 +184,36 @@ function loadFile(f){
     });
 }
 
+function humanPath(n){return "human/human_"+n+".json";}
+function bareOf(file){return file.slice(12,-5);}
+function noCodeFile(file){return file.indexOf("human/")===0;}
+
+function loadHuman(n){
+  return fetch("human_"+n+".json",{cache:"no-store"})
+    .then(function(r){return r.ok?r.json():null;})
+    .catch(function(){return null;})
+    .then(function(d){
+      if(!d||!Array.isArray(d.explanations))
+        d={explanations:[],not_covered:{code_lines:[],blank_lines:[]}};
+      return {file:humanPath(n),d:d,code:null};
+    });
+}
+
 fetch("human.json",{cache:"no-store"}).then(function(r){return r.json();}).then(function(h){
   if(h.code_file) document.title="Human · "+h.code_file;
   var names=h.files||[];
   return Promise.all(names.map(loadFile)).then(function(fs){
-    return fetch("project.json",{cache:"no-store"})
-      .then(function(r){return r.ok?r.json():null;})
-      .catch(function(){return null;})
-      .then(function(pj){
-        if(pj&&Array.isArray(pj.explanations)) fs.unshift({file:"human/project.json",d:pj,code:null});
-        fs.unshift({file:"human/human.json",d:h,code:null});
-        return fs.length?{name:h.code_file||"project",files:fs}:null;
-      });
+    return Promise.all((h.humans||[]).map(loadHuman)).then(function(hs){
+      return fetch("project.json",{cache:"no-store"})
+        .then(function(r){return r.ok?r.json():null;})
+        .catch(function(){return null;})
+        .then(function(pj){
+          fs=hs.concat(fs);
+          if(pj&&Array.isArray(pj.explanations)) fs.unshift({file:"human/project.json",d:pj,code:null});
+          fs.unshift({file:"human/human.json",d:h,code:null});
+          return fs.length?{name:h.code_file||"project",files:fs}:null;
+        });
+    });
   });
 }).then(function(p){
   if(!p){msg("no files — run human init at the project root");return;}
@@ -230,12 +248,16 @@ function refreshFiles(){
   if(refreshing) return refreshing;
   var p=cur.proj;
   refreshing=fetch("human.json",{cache:"no-store"}).then(function(r){return r.json();}).then(function(h){
-    var names=h.files||[], have={};
+    var want=(h.humans||[]).map(humanPath).concat(h.files||[]), have={};
     p.files.forEach(function(f){have[f.file]=f;});
-    var old=p.files.filter(function(f){return f.file.indexOf("human/")!==0;}).map(function(f){return f.file;});
-    if(JSON.stringify(old)===JSON.stringify(names)) return false;
-    return Promise.all(names.map(function(n){return have[n]?Promise.resolve(have[n]):loadFile(n);})).then(function(fs){
-      p.files=p.files.filter(function(f){return f.file.indexOf("human/")===0;}).concat(fs);
+    var fixed=function(f){return f.file==="human/human.json"||f.file==="human/project.json";};
+    var old=p.files.filter(function(f){return !fixed(f);}).map(function(f){return f.file;});
+    if(JSON.stringify(old)===JSON.stringify(want)) return false;
+    return Promise.all(want.map(function(n){
+      return have[n]?Promise.resolve(have[n])
+        :n.indexOf("human/human_")===0?loadHuman(bareOf(n)):loadFile(n);
+    })).then(function(fs){
+      p.files=p.files.filter(fixed).concat(fs);
       var still=fileOf(cur.file);
       buildTree(p,still?cur.file:p.files[0].file);
       if(!still) open(p,p.files[0]);
@@ -246,11 +268,11 @@ function refreshFiles(){
 }
 setInterval(refreshFiles,5000);
 
-function makeFile(name){
+function makeNamed(url,name){
   if(!cur||sending) return;
   sending=true; bad=false; notice="making "+name+"…";
   render();
-  fetch("file",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name})})
+  fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name})})
     .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
     .then(function(x){
       sending=false;
@@ -265,14 +287,23 @@ function makeFile(name){
     .catch(function(){sending=false;notice="the server did not answer — is human serve running?";bad=true;render();});
 }
 
-var newName=document.getElementById("newname");
+var newName=document.getElementById("newname"), newMode="file";
 function newClose(){newName.hidden=true;newName.value="";}
-document.getElementById("newfile").addEventListener("click",function(){
-  if(newName.hidden){newName.hidden=false;newName.focus();}else newClose();
-});
+function newOpen(mode){
+  if(!newName.hidden&&newMode===mode){newClose();return;}
+  newMode=mode;
+  newName.placeholder=mode==="file"?"src/app.py":"a bare name, like payments";
+  newName.value=""; newName.hidden=false; newName.focus();
+}
+document.getElementById("newfile").addEventListener("click",function(){newOpen("file");});
+document.getElementById("newhuman").addEventListener("click",function(){newOpen("human");});
 newName.addEventListener("keydown",function(ev){
   if(ev.key==="Escape"){newClose();return;}
-  if(ev.key==="Enter"){ev.preventDefault();var n=newName.value.trim();if(n) makeFile(n);}
+  if(ev.key==="Enter"){
+    ev.preventDefault();
+    var n=newName.value.trim();
+    if(n) makeNamed(newMode==="file"?"file":"human",n);
+  }
 });
 
 function open(p,f){
@@ -425,6 +456,7 @@ function lineHtml(e,l){
 function nameOf(file){
   if(file==="human/project.json") return "project";
   if(file==="human/human.json") return null;
+  if(file.indexOf("human/human_")===0) return bareOf(file);
   return file;
 }
 
@@ -456,7 +488,7 @@ function slots(){
   if(!name) return [];
   if(!cur.d.explanations.length){
     var s=[{kind:"map",id:null}];
-    if(name!=="project"&&cur.code!==null) s.push({kind:"code",id:null});
+    if(!noCodeFile(cur.file)&&cur.code!==null) s.push({kind:"code",id:null});
     return s;
   }
   return order.map(function(e){return {kind:"retext",id:e.id};});
@@ -476,7 +508,7 @@ function editorHtml(text,kind,id){
 function mapSlotHtml(name){
   var t=shownText("map",null), html="";
   if(!t&&!isEditing("map",null)) return '<div class="chunk blank" data-edit="map">new abstraction</div>';
-  html+='<div class="bhead">'+(name==="project"||!(cur.code||"").trim()?'<span class="label">new abstraction</span>'
+  html+='<div class="bhead">'+(noCodeFile(cur.file)||!(cur.code||"").trim()?'<span class="label">new abstraction</span>'
     :'<span class="label act" data-act="decompile">decompile '+esc(cur.file)+'</span>')+'</div>';
   if(isEditing("map",null)) return html+editorHtml(t,"map",null);
   return html+'<div class="chunk plain" data-edit="map">'+t.split("\n").map(function(l){return lineHtml({id:null,anchors:[]},l);}).join("\n")+'</div>';
@@ -520,7 +552,7 @@ function render(){
     var word=cur.code===null?"loading the file":"no abstraction for this file yet";
     if(name&&cur.code!==null){
       html+=mapSlotHtml(name);
-      if(name!=="project") html+=codeSlotHtml();
+      if(!noCodeFile(cur.file)) html+=codeSlotHtml();
     }else if(lines.length){
       var pad=String(lines.length).length;
       html+='<div class="chunk">'+esc(lines.map(function(l,i){return String(i+1).padStart(pad)+"  "+l;}).join("\n"))+'</div>';
@@ -769,7 +801,7 @@ function selectedRaw(ev){
 }
 
 function reloadMap(f){
-  var url=f.file==="human/project.json"?"project.json":"explanation_"+f.file.replace(/\//g,"__")+".json";
+  var url=noCodeFile(f.file)?f.file.slice(6):"explanation_"+f.file.replace(/\//g,"__")+".json";
   return fetch(url,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;})
     .then(function(d){
       if(d&&Array.isArray(d.explanations)) f.d=d;
@@ -813,7 +845,11 @@ function compile(){
   step(0);
 }
 
-function fileNamed(name){return fileOf(name==="project"?"human/project.json":name);}
+function fileNamed(name){
+  if(name==="project") return fileOf("human/project.json");
+  if(name.indexOf("/")<0&&name.indexOf(".")<0) return fileOf(humanPath(name));
+  return fileOf(name);
+}
 
 function pollQueue(){
   fetch("server/queue",{cache:"no-store"}).then(function(r){return r.json();}).then(function(q){

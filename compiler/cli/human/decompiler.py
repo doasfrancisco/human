@@ -7,7 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import cmd_map, cmd_project
+from . import cmd_map, cmd_project, helpers
+from .helpers import find_root, map_path_of, name_to_map, rel_name
 
 ANCHOR_RE = re.compile(r"\[([^\[\]]+)\]\(([^()]+)\)")
 
@@ -340,14 +341,18 @@ def resolve_code_target(words, raw, spans, folder):
         return {"words": words, "file": fname, "block": bname, "lines": [list(fspans[bname])]}
     if (folder / raw).is_file():
         return {"words": words, "file": raw}
-    raise AssertionError(f"[ANCHOR-TARGET] {raw!r} is not a block of this file "
-                         f"and not a file of the folder")
+    mp, sort = name_to_map(raw, folder)
+    if sort == "human file" and mp.exists():
+        return {"words": words, "file": raw}
+    raise AssertionError(f"[ANCHOR-TARGET] {raw!r} is not a block of this file, "
+                         f"not a file of the folder, and not a map with no code under it")
 
 
 def project_pins(anchors):
     bad = [x["words"] for x in anchors if "file" not in x]
-    assert not bad, f"[PROJECT-PIN] a project pin points at a file or a block of a file; " \
-                    f"{', '.join(repr(w) for w in bad)} does not"
+    assert not bad, f"[PROJECT-PIN] a pin of a map with no code under it points at a file, at one " \
+                    f"block of a file, at an abstraction of a file's map, or at an abstraction of " \
+                    f"another map with no code under it; {', '.join(repr(w) for w in bad)} does not"
 
 
 def build_anchors(text, data, spans, self_id, folder):
@@ -376,19 +381,44 @@ def build_anchors(text, data, spans, self_id, folder):
     return out
 
 
-def check_cycle(data, self_id, anchors):
-    frontier = [a["explanation"] for a in anchors if "explanation" in a]
+def load_named_map(root, name):
+    mp = name_to_map(name, root)[0]
+    if not mp.exists():
+        return None
+    try:
+        return json.loads(mp.read_text())
+    except ValueError:
+        return None
+
+
+def out_edges(anchors, name, cross):
+    out = [(name, a["explanation"]) for a in anchors if "explanation" in a]
+    if cross:
+        out += [(a["file"], a["entry"]) for a in anchors if "entry" in a]
+    return out
+
+
+def check_cycle(data, self_id, anchors, root=None, name=None):
+    cross = root is not None
+    frontier = out_edges(anchors, name, cross)
     seen = set()
+    maps = {name: data}
     while frontier:
-        pid = frontier.pop()
-        assert pid != self_id, \
+        step = frontier.pop()
+        assert step != (name, self_id), \
             f"[ANCHOR-CYCLE] explanation {self_id} reaches itself through its anchors"
-        if pid in seen:
+        if step in seen:
             continue
-        seen.add(pid)
-        e = next((x for x in data["explanations"] if x["id"] == pid), None)
+        seen.add(step)
+        mname, pid = step
+        if mname not in maps:
+            maps[mname] = load_named_map(root, mname)
+        d = maps[mname]
+        if not d:
+            continue
+        e = next((x for x in d["explanations"] if x["id"] == pid), None)
         if e:
-            frontier += [a["explanation"] for a in e.get("anchors", []) if "explanation" in a]
+            frontier += out_edges(e.get("anchors", []), mname, cross)
 
 
 def children_of(data, eid):
@@ -520,31 +550,6 @@ def guard_structure(data, map_path):
             e["stale"] = [e["stale"]]
 
 
-def find_root(path):
-    d = path if path.is_dir() else path.parent
-    while True:
-        if (d / "human" / "human.json").is_file():
-            return d
-        if d.parent == d:
-            sys.exit(f"no human/ folder at or above {path}; run human init at the project root")
-        d = d.parent
-
-
-def rel_name(code_path, root=None):
-    root = root or find_root(code_path)
-    if code_path == root:
-        return root.name
-    return code_path.relative_to(root).as_posix()
-
-
-def map_path_of(code_path, root=None):
-    root = root or find_root(code_path)
-    if code_path.is_dir():
-        return root / "human" / "human.json"
-    rel = code_path.relative_to(root).as_posix()
-    return root / "human" / f"explanation_{rel.replace('/', '__')}.json"
-
-
 def register_file(root, rel):
     map_path = root / "human" / "human.json"
     data = json.loads(map_path.read_text())
@@ -600,10 +605,11 @@ def report_text_diff(eid, old, new):
             print(f"entry {eid}: + {l.strip()}")
 
 
-def report_project_stale(ids):
-    if ids:
-        print(f"entries {', '.join(map(str, ids))} of the project map depend on the changed entry and "
-              f"are marked stale; repair each with human sync project --stale <id>")
+def report_project_stale(marks):
+    for name in sorted({n for n, _ in marks}):
+        ids = sorted(i for n, i in marks if n == name)
+        print(f"entries {', '.join(map(str, ids))} of the map of {name} depend on the changed entry "
+              f"and are marked stale; repair each with human sync {name} --stale <id>")
 
 
 def cmd_retext(a):
@@ -667,8 +673,9 @@ def undo_gate(root, data, name, entry):
     kids = [e["id"] for e in children_of(data, entry["id"])]
     if kids:
         sys.exit(f"entries {kids} point at entry {entry['id']} through anchors; undo them first")
-    if name != cmd_project.WORD and cmd_project.pins_into(root, name, entry["id"]):
-        sys.exit(f"the project map points at entry {entry['id']} through anchors; retext it first")
+    held = cmd_project.maps_into(root, name, entry["id"])
+    if held:
+        sys.exit(f"the map of {held[0]} points at entry {entry['id']} through anchors; retext it first")
     from . import cmd_store
     if not cmd_store.credentials():
         return
@@ -824,6 +831,9 @@ def rewordable(e, code_name):
 
 
 def refresh_file_anchor(x, eid, folder):
+    mp, sort = name_to_map(x["file"], folder)
+    if sort != "file":
+        return [] if mp.exists() else [(eid, x["file"])]
     fp = folder / x["file"]
     if not fp.is_file():
         return [(eid, x["file"])]

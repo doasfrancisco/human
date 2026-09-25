@@ -2,7 +2,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import cmd_project, decompiler
+from . import cmd_project, decompiler, helpers
 
 
 def load_map(map_path, name):
@@ -55,18 +55,20 @@ def map_project(a, root):
 
 
 def cmd_map(a):
-    if a.code_file == cmd_project.WORD:
+    root = decompiler.find_root(Path(a.code_file).resolve())
+    map_path, sort = helpers.name_to_map(a.code_file, root)
+    if sort in helpers.NO_CODE:
         cmd_project.cmd_map_project(a)
         return
-    code_path = Path(a.code_file).resolve()
-    root = decompiler.find_root(code_path)
-    if code_path.is_dir():
+    if sort == "folder":
         map_project(a, root)
         return
+    code_path = Path(a.code_file).resolve()
+    if not code_path.is_file():
+        sys.exit(f"{a.code_file} is not a file of the project")
     code_name = decompiler.rel_name(code_path, root)
     lines = code_path.read_text().splitlines()
     spans = decompiler.block_spans(code_path, lines)
-    map_path = decompiler.map_path_of(code_path, root)
     data = load_map(map_path, code_name)
     text = decompiler.read_text_arg(a)
     extra = verbatim_record(a, text)

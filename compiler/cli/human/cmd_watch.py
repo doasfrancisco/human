@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from . import cmd_project, decompiler
+from . import cmd_project, decompiler, helpers
 
 FOLDER = "server"
 KINDS = ("retext", "map", "code", "decompile", "expand", "create", "delete", "link")
@@ -72,10 +72,7 @@ def run_cli(root, args, text):
 
 
 def map_of(root, name):
-    if name == cmd_project.WORD:
-        p = cmd_project.map_path(root)
-    else:
-        p = decompiler.map_path_of(root / name, root)
+    p = helpers.name_to_map(name, root)[0]
     if not p.exists():
         return p, None
     return p, json.loads(p.read_text())
@@ -83,7 +80,8 @@ def map_of(root, name):
 
 def pins_reaching(root, name):
     out = []
-    maps = [cmd_project.map_path(root)] + sorted((root / "human").glob("explanation_*.json"))
+    maps = [mp for _, mp in helpers.no_code_maps(root)]
+    maps += sorted((root / "human").glob("explanation_*.json"))
     for mp in maps:
         if not mp.exists():
             continue
@@ -119,15 +117,15 @@ def compile_writing(root, name, kind, eid, text, words=None):
         return 400, f"unknown kind {kind!r}; one of {', '.join(KINDS[:-1])}"
     if kind in WRITTEN and (not text or not text.strip()):
         return 400, "the text is empty"
-    is_project = name == cmd_project.WORD
-    file_path = None if is_project else (root / name).resolve()
-    if not is_project and (root not in file_path.parents or not file_path.is_file()):
+    no_code = helpers.no_code(name, root)
+    file_path = None if no_code else (root / name).resolve()
+    if not no_code and (root not in file_path.parents or not file_path.is_file()):
         return 400, f"{name} is not a file of the project"
-    if not is_project and (root / "human") in file_path.parents:
+    if not no_code and (root / "human") in file_path.parents:
         return 400, f"{name} belongs to the human folder; the maps take no writing"
     map_p, data = map_of(root, name)
     event = {"kind": kind, "name": name, "map": str(map_p), "entry": eid,
-             "file": None if is_project else str(file_path)}
+             "file": None if no_code else str(file_path)}
     if kind == "retext":
         entry = cmd_project.entry_of(data, eid) if data else None
         if entry is None:
@@ -137,7 +135,7 @@ def compile_writing(root, name, kind, eid, text, words=None):
             return 400, out
         event.update({"old_text": entry["text"], "new_text": text, "output": out})
     elif kind == "map":
-        if data and not is_project:
+        if data and not no_code:
             return 400, f"{name} has a map; write on its entries"
         code, out = run_cli(root, ["map", name, "--verbatim"], text)
         if code != 0:
@@ -146,8 +144,8 @@ def compile_writing(root, name, kind, eid, text, words=None):
         event.update({"entry": int(m.group(1)) if m else None, "old_text": None,
                       "new_text": text, "output": out})
     elif kind == "decompile":
-        if is_project:
-            return 400, "the project has no code of its own"
+        if no_code:
+            return 400, f"{name} has no code under it"
         if data:
             return 400, f"{name} has a map; expand or create on its entries"
         if not file_path.read_text(errors="replace").strip():
@@ -186,8 +184,8 @@ def compile_writing(root, name, kind, eid, text, words=None):
         else:
             event["output"] = f"an expansion of entry {eid} of {name} waits for claude"
     else:
-        if is_project:
-            return 400, "the project has no code of its own"
+        if no_code:
+            return 400, f"{name} has no code under it"
         if data:
             return 400, f"{name} has a map; write on its entries, not on the code"
         old = file_path.read_text()

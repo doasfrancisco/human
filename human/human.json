@@ -61,6 +61,7 @@
     "compiler/cli/human/cmd_train.py",
     "compiler/cli/human/cmd_watch.py",
     "compiler/cli/human/decompiler.py",
+    "compiler/cli/human/helpers.py",
     "compiler/cli/human/reader/trees.js",
     "compiler/cli/human/reader/web.html",
     "compiler/cli/human/shapes/README.md",
@@ -71,16 +72,17 @@
     "compiler/cli/human/shapes/skeleton.md",
     "compiler/cli/human/skills/decompile/SKILL.md",
     "compiler/cli/human/skills/human/SKILL.md",
-    "compiler/cli/human/skills/shapes/SKILL.md",
     "feedback/FEEDBACK.md",
-    "feedback/sessions.json",
+    "feedback/feedback.py",
     "feedback/lambda/KEYS.md",
     "feedback/lambda/deploy.sh",
     "feedback/lambda/handler.py",
     "feedback/lambda/newkey.sh"
   ],
   "ignore": [
-    "legacy/"
+    "legacy/",
+    "harness_idea/"
   ],
-  "project": "51c05dc2"
+  "project": "51c05dc2",
+  "humans": []
 }

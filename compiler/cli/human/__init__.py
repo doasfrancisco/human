@@ -11,7 +11,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import cmd_map, cmd_project, cmd_store, cmd_train, cmd_watch, decompiler
+from . import cmd_map, cmd_project, cmd_store, cmd_train, cmd_watch, decompiler, helpers
 
 PKG = Path(__file__).parent
 
@@ -76,9 +76,10 @@ def cmd_init(a):
     found, data = write_files(root, data)
     if not cmd_project.map_path(root).exists():
         cmd_project.save(root, cmd_project.load(root))
-    if (root / cmd_project.WORD).exists():
-        print(f"warning: a file named {cmd_project.WORD} sits at the root; the word reaches the project "
-              f"map, the file needs a path like ./{cmd_project.WORD}")
+    for bare in [cmd_project.WORD] + helpers.human_names(root):
+        if (root / bare).exists():
+            print(f"warning: a file named {bare} sits at the root; the bare name reaches the map with "
+                  f"no code under it, the file needs a path like ./{bare}")
     hidden = len(found) - len(data["files"])
     tail = f", {hidden} ignored" if hidden else ""
     print(f"project {root.name}: {len(data['files'])} files{tail}, id {data['project']}")
@@ -94,6 +95,7 @@ def write_files(root, data=None):
     found = scan_files(root)
     data["ignore"] = patterns
     data["files"] = [f for f in found if not is_ignored(f, patterns)]
+    data["humans"] = helpers.human_names(root)
     data.pop("ignored", None)
     map_path.write_text(json.dumps(data, indent=2) + "\n")
     return found, data
@@ -103,6 +105,7 @@ def fresh_map(root):
     data = json.loads((root / "human" / "human.json").read_text())
     patterns = data.get("ignore", [])
     data["files"] = [f for f in scan_files(root) if not is_ignored(f, patterns)]
+    data["humans"] = helpers.human_names(root)
     return data
 
 
@@ -136,6 +139,25 @@ def new_file(root, name):
     p.touch()
     write_files(root, data)
     return 200, {"name": shown, "output": f"{shown} made, empty; write its telling"}
+
+
+def new_human(root, name):
+    if not isinstance(name, str) or not name.strip():
+        return 400, "no name"
+    bare = name.strip()
+    if not helpers.is_bare(bare) or bare.startswith("."):
+        return 400, f"{bare} is not a bare name; a human file takes one word, no folder and no suffix"
+    if bare == cmd_project.WORD:
+        return 400, f"{bare} is the word of the project map"
+    p = helpers.human_map_path(root, bare)
+    if p.exists():
+        return 400, f"{bare} is held by another human file"
+    if (root / bare).exists():
+        return 400, f"{bare} is held by a file at the root"
+    p.write_text(json.dumps({"code_file": bare, "explanations": [],
+                             "not_covered": {"code_lines": [], "blank_lines": []}}, indent=2) + "\n")
+    return 200, {"name": f"human/{helpers.HUMAN_PREFIX}{bare}.json",
+                 "output": f"{bare} made, empty; write its abstraction, with no file under it"}
 
 
 class FreshHandler(SimpleHTTPRequestHandler):
@@ -193,6 +215,8 @@ class FreshHandler(SimpleHTTPRequestHandler):
                                                         body.get("id"), body.get("text"), body.get("words"))
             elif path == "/human/file":
                 status, out = new_file(root, self.read_body().get("name"))
+            elif path == "/human/human":
+                status, out = new_human(root, self.read_body().get("name"))
             elif m and m.group(2) == "close":
                 status, out = cmd_train.close_road(root, m.group(1))
             elif m:
@@ -241,6 +265,7 @@ def cmd_serve(a):
         print(f"http://{tip}:{a.port}/human/web.html")
     print("an open training session shows as a layer over the reader")
     print("a new file from the reader lands next to the others, empty, ready for its telling")
+    print("a new human file from the reader takes a bare name and opens with no file under it")
     print("a writing in the reader lands in human/server/; read it with: human watch")
     try:
         srv.serve_forever()
@@ -315,7 +340,7 @@ def main():
     g = sub.add_parser("login")
     g.add_argument("key")
     a = ap.parse_args()
-    if a.cmd in cmd_project.COMMANDS and a.code_file == cmd_project.WORD:
+    if a.cmd in cmd_project.COMMANDS and helpers.no_code(a.code_file, decompiler.find_root(Path.cwd())):
         cmd_project.COMMANDS[a.cmd](a)
         return
     {"init": cmd_init, "serve": cmd_serve, "skills": cmd_skills, "map": cmd_map.cmd_map,

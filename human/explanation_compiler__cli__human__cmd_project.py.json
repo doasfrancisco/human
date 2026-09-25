@@ -7,10 +7,10 @@
       "block_lines": [
         [
           1,
-          515
+          550
         ]
       ],
-      "text": "import the line differ, json, the pattern matcher, the shell, and\n[the map run](compiler/cli/human/cmd_map.py), [the tool](compiler/cli/human/decompiler.py) and [the training desk](compiler/cli/human/cmd_train.py) \u2014 the neighbours whose pieces this file calls\n\nWORD        = project \u2014 the word you type where a file path goes: human map project, human show project, human sync project\nCROSS_RE    = the look of a pin into another file's map: the file's path, a colon, e and the entry number, a colon, the anchor words\nSYNC_PROMPT = the letter to claude when the project changed: read the changed files, mend the words the change made wrong, add a sentence for each behaviour the change added, keep every pin, and give an entry of the user's own words the smallest edit in the user's voice\n\n\nthe map of the project \u2014 what it is\n\nA project entry is a telling of the whole, kept in human/project.json. It has no\nlines of its own: its pins reach the files, one block of a file, one anchor of a\nfile's entry, or an earlier project entry, and the lines come through them.\nEvery command below takes the word project where a file path goes.\n\n[cmd_map_project](cmd_map_project)(a)\n    a is what you typed after human map project: the text on stdin, --verbatim when\n    the words are yours, and no --block, because the project map has no blocks of its own.\n    The tool checks every pin, refuses a circle, and appends one entry. It prints how\n    many pins reach files, entries of other maps, and earlier entries of this map \u2014 and\n    how many files of the project have a pin.\n    With --verbatim the words must come in plain \u2014 a pin is refused, because the pins\n    come after, with retext \u2014 and a copy stays beside the entry as the origin.\n\n[build_anchors](build_anchors)(text, data, self_id, root)\n    text is the entry's text; data is the project map; self_id is the entry's own number.\n    The tool walks the pins of the text one by one. A pin whose target reads like\n    app/main.py:e1:the start is [a pin into another file's map](cross_anchor);\n    every other pin \u2014 a file, a block of a file, an earlier entry of this map \u2014 goes to\n    [the shared pin checker](compiler/cli/human/decompiler.py:build_anchors) one at a time.\n    Two pins with the same words are refused here, because the shared checker sees\n    only one pin at a time.\n\n[cross_anchor](cross_anchor)(words, fname, eid, aw, root)\n    fname is the file's path from the root; eid is the entry number; aw is the anchor words.\n    The tool refuses the pin when the file is not in the project, when the file has no map,\n    when the map has no such entry, or when the entry has no anchor with those words.\n    A good pin is stored with the file, the entry, and the anchor words, so the reader\n    can walk from the project telling to that file, that entry, that anchor.\n\n[cmd_retext](cmd_retext)(a)\n    a is the entry number, the new text, and --verbatim when the words are yours.\n    The tool replaces the text of one project entry the way it does for a file: the pins\n    other project entries point at must survive, and no circle may appear.\n    The words are the text without its pins. When the words changed, the project entries\n    that point into this one are marked stale; a retext that only moves the pins says so\n    and marks nobody. An entry that holds your own words refuses a change of those words;\n    --verbatim lets the change through and keeps the new text as the origin, or puts the\n    flag on an entry that had none. A stale mark the new text did not answer stays, and\n    the tool names the repair. Last, the row of the open training session that studies\n    this entry [takes a second photo](compiler/cli/human/cmd_train.py:refresh_row) of it,\n    so the feed shows the words the map holds now and keeps the old ones as v1.\n\n[cmd_undo](cmd_undo)(a)\n    a is the entry number, or nothing for the last project entry.\n    The tool removes that entry \u2014 unless another project entry points into it, or the open\n    training session holds a row on it that is not applied yet.\n\n[cmd_show](cmd_show)(a)\n    The tool prints every project entry with its pin count, a stale mark that names every\n    file's entry and every earlier entry that changed, and, for an entry of your own words,\n    that it holds them \u2014 and whether they were reworded since they were mapped, with the\n    way to bring them back among the warnings. Then the other warnings: a pin whose file is\n    gone, whose block is gone, whose entry or anchor in another map is gone\n    ([the cross check](check_cross)), whose stored lines are old. Last,\n    [the coverage](print_coverage): the files of the project that have a pin, out of all of\n    them, and the names of the files without one.\n\n\nthe two doors the file maps knock on\n\n[pins_into](pins_into)(root, code_name, eid)\n    The anchor words of entry eid of the file code_name that the project map points at.\n    A retext, a sync, a stale repair, or a training version of that entry adds these to\n    the words it must keep, and an undo of that entry is refused while the set is not\n    empty. Empty when there is no project map.\n\n[mark_stale](mark_stale)(root, code_name, eid, old_text)\n    The tool adds a note to every project entry that points into entry eid of code_name \u2014\n    the file, the entry, and the old text \u2014 and gives back their numbers. The file's\n    retext, sync, and stale repair call it after the words changed, so the project telling\n    knows a fact under it moved. The note joins the ones the entry already holds, one per\n    parent; a parent already noted keeps its first old text, so a second change does not\n    hide the first.\n\n\nthe project changed\n\n[cmd_sync](cmd_sync)(a)\n    The old state of the project is git HEAD, so --old is refused. With --stale the tool\n    goes to [the stale repair](repair_stale) instead.\n\n    \u25cf  the tool asks git what moved                        ([the files that changed](changed_files))\n    \u2502     The files the project knows \u2014 listed or pinned \u2014 that git sees\n    \u2502     changed, added, or gone, against HEAD.\n    \u2502\n    \u25cf  the tool takes a second look at every pin           ([the second look](re_resolve))\n    \u2502     File pins, block pins, and pins into other maps; a gone target\n    \u2502     is broken. The candidates are the entries that pin a changed\n    \u2502     file, plus the entries with a broken pin. With no candidate the\n    \u2502     map is saved \u2014 no claude call.\n    \u2502\n    \u25cf  the tool writes the letter\n    \u2502     The root, the changed files with their full paths, [their diff](project_diff),\n    \u2502     [the broken pins](broken_note) \u2014 each with the anchors its entry\n    \u2502     holds now, so a reworded anchor can be retargeted \u2014, the files of\n    \u2502     the project, the candidate texts \u2014 each named as your own words\n    \u2502     when it holds them \u2014, and the words other entries need.\n    \u2502\n    \u25cf  claude answers, the tool checks                     ([the asking](ask))\n    \u2502     Up to --tries times. Each answer is [rebuilt on a copy](rebuild) and\n    \u2502     refused when a pin is dead, a needed anchor is gone, or an entry\n    \u2502     that is not a candidate was rewritten; the refusal goes back to\n    \u2502     claude with its name.\n    \u2502\n    \u25cf  the map is saved\n          The changed texts are reported line by line, with a warning for\n          every entry of your own words the answer changed. The entries that\n          point into a changed one are marked stale \u2014 when the words changed,\n          not when the pins alone moved.\n\n[repair_stale](repair_stale)(a, root, data)\n    \u25cf  the tool gathers every parent the notes name\n    \u2502     An entry of a file's map when a note names a file, an earlier\n    \u2502     project entry otherwise. A parent that is gone stops the run.\n    \u2502\n    \u25cf  the tool writes the second letter\n    \u2502     The shared stale letter of [the file repair](compiler/cli/human/decompiler.py:repair_stale),\n    \u2502     one page per parent \u2014 its old text, its new text, the diff between\n    \u2502     them, and the form a pin at it takes: file, entry, and anchor words\n    \u2502     when the parent lives in a file; entry and anchor words otherwise.\n    \u2502     An entry of your own words adds one rule: the smallest edit, in\n    \u2502     your voice.\n    \u2502\n    \u25cf  claude answers, the tool checks\n    \u2502     The answer must keep the words other entries need and make no\n    \u2502     circle, up to --tries times.\n    \u2502\n    \u25cf  the map is saved\n          The mended text replaces the old one, every note goes, and the\n          project entries that point into this one are marked stale in turn \u2014\n          when the words changed. A repair that moved your own words is\n          named on the spot.\n\n[snapshot](snapshot)(root, kind)\n    What a training row keeps of the project: for a new telling, a copy of every file of\n    the project; for a sync row, the changed files, their copies, and their diff. The row\n    refuses a new version when this changed since the row was made.\n\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nthe small hands\n\n[root_of](root_of)()                        the project root, climbing from where you stand\n[map_path](map_path)(root)                  human/project.json\n[load](load)(root)                          the project map, or an empty one\n[save](save)(root, data)                    writes the project map\n[files_of](files_of)(root)                  the file list of human/human.json\n[map_of](map_of)(root, fname)               the map of one file, or nothing when it has none\n[entry_of](entry_of)(data, eid)             one entry of a map by its number\n[counts](counts)(anchors)                   the pin count line: into files, into other maps, into earlier entries\n[check_cross](check_cross)(x, root)         why a pin into another map is dead, or nothing when it holds\n[git](git)(root, *args)                     runs git at the root and gives back its exit code and output\n[old_text_of](old_text_of)(root, rel)       the file as git HEAD holds it, empty for a new file\n[changed_files](changed_files)(root, data)  the files the project knows \u2014 listed or pinned \u2014 that git sees changed, added, or gone\n[project_diff](project_diff)(root, changed) one unified diff over the changed files, HEAD against the disk\n[re_resolve](re_resolve)(data, root)        the shared second look, plus a check of every pin into another map\n[broken_note](broken_note)(broken, root)    the broken pins for the letter, each with the anchors its entry holds now\n[rebuild](rebuild)(trial, texts, cand, root) puts the answered texts into a copy of the map and checks every pin and every needed word\n[ask](ask)(prompt, root, tries, check)      claude up to tries times, with the refusal sent back each time\n[cmd_lines](cmd_lines)(a)                   refused: the project has no lines of its own\n[print_coverage](print_coverage)(root, data) files with a pin out of all files, and the ones without",
+      "text": "import the line differ, json, the pattern matcher, the shell, and\n[the map run](compiler/cli/human/cmd_map.py), [the tool](compiler/cli/human/decompiler.py) and [the training desk](compiler/cli/human/cmd_train.py)\n\nWORD\nproject \u2014 the word you type where a file path goes: human map project, human show project, human sync project\na human file takes its bare name the same way: human map <name>\n\nCROSS_RE\nthe look of a pin into another map: the name, a colon, e and the entry number, a colon, the anchor words.\nthe name is a file's path, the word project or a human file's name. the form is the same. only the reading of the name changes.\n\nSYNC_PROMPT\nthe letter to claude when the project changed: read the changed files, mend the words the change made wrong, add a sentence for each behaviour the change added, keep every pin, and give an entry of the user's own words the smallest edit in the user's voice\n\n\nhuman/project.json is an abstraction of the whole codebase. a human file json is an abstraction of multiple files or folders.\nboth have no code of its own.\nboth have pins which reach: \n  other files,\n  one block of a file\n  one anchor of a file's abstraction\n  another project or human file abstraction\n\n[cmd_map_project](cmd_map_project)(abstraction_name)\n    the abstraction name is what you typed after human map project: the text on stdin, --verbatim when\n    the words are yours, and no --block, because the project map has no blocks of its own.\n    The tool checks every pin, refuses a circle, and appends one entry. It prints how\n    many pins reach files, entries of other maps, and earlier entries of this map \u2014 and\n    how many files of the project have a pin.\n    With --verbatim the words must come in plain \u2014 a pin is refused, because the pins\n    come after, with retext \u2014 and a copy stays beside the entry as the origin.\n\n[build_anchors](build_anchors)(abstraction_text, data, self_id, root)\n    abstraction text is the abstraction being mapped.\n    data is the map it goes into; self_id is the entry's own number.\n    The tool walks the pins of the text one by one. A pin whose target reads like\n    app/main.py:e1:the start is [a pin into another map](cross_anchor);\n    every other pin \u2014 a file, a block of a file, an earlier abstraction of this map \u2014 goes to\n    [the shared pin checker](compiler/cli/human/decompiler.py:build_anchors) one at a time.\n    Two pins with the same words are refused here, because the shared checker sees\n    only one pin at a time.\n\n[cross_anchor](cross_anchor)(words, name, eid, aw, project_root)\n    name is what the pin points at; \n    eid is the entry number; \n    aw is the anchor words.\n    call name_to_map(name, project_root) and get the map path and its sort type.\n    if name sort type file. then it must be a file of the project.\n    if name sort type project or human file. there's no file to check.\n    \n    the tool refuses the pin when:\n      the name has no map\n      the map has no such abstraction\n      when the abstraction has no anchor with those words.\n\n    a good pin is stored with the name, the abstraction, and the anchor words, so the reader can walk from this abstraction to that abstraction, and to the anchors inside it.\n\n[cmd_retext](cmd_retext)(a)\n    a is the entry number, the new text, and --verbatim when the words are yours.\n    The tool replaces the text of one project entry the way it does for a file: the pins\n    other project entries point at must survive, and no circle may appear.\n    The words are the text without its pins. When the words changed, the project entries\n    that point into this one are marked stale; a retext that only moves the pins says so\n    and marks nobody. An entry that holds your own words refuses a change of those words;\n    --verbatim lets the change through and keeps the new text as the origin, or puts the\n    flag on an entry that had none. A stale mark the new text did not answer stays, and\n    the tool names the repair. Last, the row of the open training session that studies\n    this entry [takes a second photo](compiler/cli/human/cmd_train.py:refresh_row) of it,\n    so the feed shows the words the map holds now and keeps the old ones as v1.\n\n[cmd_undo](cmd_undo)(a)\n    a is the entry number, or nothing for the last project entry.\n    The tool removes that entry \u2014 unless another project entry points into it, or the open\n    training session holds a row on it that is not applied yet.\n\n[cmd_show](cmd_show)(a)\n    The tool prints every project entry with its pin count, a stale mark that names every\n    file's entry and every earlier entry that changed, and, for an entry of your own words,\n    that it holds them \u2014 and whether they were reworded since they were mapped, with the\n    way to bring them back among the warnings. Then the other warnings: a pin whose file is\n    gone, whose block is gone, whose entry or anchor in another map is gone\n    ([the cross check](check_cross)), whose stored lines are old. Last,\n    [the coverage](print_coverage): the files of the project that have a pin, out of all of\n    them, and the names of the files without one.\n\n\nthe two doors the file maps knock on\n\n[pins_into](pins_into)(root, code_name, eid)\n    The anchor words of entry eid of the file code_name that the project map points at.\n    A retext, a sync, a stale repair, or a training version of that entry adds these to\n    the words it must keep, and an undo of that entry is refused while the set is not\n    empty. Empty when there is no project map.\n\n[mark_stale](mark_stale)(root, code_name, eid, old_text)\n    The tool adds a note to every project entry that points into entry eid of code_name \u2014\n    the file, the entry, and the old text \u2014 and gives back their numbers. The file's\n    retext, sync, and stale repair call it after the words changed, so the project telling\n    knows a fact under it moved. The note joins the ones the entry already holds, one per\n    parent; a parent already noted keeps its first old text, so a second change does not\n    hide the first.\n\n\nthe project changed\n\n[cmd_sync](cmd_sync)(a)\n    The old state of the project is git HEAD, so --old is refused. With --stale the tool\n    goes to [the stale repair](repair_stale) instead.\n\n    \u25cf  the tool asks git what moved                        ([the files that changed](changed_files))\n    \u2502     The files the project knows \u2014 listed or pinned \u2014 that git sees\n    \u2502     changed, added, or gone, against HEAD.\n    \u2502\n    \u25cf  the tool takes a second look at every pin           ([the second look](re_resolve))\n    \u2502     File pins, block pins, and pins into other maps; a gone target\n    \u2502     is broken. The candidates are the entries that pin a changed\n    \u2502     file, plus the entries with a broken pin. With no candidate the\n    \u2502     map is saved \u2014 no claude call.\n    \u2502\n    \u25cf  the tool writes the letter\n    \u2502     The root, the changed files with their full paths, [their diff](project_diff),\n    \u2502     [the broken pins](broken_note) \u2014 each with the anchors its entry\n    \u2502     holds now, so a reworded anchor can be retargeted \u2014, the files of\n    \u2502     the project, the candidate texts \u2014 each named as your own words\n    \u2502     when it holds them \u2014, and the words other entries need.\n    \u2502\n    \u25cf  claude answers, the tool checks                     ([the asking](ask))\n    \u2502     Up to --tries times. Each answer is [rebuilt on a copy](rebuild) and\n    \u2502     refused when a pin is dead, a needed anchor is gone, or an entry\n    \u2502     that is not a candidate was rewritten; the refusal goes back to\n    \u2502     claude with its name.\n    \u2502\n    \u25cf  the map is saved\n          The changed texts are reported line by line, with a warning for\n          every entry of your own words the answer changed. The entries that\n          point into a changed one are marked stale \u2014 when the words changed,\n          not when the pins alone moved.\n\n[repair_stale](repair_stale)(a, root, data)\n    \u25cf  the tool gathers every parent the notes name\n    \u2502     An entry of a file's map when a note names a file, an earlier\n    \u2502     project entry otherwise. A parent that is gone stops the run.\n    \u2502\n    \u25cf  the tool writes the second letter\n    \u2502     The shared stale letter of [the file repair](compiler/cli/human/decompiler.py:repair_stale),\n    \u2502     one page per parent \u2014 its old text, its new text, the diff between\n    \u2502     them, and the form a pin at it takes: file, entry, and anchor words\n    \u2502     when the parent lives in a file; entry and anchor words otherwise.\n    \u2502     An entry of your own words adds one rule: the smallest edit, in\n    \u2502     your voice.\n    \u2502\n    \u25cf  claude answers, the tool checks\n    \u2502     The answer must keep the words other entries need and make no\n    \u2502     circle, up to --tries times.\n    \u2502\n    \u25cf  the map is saved\n          The mended text replaces the old one, every note goes, and the\n          project entries that point into this one are marked stale in turn \u2014\n          when the words changed. A repair that moved your own words is\n          named on the spot.\n\n[snapshot](snapshot)(root, kind)\n    What a training row keeps of the project: for a new telling, a copy of every file of\n    the project; for a sync row, the changed files, their copies, and their diff. The row\n    refuses a new version when this changed since the row was made.\n\n\n# HELPER FUNCTIONS\n\n[root_of](root_of)()                        \nthe project root, climbing from where you stand\n\n[map_path](map_path)(root)                  \nhuman/project.json\n\n[load](load)(root)                          \nthe project map, or an empty one\n\n[save](save)(root, data)                    \nwrites the project map\n\n[files_of](files_of)(root)                  \nthe file list of human/human.json\n\n[map_of](map_of)(root, fname)\nthe map of one name, a file, the project, or a human file or nothing when it has none.\n\n[entry_of](entry_of)(data, eid)             \none entry of a map by its number\n\n[counts](counts)(anchors)                   \nthe pin count line: into files, into other maps, into earlier entries\n\n[check_cross](check_cross)(x, root)         \nwhy a pin into another map is dead, or nothing when it holds\n\n[git](git)(root, *args)                     \nruns git at the root and gives back its exit code and output\n\n[old_text_of](old_text_of)(root, rel)       \nthe file as git HEAD holds it, empty for a new file\n\n[changed_files](changed_files)(root, data)  \nthe files the project knows \u2014 listed or pinned \u2014 that git sees changed, added, or gone\n\n[project_diff](project_diff)(root, changed) \none unified diff over the changed files, HEAD against the disk\n\n[re_resolve](re_resolve)(data, root)        \nthe shared second look, plus a check of every pin into another map\n\n[broken_note](broken_note)(broken, root)    \nthe broken pins for the letter, each with the anchors its entry holds now\n\n[rebuild](rebuild)(trial, texts, cand, root) \nputs the answered texts into a copy of the map and checks every pin and every needed word\n\n[ask](ask)(prompt, root, tries, check)      \nclaude up to tries times, with the refusal sent back each time\n\n[cmd_lines](cmd_lines)(a)                   \nrefused: the project has no lines of its own\n\n[print_coverage](print_coverage)(root, data) \nfiles with a pin out of all files, and the ones without",
       "anchors": [
         {
           "words": "the map run",
@@ -29,8 +29,8 @@
           "block": "cmd_map_project",
           "lines": [
             [
-              152,
-              171
+              165,
+              185
             ]
           ]
         },
@@ -39,18 +39,18 @@
           "block": "build_anchors",
           "lines": [
             [
-              95,
-              109
+              99,
+              113
             ]
           ]
         },
         {
-          "words": "a pin into another file's map",
+          "words": "a pin into another map",
           "block": "cross_anchor",
           "lines": [
             [
-              82,
-              92
+              86,
+              96
             ]
           ]
         },
@@ -60,8 +60,8 @@
           "block": "build_anchors",
           "lines": [
             [
-              353,
-              376
+              358,
+              381
             ]
           ]
         },
@@ -70,8 +70,8 @@
           "block": "cross_anchor",
           "lines": [
             [
-              82,
-              92
+              86,
+              96
             ]
           ]
         },
@@ -80,8 +80,8 @@
           "block": "cmd_retext",
           "lines": [
             [
-              174,
-              207
+              188,
+              223
             ]
           ]
         },
@@ -91,8 +91,8 @@
           "block": "refresh_row",
           "lines": [
             [
-              184,
-              205
+              178,
+              207
             ]
           ]
         },
@@ -101,8 +101,8 @@
           "block": "cmd_undo",
           "lines": [
             [
-              210,
-              220
+              226,
+              237
             ]
           ]
         },
@@ -111,8 +111,8 @@
           "block": "cmd_show",
           "lines": [
             [
-              235,
-              278
+              252,
+              300
             ]
           ]
         },
@@ -121,8 +121,8 @@
           "block": "check_cross",
           "lines": [
             [
-              223,
-              232
+              240,
+              249
             ]
           ]
         },
@@ -131,8 +131,8 @@
           "block": "print_coverage",
           "lines": [
             [
-              144,
-              149
+              157,
+              162
             ]
           ]
         },
@@ -141,8 +141,8 @@
           "block": "pins_into",
           "lines": [
             [
-              112,
-              118
+              120,
+              126
             ]
           ]
         },
@@ -151,8 +151,8 @@
           "block": "mark_stale",
           "lines": [
             [
-              121,
-              133
+              134,
+              146
             ]
           ]
         },
@@ -161,8 +161,8 @@
           "block": "cmd_sync",
           "lines": [
             [
-              443,
-              502
+              466,
+              529
             ]
           ]
         },
@@ -171,8 +171,8 @@
           "block": "repair_stale",
           "lines": [
             [
-              390,
-              440
+              412,
+              463
             ]
           ]
         },
@@ -181,8 +181,8 @@
           "block": "changed_files",
           "lines": [
             [
-              295,
-              304
+              317,
+              326
             ]
           ]
         },
@@ -191,8 +191,8 @@
           "block": "re_resolve",
           "lines": [
             [
-              317,
-              325
+              339,
+              347
             ]
           ]
         },
@@ -201,8 +201,8 @@
           "block": "project_diff",
           "lines": [
             [
-              307,
-              314
+              329,
+              336
             ]
           ]
         },
@@ -211,8 +211,8 @@
           "block": "broken_note",
           "lines": [
             [
-              328,
-              342
+              350,
+              364
             ]
           ]
         },
@@ -221,8 +221,8 @@
           "block": "ask",
           "lines": [
             [
-              371,
-              387
+              393,
+              409
             ]
           ]
         },
@@ -231,8 +231,8 @@
           "block": "rebuild",
           "lines": [
             [
-              345,
-              368
+              367,
+              390
             ]
           ]
         },
@@ -241,8 +241,8 @@
           "block": "repair_stale",
           "lines": [
             [
-              390,
-              440
+              412,
+              463
             ]
           ]
         },
@@ -252,8 +252,8 @@
           "block": "repair_stale",
           "lines": [
             [
-              888,
-              951
+              903,
+              966
             ]
           ]
         },
@@ -262,8 +262,8 @@
           "block": "snapshot",
           "lines": [
             [
-              505,
-              511
+              539,
+              546
             ]
           ]
         },
@@ -282,8 +282,8 @@
           "block": "map_path",
           "lines": [
             [
-              55,
-              56
+              59,
+              60
             ]
           ]
         },
@@ -292,8 +292,8 @@
           "block": "load",
           "lines": [
             [
-              59,
-              60
+              63,
+              64
             ]
           ]
         },
@@ -302,8 +302,8 @@
           "block": "save",
           "lines": [
             [
-              63,
-              64
+              67,
+              68
             ]
           ]
         },
@@ -312,8 +312,8 @@
           "block": "files_of",
           "lines": [
             [
-              67,
-              68
+              71,
+              72
             ]
           ]
         },
@@ -322,8 +322,8 @@
           "block": "map_of",
           "lines": [
             [
-              71,
-              75
+              75,
+              79
             ]
           ]
         },
@@ -332,8 +332,8 @@
           "block": "entry_of",
           "lines": [
             [
-              78,
-              79
+              82,
+              83
             ]
           ]
         },
@@ -342,8 +342,8 @@
           "block": "counts",
           "lines": [
             [
-              136,
-              141
+              149,
+              154
             ]
           ]
         },
@@ -352,8 +352,8 @@
           "block": "check_cross",
           "lines": [
             [
-              223,
-              232
+              240,
+              249
             ]
           ]
         },
@@ -362,8 +362,8 @@
           "block": "git",
           "lines": [
             [
-              285,
-              287
+              307,
+              309
             ]
           ]
         },
@@ -372,8 +372,8 @@
           "block": "old_text_of",
           "lines": [
             [
-              290,
-              292
+              312,
+              314
             ]
           ]
         },
@@ -382,8 +382,8 @@
           "block": "changed_files",
           "lines": [
             [
-              295,
-              304
+              317,
+              326
             ]
           ]
         },
@@ -392,8 +392,8 @@
           "block": "project_diff",
           "lines": [
             [
-              307,
-              314
+              329,
+              336
             ]
           ]
         },
@@ -402,8 +402,8 @@
           "block": "re_resolve",
           "lines": [
             [
-              317,
-              325
+              339,
+              347
             ]
           ]
         },
@@ -412,8 +412,8 @@
           "block": "broken_note",
           "lines": [
             [
-              328,
-              342
+              350,
+              364
             ]
           ]
         },
@@ -422,8 +422,8 @@
           "block": "rebuild",
           "lines": [
             [
-              345,
-              368
+              367,
+              390
             ]
           ]
         },
@@ -432,8 +432,8 @@
           "block": "ask",
           "lines": [
             [
-              371,
-              387
+              393,
+              409
             ]
           ]
         },
@@ -442,8 +442,8 @@
           "block": "cmd_lines",
           "lines": [
             [
-              281,
-              282
+              303,
+              304
             ]
           ]
         },
@@ -452,12 +452,15 @@
           "block": "print_coverage",
           "lines": [
             [
-              144,
-              149
+              157,
+              162
             ]
           ]
         }
-      ]
+      ],
+      "verbatim": {
+        "origin": "import the line differ, json, the pattern matcher, the shell, and\nthe map run, the tool and the training desk\n\nWORD\nproject \u2014 the word you type where a file path goes: human map project, human show project, human sync project\na human file takes its bare name the same way: human map <name>\n\nCROSS_RE\nthe look of a pin into another map: the name, a colon, e and the entry number, a colon, the anchor words.\nthe name is a file's path, the word project or a human file's name. the form is the same. only the reading of the name changes.\n\nSYNC_PROMPT\nthe letter to claude when the project changed: read the changed files, mend the words the change made wrong, add a sentence for each behaviour the change added, keep every pin, and give an entry of the user's own words the smallest edit in the user's voice\n\n\nhuman/project.json is an abstraction of the whole codebase. a human file json is an abstraction of multiple files or folders.\nboth have no code of its own.\nboth have pins which reach: \n  other files,\n  one block of a file\n  one anchor of a file's abstraction\n  another project or human file abstraction\n\ncmd_map_project(abstraction_name)\n    the abstraction name is what you typed after human map project: the text on stdin, --verbatim when\n    the words are yours, and no --block, because the project map has no blocks of its own.\n    The tool checks every pin, refuses a circle, and appends one entry. It prints how\n    many pins reach files, entries of other maps, and earlier entries of this map \u2014 and\n    how many files of the project have a pin.\n    With --verbatim the words must come in plain \u2014 a pin is refused, because the pins\n    come after, with retext \u2014 and a copy stays beside the entry as the origin.\n\nbuild_anchors(abstraction_text, data, self_id, root)\n    abstraction text is the abstraction being mapped.\n    data is the map it goes into; self_id is the entry's own number.\n    The tool walks the pins of the text one by one. A pin whose target reads like\n    app/main.py:e1:the start is a pin into another map;\n    every other pin \u2014 a file, a block of a file, an earlier abstraction of this map \u2014 goes to\n    the shared pin checker one at a time.\n    Two pins with the same words are refused here, because the shared checker sees\n    only one pin at a time.\n\ncross_anchor(words, name, eid, aw, project_root)\n    name is what the pin points at; \n    eid is the entry number; \n    aw is the anchor words.\n    call name_to_map(name, project_root) and get the map path and its sort type.\n    if name sort type file. then it must be a file of the project.\n    if name sort type project or human file. there's no file to check.\n    \n    the tool refuses the pin when:\n      the name has no map\n      the map has no such abstraction\n      when the abstraction has no anchor with those words.\n\n    a good pin is stored with the name, the abstraction, and the anchor words, so the reader can walk from this abstraction to that abstraction, and to the anchors inside it.\n\ncmd_retext(a)\n    a is the entry number, the new text, and --verbatim when the words are yours.\n    The tool replaces the text of one project entry the way it does for a file: the pins\n    other project entries point at must survive, and no circle may appear.\n    The words are the text without its pins. When the words changed, the project entries\n    that point into this one are marked stale; a retext that only moves the pins says so\n    and marks nobody. An entry that holds your own words refuses a change of those words;\n    --verbatim lets the change through and keeps the new text as the origin, or puts the\n    flag on an entry that had none. A stale mark the new text did not answer stays, and\n    the tool names the repair. Last, the row of the open training session that studies\n    this entry takes a second photo of it,\n    so the feed shows the words the map holds now and keeps the old ones as v1.\n\ncmd_undo(a)\n    a is the entry number, or nothing for the last project entry.\n    The tool removes that entry \u2014 unless another project entry points into it, or the open\n    training session holds a row on it that is not applied yet.\n\ncmd_show(a)\n    The tool prints every project entry with its pin count, a stale mark that names every\n    file's entry and every earlier entry that changed, and, for an entry of your own words,\n    that it holds them \u2014 and whether they were reworded since they were mapped, with the\n    way to bring them back among the warnings. Then the other warnings: a pin whose file is\n    gone, whose block is gone, whose entry or anchor in another map is gone\n    (the cross check), whose stored lines are old. Last,\n    the coverage: the files of the project that have a pin, out of all of\n    them, and the names of the files without one.\n\n\nthe two doors the file maps knock on\n\npins_into(root, code_name, eid)\n    The anchor words of entry eid of the file code_name that the project map points at.\n    A retext, a sync, a stale repair, or a training version of that entry adds these to\n    the words it must keep, and an undo of that entry is refused while the set is not\n    empty. Empty when there is no project map.\n\nmark_stale(root, code_name, eid, old_text)\n    The tool adds a note to every project entry that points into entry eid of code_name \u2014\n    the file, the entry, and the old text \u2014 and gives back their numbers. The file's\n    retext, sync, and stale repair call it after the words changed, so the project telling\n    knows a fact under it moved. The note joins the ones the entry already holds, one per\n    parent; a parent already noted keeps its first old text, so a second change does not\n    hide the first.\n\n\nthe project changed\n\ncmd_sync(a)\n    The old state of the project is git HEAD, so --old is refused. With --stale the tool\n    goes to the stale repair instead.\n\n    \u25cf  the tool asks git what moved                        (the files that changed)\n    \u2502     The files the project knows \u2014 listed or pinned \u2014 that git sees\n    \u2502     changed, added, or gone, against HEAD.\n    \u2502\n    \u25cf  the tool takes a second look at every pin           (the second look)\n    \u2502     File pins, block pins, and pins into other maps; a gone target\n    \u2502     is broken. The candidates are the entries that pin a changed\n    \u2502     file, plus the entries with a broken pin. With no candidate the\n    \u2502     map is saved \u2014 no claude call.\n    \u2502\n    \u25cf  the tool writes the letter\n    \u2502     The root, the changed files with their full paths, their diff,\n    \u2502     the broken pins \u2014 each with the anchors its entry\n    \u2502     holds now, so a reworded anchor can be retargeted \u2014, the files of\n    \u2502     the project, the candidate texts \u2014 each named as your own words\n    \u2502     when it holds them \u2014, and the words other entries need.\n    \u2502\n    \u25cf  claude answers, the tool checks                     (the asking)\n    \u2502     Up to --tries times. Each answer is rebuilt on a copy and\n    \u2502     refused when a pin is dead, a needed anchor is gone, or an entry\n    \u2502     that is not a candidate was rewritten; the refusal goes back to\n    \u2502     claude with its name.\n    \u2502\n    \u25cf  the map is saved\n          The changed texts are reported line by line, with a warning for\n          every entry of your own words the answer changed. The entries that\n          point into a changed one are marked stale \u2014 when the words changed,\n          not when the pins alone moved.\n\nrepair_stale(a, root, data)\n    \u25cf  the tool gathers every parent the notes name\n    \u2502     An entry of a file's map when a note names a file, an earlier\n    \u2502     project entry otherwise. A parent that is gone stops the run.\n    \u2502\n    \u25cf  the tool writes the second letter\n    \u2502     The shared stale letter of the file repair,\n    \u2502     one page per parent \u2014 its old text, its new text, the diff between\n    \u2502     them, and the form a pin at it takes: file, entry, and anchor words\n    \u2502     when the parent lives in a file; entry and anchor words otherwise.\n    \u2502     An entry of your own words adds one rule: the smallest edit, in\n    \u2502     your voice.\n    \u2502\n    \u25cf  claude answers, the tool checks\n    \u2502     The answer must keep the words other entries need and make no\n    \u2502     circle, up to --tries times.\n    \u2502\n    \u25cf  the map is saved\n          The mended text replaces the old one, every note goes, and the\n          project entries that point into this one are marked stale in turn \u2014\n          when the words changed. A repair that moved your own words is\n          named on the spot.\n\nsnapshot(root, kind)\n    What a training row keeps of the project: for a new telling, a copy of every file of\n    the project; for a sync row, the changed files, their copies, and their diff. The row\n    refuses a new version when this changed since the row was made.\n\n\n# HELPER FUNCTIONS\n\nroot_of()                        \nthe project root, climbing from where you stand\n\nmap_path(root)                  \nhuman/project.json\n\nload(root)                          \nthe project map, or an empty one\n\nsave(root, data)                    \nwrites the project map\n\nfiles_of(root)                  \nthe file list of human/human.json\n\nmap_of(root, fname)\nthe map of one name, a file, the project, or a human file or nothing when it has none.\n\nentry_of(data, eid)             \none entry of a map by its number\n\ncounts(anchors)                   \nthe pin count line: into files, into other maps, into earlier entries\n\ncheck_cross(x, root)         \nwhy a pin into another map is dead, or nothing when it holds\n\ngit(root, *args)                     \nruns git at the root and gives back its exit code and output\n\nold_text_of(root, rel)       \nthe file as git HEAD holds it, empty for a new file\n\nchanged_files(root, data)  \nthe files the project knows \u2014 listed or pinned \u2014 that git sees changed, added, or gone\n\nproject_diff(root, changed) \none unified diff over the changed files, HEAD against the disk\n\nre_resolve(data, root)        \nthe shared second look, plus a check of every pin into another map\n\nbroken_note(broken, root)    \nthe broken pins for the letter, each with the anchors its entry holds now\n\nrebuild(trial, texts, cand, root) \nputs the answered texts into a copy of the map and checks every pin and every needed word\n\nask(prompt, root, tries, check)      \nclaude up to tries times, with the refusal sent back each time\n\ncmd_lines(a)                   \nrefused: the project has no lines of its own\n\nprint_coverage(root, data) \nfiles with a pin out of all files, and the ones without"
+      }
     }
   ],
   "not_covered": {
@@ -491,60 +494,68 @@
       66,
       69,
       70,
-      76,
-      77,
+      73,
+      74,
       80,
       81,
-      93,
-      94,
-      110,
-      111,
+      84,
+      85,
+      97,
+      98,
+      114,
+      115,
+      118,
       119,
-      120,
-      134,
-      135,
-      142,
-      143,
-      150,
-      151,
-      172,
-      173,
-      208,
-      209,
-      221,
-      222,
-      233,
-      234,
-      279,
-      280,
-      283,
-      284,
-      288,
-      289,
-      293,
-      294,
+      127,
+      128,
+      132,
+      133,
+      147,
+      148,
+      155,
+      156,
+      163,
+      164,
+      186,
+      187,
+      224,
+      225,
+      238,
+      239,
+      250,
+      251,
+      301,
+      302,
       305,
       306,
+      310,
+      311,
       315,
       316,
-      326,
       327,
-      343,
-      344,
-      369,
-      370,
-      388,
-      389,
-      414,
-      424,
-      441,
-      442,
-      480,
-      487,
-      503,
+      328,
+      337,
+      338,
+      348,
+      349,
+      365,
+      366,
+      391,
+      392,
+      410,
+      411,
+      436,
+      446,
+      464,
+      465,
       504,
-      512,
-      513
+      511,
+      530,
+      531,
+      537,
+      538,
+      547,
+      548
     ]
   }
 }

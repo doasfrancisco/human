@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import cmd_map, decompiler
+from . import cmd_map, decompiler, helpers
 
 WORD = "project"
 CROSS_RE = re.compile(r"^(.+?):e(\d+):(.+)$")
@@ -52,16 +52,20 @@ def root_of():
     return decompiler.find_root(Path.cwd())
 
 
-def map_path(root):
-    return root / "human" / "project.json"
+def name_of(a):
+    return getattr(a, "code_file", None) or WORD
 
 
-def load(root):
-    return cmd_map.load_map(map_path(root), WORD)
+def map_path(root, name=WORD):
+    return helpers.name_to_map(name, root)[0]
 
 
-def save(root, data):
-    map_path(root).write_text(json.dumps(data, indent=2) + "\n")
+def load(root, name=WORD):
+    return cmd_map.load_map(map_path(root, name), name)
+
+
+def save(root, data, name=WORD):
+    map_path(root, name).write_text(json.dumps(data, indent=2) + "\n")
 
 
 def files_of(root):
@@ -69,7 +73,7 @@ def files_of(root):
 
 
 def map_of(root, fname):
-    mp = decompiler.map_path_of(root / fname, root)
+    mp = helpers.name_to_map(fname, root)[0]
     if not mp.exists():
         return None
     return json.loads(mp.read_text())
@@ -80,9 +84,9 @@ def entry_of(data, eid):
 
 
 def cross_anchor(words, fname, eid, aw, root):
-    fp = root / fname
-    assert fp.is_file(), \
-        f"[ANCHOR-TARGET] the anchor {words!r} names {fname!r}, which is not a file of the project"
+    if helpers.name_to_map(fname, root)[1] == "file":
+        assert (root / fname).is_file(), \
+            f"[ANCHOR-TARGET] the anchor {words!r} names {fname!r}, which is not a file of the project"
     d = map_of(root, fname)
     assert d, f"[ANCHOR-TARGET] the anchor {words!r} names {fname}, which has no map yet"
     e = entry_of(d, eid)
@@ -109,28 +113,37 @@ def build_anchors(text, data, self_id, root):
     return out
 
 
+def points_at(e, code_name, eid):
+    return any(x.get("file") == code_name and x.get("entry") == eid for x in e.get("anchors", []))
+
+
 def pins_into(root, code_name, eid):
-    mp = map_path(root)
-    if not mp.exists():
-        return set()
-    data = json.loads(mp.read_text())
-    return {x["anchor"] for e in data["explanations"] for x in e.get("anchors", [])
-            if x.get("file") == code_name and x.get("entry") == eid}
+    out = set()
+    for name, mp in helpers.no_code_maps(root, skip=code_name):
+        data = json.loads(mp.read_text())
+        out |= {x["anchor"] for e in data["explanations"] for x in e.get("anchors", [])
+                if x.get("file") == code_name and x.get("entry") == eid}
+    return out
+
+
+def maps_into(root, code_name, eid):
+    return [name for name, mp in helpers.no_code_maps(root, skip=code_name)
+            if any(points_at(e, code_name, eid) for e in json.loads(mp.read_text())["explanations"])]
 
 
 def mark_stale(root, code_name, eid, old_text):
-    mp = map_path(root)
-    if not mp.exists():
-        return []
-    data = json.loads(mp.read_text())
-    ids = []
-    for e in data["explanations"]:
-        if any(x.get("file") == code_name and x.get("entry") == eid for x in e.get("anchors", [])):
-            decompiler.add_note(e, {"parent": eid, "file": code_name, "old_text": old_text})
-            ids.append(e["id"])
-    if ids:
-        save(root, data)
-    return ids
+    marks = []
+    for name, mp in helpers.no_code_maps(root, skip=code_name):
+        data = json.loads(mp.read_text())
+        hit = []
+        for e in data["explanations"]:
+            if points_at(e, code_name, eid):
+                decompiler.add_note(e, {"parent": eid, "file": code_name, "old_text": old_text})
+                hit.append(e["id"])
+        if hit:
+            save(root, data, name)
+            marks += [(name, i) for i in hit]
+    return marks
 
 
 def counts(anchors):
@@ -150,41 +163,43 @@ def print_coverage(root, data):
 
 
 def cmd_map_project(a):
+    name = name_of(a)
     if a.block:
-        sys.exit("the project map has no blocks of its own; drop --block")
+        sys.exit(f"the map of {name} has no blocks of its own; drop --block")
     root = root_of()
-    data = load(root)
+    data = load(root, name)
     text = decompiler.read_text_arg(a)
     extra = cmd_map.verbatim_record(a, text)
     eid = cmd_map.next_id(data)
     try:
         anchors = build_anchors(text, data, eid, root)
-        decompiler.check_cycle(data, eid, anchors)
+        decompiler.check_cycle(data, eid, anchors, root, name)
     except AssertionError as e:
         sys.exit(str(e))
-    record = {"id": eid, "block": WORD, "block_lines": [], "text": text, "anchors": anchors}
+    record = {"id": eid, "block": name, "block_lines": [], "text": text, "anchors": anchors}
     record.update(extra)
     data["explanations"].append(record)
-    save(root, data)
-    print(f"entry {eid}: {WORD}, {counts(anchors)}")
+    save(root, data, name)
+    print(f"entry {eid}: {name}, {counts(anchors)}")
     print_coverage(root, data)
-    print(f"wrote {map_path(root)}")
+    print(f"wrote {map_path(root, name)}")
 
 
 def cmd_retext(a):
+    name = name_of(a)
     root = root_of()
-    data = load(root)
+    data = load(root, name)
     entry = entry_of(data, a.id)
     if entry is None:
-        sys.exit(f"no entry {a.id} in project.json")
+        sys.exit(f"no entry {a.id} in {map_path(root, name).name}")
     text = decompiler.read_text_arg(a)
-    need = decompiler.needed_words(data, a.id)
+    need = decompiler.needed_words(data, a.id) | pins_into(root, name, a.id)
     try:
         anchors = build_anchors(text, data, a.id, root)
         gone = need - {x["words"] for x in anchors}
         assert not gone, f"[RETEXT-ANCHORS] other entries point at the anchors {sorted(gone)}; " \
                          "the new text must keep them"
-        decompiler.check_cycle(data, a.id, anchors)
+        decompiler.check_cycle(data, a.id, anchors, root, name)
     except AssertionError as e:
         sys.exit(str(e))
     decompiler.verbatim_gate(entry, text, getattr(a, "verbatim", False))
@@ -193,31 +208,33 @@ def cmd_retext(a):
     entry["anchors"] = anchors
     changed = decompiler.strip_pins(text) != decompiler.strip_pins(old_text)
     kids = decompiler.mark_children(data, a.id, old_text) if changed else []
-    save(root, data)
-    print(f"entry {a.id} ({WORD}): text replaced, {counts(anchors)}")
+    save(root, data, name)
+    print(f"entry {a.id} ({name}): text replaced, {counts(anchors)}")
     if not changed and text != old_text:
         print(f"entry {a.id}: pins changed, no word changed")
     if kids:
         print(f"entries {', '.join(map(str, kids))} depend on entry {a.id} and are marked stale; "
-              f"repair each with human sync project --stale <id>")
+              f"repair each with human sync {name} --stale <id>")
     if decompiler.stale_notes(entry):
-        print(f"entry {a.id} stays stale; repair it with human sync project --stale {a.id}")
+        print(f"entry {a.id} stays stale; repair it with human sync {name} --stale {a.id}")
+    decompiler.report_project_stale(mark_stale(root, name, a.id, old_text) if changed else [])
     from . import cmd_train
-    cmd_train.refresh_row(root, WORD, a.id, old_text, text)
-    print(f"wrote {map_path(root)}")
+    cmd_train.refresh_row(root, name, a.id, old_text, text)
+    print(f"wrote {map_path(root, name)}")
 
 
 def cmd_undo(a):
+    name = name_of(a)
     root = root_of()
-    data = load(root)
+    data = load(root, name)
     if not data["explanations"]:
         sys.exit("nothing to undo")
     gone = decompiler.undo_target(data, a.entry)
-    decompiler.undo_gate(root, data, WORD, gone)
+    decompiler.undo_gate(root, data, name, gone)
     data["explanations"].remove(gone)
-    save(root, data)
-    print(f"removed entry {gone['id']}: {WORD}")
-    print(f"wrote {map_path(root)}")
+    save(root, data, name)
+    print(f"removed entry {gone['id']}: {name}")
+    print(f"wrote {map_path(root, name)}")
 
 
 def check_cross(x, root):
@@ -233,16 +250,17 @@ def check_cross(x, root):
 
 
 def cmd_show(a):
+    name = name_of(a)
     root = root_of()
-    if not map_path(root).exists():
-        print(f"no map file at {map_path(root)}")
+    if not map_path(root, name).exists():
+        print(f"no map file at {map_path(root, name)}")
         return
-    data = load(root)
+    data = load(root, name)
     warnings = []
     for e in data["explanations"]:
         tail = decompiler.stale_tail(e) + decompiler.verbatim_tail(e)
-        print(f"{e['id']:3}  {WORD:<24} {'-':<14} {len(e.get('anchors', []))} anchors{tail}")
-        warnings += decompiler.verbatim_hint(e, WORD)
+        print(f"{e['id']:3}  {name:<24} {'-':<14} {len(e.get('anchors', []))} anchors{tail}")
+        warnings += decompiler.verbatim_hint(e, name)
         derived = [m.group(1).strip() for m in decompiler.ANCHOR_RE.finditer(e["text"])]
         stored = [x["words"] for x in e.get("anchors", [])]
         if derived != stored:
@@ -251,23 +269,27 @@ def cmd_show(a):
         for x in e.get("anchors", []):
             if "entry" in x:
                 bad = check_cross(x, root)
-                if not (root / x["file"]).is_file():
+                if helpers.name_to_map(x["file"], root)[1] == "file" and not (root / x["file"]).is_file():
                     bad = f"{x['file']} is not in the folder"
                 if bad:
-                    warnings.append(f"entry {e['id']}: the anchor {x['words']!r}: {bad}; run human sync project")
+                    warnings.append(f"entry {e['id']}: the anchor {x['words']!r}: {bad}; run human sync {name}")
             elif "file" in x:
                 fp = root / x["file"]
-                if not fp.is_file():
+                if helpers.name_to_map(x["file"], root)[1] != "file":
+                    if not helpers.name_to_map(x["file"], root)[0].exists():
+                        warnings.append(f"entry {e['id']}: the anchor {x['words']!r} names "
+                                        f"{x['file']!r}, which has no map")
+                elif not fp.is_file():
                     warnings.append(f"entry {e['id']}: the anchor {x['words']!r} names the file "
                                     f"{x['file']!r}, which is not in the folder")
                 elif "block" in x:
                     fspans = decompiler.block_spans(fp, fp.read_text().splitlines())
                     if x["block"] not in fspans:
                         warnings.append(f"entry {e['id']}: the anchor {x['words']!r} names the block "
-                                        f"{x['block']!r}, which is not in {x['file']}; run human sync project")
+                                        f"{x['block']!r}, which is not in {x['file']}; run human sync {name}")
                     elif x.get("lines") != [list(fspans[x["block"]])]:
                         warnings.append(f"entry {e['id']}: the anchor {x['words']!r} holds old lines "
-                                        f"for {x['file']}:{x['block']}; run human sync project")
+                                        f"for {x['file']}:{x['block']}; run human sync {name}")
             else:
                 parent = entry_of(data, x["explanation"])
                 if not parent or x["anchor"] not in {y["words"] for y in parent.get("anchors", [])}:
@@ -279,7 +301,7 @@ def cmd_show(a):
 
 
 def cmd_lines(a):
-    sys.exit("the project has no lines of its own; ask for a file")
+    sys.exit(f"{name_of(a)} has no lines of its own; ask for a file")
 
 
 def git(root, *args):
@@ -314,11 +336,11 @@ def project_diff(root, changed):
     return "\n".join(out)
 
 
-def re_resolve(data, root):
-    broken = decompiler.re_resolve(data, WORD, {}, 0, root)
+def re_resolve(data, root, name=WORD):
+    broken = decompiler.re_resolve(data, name, {}, 0, root)
     for e in data["explanations"]:
         for x in e.get("anchors", []):
-            if "entry" in x and (root / x["file"]).is_file():
+            if "entry" in x and helpers.name_to_map(x["file"], root)[0].exists():
                 bad = check_cross(x, root)
                 if bad:
                     broken.append((e["id"], f"{x['file']}:e{x['entry']}:{x['anchor']}"))
@@ -387,10 +409,10 @@ def ask(prompt, root, tries, check):
     sys.exit(f"the repair failed after {tries} tries, last error: {last}")
 
 
-def repair_stale(a, root, data):
+def repair_stale(a, root, data, name=WORD):
     entry = entry_of(data, a.stale)
     if entry is None:
-        sys.exit(f"no entry {a.stale} in project.json")
+        sys.exit(f"no entry {a.stale} in {map_path(root, name).name}")
     notes = decompiler.stale_notes(entry)
     if not notes:
         sys.exit(f"entry {a.stale} is not stale")
@@ -406,7 +428,7 @@ def repair_stale(a, root, data):
         if parent is None:
             sys.exit(f"explanation {st['parent']} no longer exists; retext entry {a.stale} instead")
         parents.append(decompiler.parent_note(parent["id"], form, st["old_text"], parent["text"]))
-    need = decompiler.needed_words(data, entry["id"])
+    need = decompiler.needed_words(data, entry["id"]) | pins_into(root, name, entry["id"])
     prompt = (decompiler.STALE_PROMPT.replace("<parents>", "\n\n".join(parents))
               .replace("<child>", entry["text"])
               .replace("<needed>", ", ".join(sorted(need)) or "none")
@@ -419,7 +441,7 @@ def repair_stale(a, root, data):
         gone = need - {x["words"] for x in anchors}
         assert not gone, f"[STALE-ANCHORS] other entries point at the anchors {sorted(gone)}; " \
                          "the text must keep them"
-        decompiler.check_cycle(data, entry["id"], anchors)
+        decompiler.check_cycle(data, entry["id"], anchors, root, name)
         return t, anchors
 
     text, anchors = ask(prompt, root, a.tries, check)
@@ -435,23 +457,25 @@ def repair_stale(a, root, data):
     kids = decompiler.mark_children(data, entry["id"], old_text) if changed else []
     if kids:
         print(f"entries {', '.join(map(str, kids))} depend on entry {entry['id']} and are marked stale")
-    save(root, data)
+    save(root, data, name)
+    decompiler.report_project_stale(mark_stale(root, name, entry["id"], old_text) if changed else [])
     print_coverage(root, data)
-    print(f"wrote {map_path(root)}")
+    print(f"wrote {map_path(root, name)}")
 
 
 def cmd_sync(a):
+    name = name_of(a)
     if a.old:
-        sys.exit("the old state of the project is git HEAD; --old has no meaning here")
+        sys.exit(f"the old state of {name} is git HEAD; --old has no meaning here")
     root = root_of()
-    if not map_path(root).exists():
-        sys.exit(f"no map file at {map_path(root)}")
-    data = load(root)
+    if not map_path(root, name).exists():
+        sys.exit(f"no map file at {map_path(root, name)}")
+    data = load(root, name)
     if a.stale is not None:
-        repair_stale(a, root, data)
+        repair_stale(a, root, data, name)
         return
     changed = changed_files(root, data)
-    broken = re_resolve(data, root)
+    broken = re_resolve(data, root, name)
     broken_ids = {eid for eid, name in broken}
     cand = {e["id"] for e in data["explanations"]
             if any(x.get("file") in changed for x in e.get("anchors", []))} | broken_ids
@@ -459,9 +483,9 @@ def cmd_sync(a):
     for eid, name in broken:
         print(f"entry {eid}: {name!r} is gone")
     if not cand:
-        save(root, data)
+        save(root, data, name)
         print("no entry touches the change, every pin re-resolved, no claude call")
-        print(f"wrote {map_path(root)}")
+        print(f"wrote {map_path(root, name)}")
         return
     print(f"candidate entries: {', '.join(str(i) for i in sorted(cand))}")
     changed_note = "\n".join(
@@ -487,6 +511,7 @@ def cmd_sync(a):
 
     trial = ask(prompt, root, a.tries, check)
     stale_kids = set()
+    marks = []
     for e in trial["explanations"]:
         before = entry_of(data, e["id"])
         if e["text"] != before["text"]:
@@ -494,21 +519,31 @@ def cmd_sync(a):
             decompiler.report_text_diff(e["id"], before["text"], e["text"])
             if decompiler.strip_pins(e["text"]) != decompiler.strip_pins(before["text"]):
                 stale_kids.update(decompiler.mark_children(trial, e["id"], before["text"]))
+                marks += mark_stale(root, name, e["id"], before["text"])
     if stale_kids:
         print(f"entries {', '.join(map(str, sorted(stale_kids)))} depend on a changed entry and are "
-              f"marked stale; repair each with human sync project --stale <id>")
-    save(root, trial)
+              f"marked stale; repair each with human sync {name} --stale <id>")
+    decompiler.report_project_stale(marks)
+    save(root, trial, name)
     print_coverage(root, trial)
-    print(f"wrote {map_path(root)}")
+    print(f"wrote {map_path(root, name)}")
 
 
-def snapshot(root, kind):
-    data = load(root)
+def files_under(root, data, name):
+    if name == WORD:
+        return files_of(root)
+    return sorted({x["file"] for e in data["explanations"] for x in e.get("anchors", [])
+                   if "file" in x and (root / x["file"]).is_file()})
+
+
+def snapshot(root, kind, name=WORD):
+    data = load(root, name)
+    under = files_under(root, data, name)
     if kind == "sync":
-        changed = changed_files(root, data)
+        changed = [c for c in changed_files(root, data) if c in under]
         files = {rel: (root / rel).read_text() for rel in changed if (root / rel).is_file()}
         return {"changed": changed, "files": files, "diff": project_diff(root, changed)}
-    return {"files": {rel: (root / rel).read_text() for rel in files_of(root) if (root / rel).is_file()}}
+    return {"files": {rel: (root / rel).read_text() for rel in under if (root / rel).is_file()}}
 
 
 COMMANDS = {"retext": cmd_retext, "undo": cmd_undo, "show": cmd_show,

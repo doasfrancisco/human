@@ -8,7 +8,7 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
-from . import cmd_map, cmd_project, cmd_store, decompiler
+from . import cmd_map, cmd_project, cmd_store, decompiler, helpers
 
 SLOTS = ("best", "refinement", "free")
 LOCK = threading.Lock()
@@ -48,19 +48,17 @@ def list_sessions(root):
     return cmd_store.list_sessions(cmd_store.project_id(root))
 
 
-def is_project(code_name):
-    return code_name == cmd_project.WORD
+def is_project(root, code_name):
+    return helpers.no_code(code_name, root)
 
 
 def map_rel(root, code_path, code_name):
-    if is_project(code_name):
-        return cmd_project.map_path(root).relative_to(root).as_posix()
-    return decompiler.map_path_of(code_path, root).relative_to(root).as_posix()
+    return helpers.name_to_map(code_name, root)[0].relative_to(root).as_posix()
 
 
 def source_of(root, code_name, kind):
-    if is_project(code_name):
-        return None, cmd_project.snapshot(root, kind), {}, cmd_project.load(root)
+    if is_project(root, code_name):
+        return None, cmd_project.snapshot(root, kind, code_name), {}, cmd_project.load(root, code_name)
     code_path = root / code_name
     if not code_path.is_file():
         return None, None, None, None
@@ -232,8 +230,8 @@ def new_row(a, root, code_path, code_name, data, src):
             sys.exit(f"no entry {a.entry} in {Path(map_rel(root, code_path, code_name)).name}")
         level = "same"
     elif a.block:
-        if is_project(code_name):
-            sys.exit("the project map has no blocks of its own; drop --block")
+        if is_project(root, code_name):
+            sys.exit(f"the map of {code_name} has no blocks of its own; drop --block")
         level = "above"
     else:
         level = "first" if not data["explanations"] else "below"
@@ -262,14 +260,14 @@ def new_row(a, root, code_path, code_name, data, src):
 
 def check_text(text, row, data, spans, root):
     self_id = row["entry"] if row["level"] == "same" else cmd_map.next_id(data)
-    if is_project(row["file"]):
+    no_code = is_project(root, row["file"])
+    if no_code:
         anchors = cmd_project.build_anchors(text, data, self_id, root)
     else:
         anchors = decompiler.build_anchors(text, data, spans, self_id, root)
     if row["level"] == "same":
-        need = decompiler.needed_words(data, row["entry"])
-        if not is_project(row["file"]):
-            need |= cmd_project.pins_into(root, row["file"], row["entry"])
+        need = decompiler.needed_words(data, row["entry"]) \
+            | cmd_project.pins_into(root, row["file"], row["entry"])
         gone = need - {x["words"] for x in anchors}
         assert not gone, f"[RETEXT-ANCHORS] other entries point at the anchors {sorted(gone)}; " \
                          "the text must keep them"
@@ -277,7 +275,10 @@ def check_text(text, row, data, spans, root):
         assert not any(x.get("explanation") == row["target"] for x in anchors), \
             f"[EXPAND-CIRCLE] the expansion pins into entry {row['target']}, the entry it hangs from; " \
             "the target pins down into the expansion at the close, so the expansion must not pin up"
-    decompiler.check_cycle(data, self_id, anchors)
+    if no_code:
+        decompiler.check_cycle(data, self_id, anchors, root, row["file"])
+    else:
+        decompiler.check_cycle(data, self_id, anchors)
     return anchors
 
 
@@ -303,7 +304,7 @@ def cmd_add(a, root):
     session = open_session(root)
     if not session:
         sys.exit("no open session; start one with human train --open")
-    if is_project(a.code_file):
+    if is_project(root, a.code_file):
         code_name = a.code_file
     else:
         code_path = Path(a.code_file).resolve()
@@ -360,14 +361,14 @@ def run_with_text(fn, text, **kw):
 
 
 def apply_row(root, row):
-    proj = is_project(row["file"])
+    proj = is_project(root, row["file"])
     code_file = row["file"] if proj else str(root / row["file"])
     text = version_text(row["versions"][row["picked"]])
     if row["level"] == "same":
         run_with_text(cmd_project.cmd_retext if proj else decompiler.cmd_retext, text,
                       code_file=code_file, id=row["entry"])
         return row["entry"]
-    data = cmd_project.load(root) if proj else \
+    data = cmd_project.load(root, row["file"]) if proj else \
         cmd_map.load_map(decompiler.map_path_of(root / row["file"], root), row["file"])
     eid = cmd_map.next_id(data)
     run_with_text(cmd_map.cmd_map, text, code_file=code_file, block=row["block"])
@@ -382,7 +383,7 @@ def default_slot(row):
 
 def link_event(root, row, eid):
     from . import cmd_watch
-    proj = is_project(row["file"])
+    proj = is_project(root, row["file"])
     event = {"kind": "link", "name": row["file"], "map": str(root / row["map"]),
              "entry": row["target"], "file": None if proj else str(root / row["file"]),
              "target": row["target"], "words": row["words"], "expansion": eid,
@@ -476,7 +477,7 @@ def cmd_train(a):
     else:
         if not a.code_file:
             sys.exit("give a file, or --open / --close")
-        root = decompiler.find_root(Path.cwd() if is_project(a.code_file) else Path(a.code_file).resolve())
+        root = decompiler.find_root(Path(a.code_file).resolve())
         fn, arg = (lambda r: cmd_add(a, r)), root
     try:
         fn(arg)

@@ -1,0 +1,100 @@
+{
+  "code_file": "feedback/feedback.py",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "feedback/feedback.py",
+      "block_lines": [
+        [
+          1,
+          97
+        ]
+      ],
+      "text": "# CREATE FEEDBACK SESSION JSON\nin s3 [create a sessions.json file at /](create)\nif sessions.json file already exists on feedback/sessions.json, then upload it.\nelif sessions.json already exist on s3, return.\nelse then create empty file.\n\n\n# GET FEEDBACK SESSION JSON\n[get sessions.json file from s3](get)\nif exists, print contents\n\n\n# GET FEEDBACK NOT IMPLEMENTED YET.\nthis isn't the code from lambda/ \n\nsessions = read sessions.json in s3\n[query the s3 to bring over all the sessions from all users using index.json](indexes)\n[merge the returned values with sessions](pending), include id, analyzed (true or false) and which user comes from, \n  skip if:\n    session id already exists\n    session is open\nprint the merged result\n\n\n# MARK FEEDBACK AS IMPLEMENTED\ninput = list of session ids\nsessions = get sessions.json file from s3\n[for each session id from input mark analyzed to true in sessions](mark)\nupdate the session.json in s3",
+      "anchors": [
+        {
+          "words": "create a sessions.json file at /",
+          "block": "create",
+          "lines": [
+            [
+              29,
+              38
+            ]
+          ]
+        },
+        {
+          "words": "get sessions.json file from s3",
+          "block": "get",
+          "lines": [
+            [
+              41,
+              46
+            ]
+          ]
+        },
+        {
+          "words": "query the s3 to bring over all the sessions from all users using index.json",
+          "block": "indexes",
+          "lines": [
+            [
+              54,
+              57
+            ]
+          ]
+        },
+        {
+          "words": "merge the returned values with sessions",
+          "block": "pending",
+          "lines": [
+            [
+              60,
+              68
+            ]
+          ]
+        },
+        {
+          "words": "for each session id from input mark analyzed to true in sessions",
+          "block": "mark",
+          "lines": [
+            [
+              71,
+              76
+            ]
+          ]
+        }
+      ],
+      "verbatim": {
+        "origin": "# CREATE FEEDBACK SESSION JSON\nin s3 create a sessions.json file at /\nif sessions.json file already exists on feedback/sessions.json, then upload it.\nelif sessions.json already exist on s3, return.\nelse then create empty file.\n\n\n# GET FEEDBACK SESSION JSON\nget sessions.json file from s3\nif exists, print contents\n\n\n# GET FEEDBACK NOT IMPLEMENTED YET.\nthis isn't the code from lambda/ \n\nsessions = read sessions.json in s3\nquery the s3 to bring over all the sessions from all users using index.json\nmerge the returned values with sessions, include id, analyzed (true or false) and which user comes from, \n  skip if:\n    session id already exists\n    session is open\nprint the merged result\n\n\n# MARK FEEDBACK AS IMPLEMENTED\ninput = list of session ids\nsessions = get sessions.json file from s3\nfor each session id from input mark analyzed to true in sessions\nupdate the session.json in s3"
+      }
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": [
+      4,
+      6,
+      10,
+      11,
+      15,
+      16,
+      22,
+      23,
+      27,
+      28,
+      39,
+      40,
+      47,
+      48,
+      52,
+      53,
+      58,
+      59,
+      69,
+      70,
+      77,
+      78,
+      94,
+      95
+    ]
+  }
+}
