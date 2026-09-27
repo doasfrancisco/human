@@ -96,3 +96,21 @@ Roads, from the smallest:
 - **Name the mapped files in `human/human.json`.** `write_files` already lists the files; it can mark which of them have a map. The page then asks only for the 127 that exist — 105 rounds become 21.
 - **Draw the tree first.** `buildTree` needs the names alone, not the maps. Draw it, open the first file, and let the other maps land after, so nothing waits on a full set.
 - **One answer for all the maps.** A road like `/human/maps` that hands out every map in one block: one round trip instead of 127, at the price of a bigger answer.
+
+## 8. A sync rewords the words that asked for the change
+
+On a `retext` from the reader the words come first: the user writes the telling, claude writes the code under it. The road then runs `human sync <file>`, and the sync sees changed lines inside the spans of that same entry, so the entry becomes a candidate and `ask_claude` rewords it (`cmd_sync` in `compiler/cli/human/decompiler.py`). The words that asked for the change are sent back to be fitted to the change. `human sync project` does the same to the project map, and marks it stale.
+
+Example, 2026-09-26, event 63. The user wrote "if user comes back to a file, the abstractions left open stay open as you left it." The sync added ", and the page stands where you had scrolled it.", printed "entry 1 holds your words; the sync changed them", and the project sync added one more line and marked project entry 1 stale. Two claude calls, and a window in which a new compile from the reader is overwritten.
+
+The deterministic part of the sync is all this entry needs: renumber the spans, re-resolve the pins, recompute the coverage (`re_resolve`, `recompute`). The code was written to the words, and a pin into a name that went away is already a refusal.
+
+The change: let the road name the entry the change was written for, like `human sync <file> --for <id>`. That entry leaves the candidates: its spans and pins follow the code, no claude call, no warning. Other entries the change touches are still reworded, because nobody wrote them for this change. On the project map, re-resolve the pins and mark stale only when an anchor it pins is gone. When the code goes past the words, as here, where claude kept the scroll of each file and the words said the open abstractions only, one warning line that names the lines with no words over them is enough; the user writes the rest.
+
+The CLI can do more than skip the call, because every anchor already holds its lines. It has three things: the old and the new text of the entry, the pins of each sentence with their lines, and the diff of the code. From them, with no claude call:
+
+- **Which change the words asked for.** Take the sentences that changed between the old and the new text, and the lines their pins cover. A changed code line under one of those pins is the change the words asked for.
+- **Which change nobody asked for.** A changed line that falls under a pin of a sentence that did not change, or of another entry, or of no pin at all, is logic that moved somewhere else. The CLI names it: `line 164 changed, under [# WEB LOADS PROJECT](script), a sentence you did not change`. Only those anchors need a new word from the user, or a claude reword, and the rest of the entry stays as it is.
+- **Who stands on a changed block.** The block reader knows the name and the lines of every block. A block whose lines hold the name of a changed block uses it, so its telling can be wrong now too. The CLI lists these as "check", not as changed.
+
+In event 63 the changed lines were the body of `open`, under `[# USER OPENS FILE](open)`, the heading the user had just rewritten, and the declaration of `scrollMem` at line 164. Line 164 sits under `[# WEB LOADS PROJECT](script)`, whose span is the whole script, 159-1425, so the check takes the narrowest pin that holds a line. It would have said "the change is what your words asked for, plus line 164 under the load of the project", instead of a reword of the whole entry.

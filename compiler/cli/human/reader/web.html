@@ -161,7 +161,7 @@ import { FileTree } from "./trees.js";
 
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 var ANCH=/\[([^\[\]]+)\]\(([^()]+)\)/g;
-var projs=[], cur=null, byId={}, blockId={}, order=[], lines=[], ft=null, openSet={}, openMem={}, notice="";
+var projs=[], cur=null, byId={}, blockId={}, order=[], lines=[], ft=null, openSet={}, openMem={}, scrollMem={}, notice="";
 var editing=null, typed={}, pendingBy={}, sending=false, bad=false, caretWanted=0, expanding=null, deleting=null;
 var rows=document.getElementById("rows");
 
@@ -363,6 +363,7 @@ document.getElementById("treewrap").addEventListener("contextmenu",function(ev){
 });
 
 function open(p,f){
+  if(cur) scrollMem[cur.name+"/"+cur.file]=rows.scrollTop;
   cur={proj:p,name:p.name,file:f.file,d:f.d,code:f.code};
   document.getElementById("projname").textContent=p.name;
   lines=f.code?f.code.replace(/\n$/,"").split("\n"):[];
@@ -377,6 +378,7 @@ function open(p,f){
   msg("");
   drawer(false);
   render();
+  rows.scrollTop=scrollMem[p.name+"/"+f.file]||0;
   if(f.code===null&&!f.d.explanations.length) loadCode(p,f);
 }
 
