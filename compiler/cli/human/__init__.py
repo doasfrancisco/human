@@ -339,6 +339,7 @@ def main():
     y.add_argument("code_file")
     y.add_argument("--old")
     y.add_argument("--stale", type=int)
+    y.add_argument("--for", dest="for_entry", type=int)
     y.add_argument("--tries", type=int, default=4)
     t = sub.add_parser("train")
     t.add_argument("code_file", nargs="?")

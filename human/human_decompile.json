@@ -5,7 +5,7 @@
       "id": 1,
       "block": "decompile",
       "block_lines": [],
-      "text": "# DECOMPILE\n\nuser asks for a file to decompile\n\nai harness reads the file and picks an abstraction shape from the kind of file.\nit uses [the decompile skill](compiler/cli/human/skills/decompile/SKILL.md) and [the shape abstraction catalog](compiler/cli/human/shapes/README.md)]:\n  [the rail](compiler/cli/human/shapes/rail.md) if one run.\n  [the sections](compiler/cli/human/shapes/sections.md), if a set of functions.\n  [the desk](compiler/cli/human/shapes/desk.md), if dispatcher.\n  [the dialogue](compiler/cli/human/shapes/dialogue.md), if a rulebook.\nai harness writes the abstraction for [a reader who does not read code](compiler/cli/human/skills/decompile/SKILL.md:e1:explain), with pins on the words that name an entity. every other word is free.\nai harness shows the abstraction text and always stop. even if the user message sounded like approval.\n\nuser [says the word: map it.](project:e3:the word)\n\nai harness pipes the exact text into the [human map command using the CLI](compiler/cli/human/cmd_map.py:e1:cmd_map).\nthe cli verifies the new abstraction and it makes no claude call:\n  [it checks the pins point at real code or files](compiler/cli/human/decompiler.py:e1:build_anchors),\n  checks no two pins share their words, [so there are no circular dependencies](compiler/cli/human/decompiler.py:e1:check_cycle),\n  check each block pin gets [its exact lines](compiler/cli/human/decompiler.py:e1:block_spans).\n  a refusal returns the error to the ai harness, which reads it, fixes the text, and runs again.\n  words the user wrote himself go in with --verbatim: plain, kept as they are.\n    [if a pin in them it refuses](compiler/cli/human/cmd_map.py:e1:verbatim_record), because the pins come after, with the [retext command](compiler/cli/human/decompiler.py:e1:cmd_retext);\n  a copy of them the verbatim stays in the json. called the [\"origin\"](compiler/cli/human/decompiler.py:e1:origin_of), so a later mending can be measured against it.\ncli creates one new abstaction appended to human/explanation_<path>.json, never updates\n  \nai harness [reports](compiler/cli/human/skills/decompile/SKILL.md:e1:report): \n  the entry, its pins, the coverage,\n  the warnings as if [human show](compiler/cli/human/decompiler.py:e1:cmd_show) was run\n  and offer the next abstraction to map:\n    a zoom on one block, a file abstraction over the whole, or [the project itself](compiler/cli/human/cmd_project.py:e1:cmd_map_project)",
+      "text": "# DECOMPILE\n\nuser asks for a file to decompile\n\nai harness reads the file and picks an abstraction shape from the kind of file.\nit uses [the decompile skill](compiler/cli/human/skills/decompile/SKILL.md) and [the shape abstraction catalog](compiler/cli/human/shapes/README.md)]:\n  [the rail](compiler/cli/human/shapes/rail.md) if one run.\n  [the sections](compiler/cli/human/shapes/sections.md), if a set of functions.\n  [the desk](compiler/cli/human/shapes/desk.md), if dispatcher.\n  [the dialogue](compiler/cli/human/shapes/dialogue.md), if a rulebook.\nai harness writes the abstraction for [a reader who does not read code](compiler/cli/human/skills/decompile/SKILL.md:e1:explain), with pins on the words that name an entity. every other word is free.\nai harness shows the abstraction text and always stop. even if the user message sounded like approval.\n\nuser [says the word: map it.](compiler/cli/human/cmd_map.py:e1:cmd_map)\n\nai harness pipes the exact text into the [human map command using the CLI](compiler/cli/human/cmd_map.py:e1:cmd_map).\nthe cli verifies the new abstraction and it makes no claude call:\n  [it checks the pins point at real code or files](compiler/cli/human/decompiler.py:e1:build_anchors),\n  checks no two pins share their words, [so there are no circular dependencies](compiler/cli/human/decompiler.py:e1:check_cycle),\n  check each block pin gets [its exact lines](compiler/cli/human/decompiler.py:e1:block_spans).\n  a refusal returns the error to the ai harness, which reads it, fixes the text, and runs again.\n  words the user wrote himself go in with --verbatim: kept as they are.\n    [a pin in them goes in like any pin](compiler/cli/human/cmd_map.py:e1:verbatim_record) when its target exists, and the other pins come after, with the [retext command](compiler/cli/human/decompiler.py:e1:cmd_retext);\n  a copy of them the verbatim, with the pins taken out, stays in the json. called the [\"origin\"](compiler/cli/human/decompiler.py:e1:origin_of), so a later mending can be measured against it.\ncli creates one new abstaction appended to human/explanation_<path>.json, never updates\n  \nai harness [reports](compiler/cli/human/skills/decompile/SKILL.md:e1:report): \n  the entry, its pins, the coverage,\n  the warnings as if [human show](compiler/cli/human/decompiler.py:e1:cmd_show) was run\n  and offer the next abstraction to map:\n    a zoom on one block, a file abstraction over the whole, or [the project itself](compiler/cli/human/cmd_project.py:e1:cmd_map_project)",
       "anchors": [
         {
           "words": "the decompile skill",
@@ -39,9 +39,9 @@
         },
         {
           "words": "says the word: map it.",
-          "file": "project",
-          "entry": 3,
-          "anchor": "the word"
+          "file": "compiler/cli/human/cmd_map.py",
+          "entry": 1,
+          "anchor": "cmd_map"
         },
         {
           "words": "human map command using the CLI",
@@ -68,7 +68,7 @@
           "anchor": "block_spans"
         },
         {
-          "words": "if a pin in them it refuses",
+          "words": "a pin in them goes in like any pin",
           "file": "compiler/cli/human/cmd_map.py",
           "entry": 1,
           "anchor": "verbatim_record"

@@ -826,6 +826,23 @@ def entry_lines_set(e):
     return s
 
 
+def written_for(a, data, where):
+    eid = getattr(a, "for_entry", None)
+    if eid is None:
+        return None
+    if a.stale is not None:
+        sys.exit("--for names the entry a code change was written for; a stale repair takes none")
+    if not any(e["id"] == eid for e in data["explanations"]):
+        sys.exit(f"no entry {eid} in {where}")
+    return eid
+
+
+def drop_written(cand, written, broken_ids):
+    if written in cand and written not in broken_ids:
+        cand.discard(written)
+        print(f"entry {written}: the code was written for its words; its spans and pins follow, no reword")
+
+
 def rewordable(e, code_name):
     return e["block"] != code_name or any("block" in x and "file" not in x for x in e.get("anchors", []))
 
@@ -970,6 +987,7 @@ def cmd_sync(a):
     code_path = Path(a.code_file).resolve()
     root = find_root(code_path)
     map_path, data = load_existing(code_path)
+    written = written_for(a, data, map_path.name)
     if code_path.is_dir():
         if a.stale is not None:
             sys.exit("a project map has no stale entries")
@@ -1009,6 +1027,7 @@ def cmd_sync(a):
             cand.add(e["id"])
     cand = {i for i in cand if i in broken_ids
             or rewordable(next(e for e in data["explanations"] if e["id"] == i), code_name)}
+    drop_written(cand, written, broken_ids)
     if not cand:
         missing, blank = recompute(data, new_lines)
         map_path.write_text(json.dumps(data, indent=2) + "\n")

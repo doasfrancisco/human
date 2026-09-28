@@ -471,6 +471,7 @@ def cmd_sync(a):
     if not map_path(root, name).exists():
         sys.exit(f"no map file at {map_path(root, name)}")
     data = load(root, name)
+    written = decompiler.written_for(a, data, map_path(root, name).name)
     if a.stale is not None:
         repair_stale(a, root, data, name)
         return
@@ -479,6 +480,7 @@ def cmd_sync(a):
     broken_ids = {eid for eid, name in broken}
     cand = {e["id"] for e in data["explanations"]
             if any(x.get("file") in changed for x in e.get("anchors", []))} | broken_ids
+    decompiler.drop_written(cand, written, broken_ids)
     print(f"changed files: {', '.join(changed) if changed else 'none'}")
     for eid, name in broken:
         print(f"entry {eid}: {name!r} is gone")

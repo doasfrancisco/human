@@ -28,9 +28,7 @@ def next_id(data):
 def verbatim_record(a, text):
     if not getattr(a, "verbatim", False):
         return {}
-    if decompiler.ANCHOR_RE.search(text):
-        sys.exit("the user's words go in plain; the pins come after, with human retext")
-    return {"verbatim": {"origin": text}}
+    return {"verbatim": {"origin": decompiler.strip_pins(text)}}
 
 
 def map_project(a, root):
