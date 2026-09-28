@@ -482,8 +482,8 @@ def cmd_sync(a):
             if any(x.get("file") in changed for x in e.get("anchors", []))} | broken_ids
     decompiler.drop_written(cand, written, broken_ids)
     print(f"changed files: {', '.join(changed) if changed else 'none'}")
-    for eid, name in broken:
-        print(f"entry {eid}: {name!r} is gone")
+    for eid, target in broken:
+        print(f"entry {eid}: {target!r} is gone")
     if not cand:
         save(root, data, name)
         print("no entry touches the change, every pin re-resolved, no claude call")
