@@ -1,5 +1,7 @@
 import argparse
 import fnmatch
+import gzip
+import hashlib
 import ipaddress
 import json
 import os
@@ -7,6 +9,10 @@ import re
 import secrets
 import shutil
 import socket
+import threading
+import time
+from datetime import timezone
+from email.utils import parsedate_to_datetime
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -101,12 +107,89 @@ def write_files(root, data=None):
     return found, data
 
 
+class Sweep:
+    def __init__(self, root):
+        self.root = root
+        self.dirs = {}
+        self.lock = threading.Lock()
+
+    def files(self):
+        with self.lock:
+            out, seen = [], set()
+            self.visit(self.root, out, seen)
+            for d in set(self.dirs) - seen:
+                del self.dirs[d]
+            return out
+
+    def visit(self, d, out, seen):
+        seen.add(d)
+        if d != self.root and (d / "human" / "human.json").is_file():
+            return
+        try:
+            stamp = d.stat().st_mtime_ns
+        except OSError:
+            return
+        held = self.dirs.get(d)
+        if held is None or held[0] is None or held[0] != stamp:
+            held = (stamp if time.time_ns() - stamp > 2_000_000_000 else None, *self.listing(d))
+            self.dirs[d] = held
+        out.extend(held[2])
+        for sub in held[1]:
+            self.visit(sub, out, seen)
+
+    def listing(self, d):
+        subs, names = [], []
+        try:
+            with os.scandir(d) as it:
+                for e in it:
+                    if e.is_dir():
+                        if not e.is_symlink():
+                            subs.append(e.name)
+                    else:
+                        names.append(e.name)
+        except OSError:
+            return [], []
+        subs = [d / x for x in sorted(subs)
+                if not x.startswith(".") and x not in IGNORE_DIRS
+                and not (d == self.root and x == "human")]
+        files = [(d / f).relative_to(self.root).as_posix() for f in sorted(names)
+                 if not f.startswith(".") and Path(f).suffix.lower() in SUFFIXES]
+        return subs, files
+
+
+SWEEPS = {}
+
+
 def fresh_map(root):
     data = json.loads((root / "human" / "human.json").read_text())
     patterns = data.get("ignore", [])
-    data["files"] = [f for f in scan_files(root) if not is_ignored(f, patterns)]
+    sweep = SWEEPS.setdefault(root, Sweep(root))
+    data["files"] = [f for f in sweep.files() if not is_ignored(f, patterns)]
     data["humans"] = helpers.human_entries(root)
     return data
+
+
+def read_map(p):
+    try:
+        d = json.loads(p.read_text())
+    except (OSError, ValueError):
+        return None
+    return d if isinstance(d, dict) else None
+
+
+def all_maps(root):
+    h = root / "human"
+    files, humans = {}, {}
+    for p in sorted(h.glob("explanation_*.json")):
+        d = read_map(p)
+        name = d.get("code_file") if d else None
+        if isinstance(name, str) and (root / name).is_file():
+            files[name] = d
+    for p in sorted(h.glob(f"{helpers.HUMAN_PREFIX}*.json")):
+        d = read_map(p)
+        if d:
+            humans[p.stem[len(helpers.HUMAN_PREFIX):]] = d
+    return {"files": files, "humans": humans, "project": read_map(cmd_project.map_path(root))}
 
 
 def new_file(root, name):
@@ -180,23 +263,72 @@ def new_human(root, name, place=""):
 
 class FreshHandler(SimpleHTTPRequestHandler):
     verbose = False
+    protocol_version = "HTTP/1.1"
+    timeout = 30
 
-    def send_json(self, status, payload):
-        body = json.dumps(payload).encode()
+    def send_body(self, status, body, ctype, etag=None, modified=None):
+        if etag and self.headers.get("If-None-Match") == etag:
+            self.send_response(304)
+            self.send_header("ETag", etag)
+            self.end_headers()
+            return
+        zipped = len(body) > 1024 and "gzip" in (self.headers.get("Accept-Encoding") or "")
+        if zipped:
+            body = gzip.compress(body, 6)
         self.send_response(status)
-        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Type", ctype)
+        self.send_header("Vary", "Accept-Encoding")
+        if zipped:
+            self.send_header("Content-Encoding", "gzip")
+        if etag:
+            self.send_header("ETag", etag)
+        if modified:
+            self.send_header("Last-Modified", modified)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def send_json(self, status, payload, versioned=False):
+        body = json.dumps(payload).encode()
+        etag = f'"{hashlib.sha1(body).hexdigest()[:16]}"' if versioned else None
+        self.send_body(status, body, "application/json", etag)
+
+    def send_static(self):
+        p = Path(self.translate_path(self.path))
+        ctype = self.guess_type(str(p))
+        if not p.is_file() or not (ctype.startswith("text/") or ctype.endswith(("javascript", "json"))):
+            return super().do_GET()
+        try:
+            st = p.stat()
+            body = p.read_bytes()
+        except OSError:
+            return super().do_GET()
+        since = self.headers.get("If-Modified-Since")
+        if since and not self.headers.get("If-None-Match"):
+            try:
+                t = parsedate_to_datetime(since)
+                if t.tzinfo is None:
+                    t = t.replace(tzinfo=timezone.utc)
+                if int(st.st_mtime) <= t.timestamp():
+                    self.send_response(304)
+                    self.end_headers()
+                    return
+            except (TypeError, ValueError, IndexError, OverflowError):
+                pass
+        self.send_body(200, body, ctype, modified=self.date_time_string(st.st_mtime))
 
     def do_GET(self):
         path = self.path.split("?")[0]
         root = Path(self.directory)
         if path == "/human/human.json":
             try:
-                self.send_json(200, fresh_map(root))
+                self.send_json(200, fresh_map(root), versioned=True)
             except (OSError, ValueError):
-                super().do_GET()
+                self.send_static()
+            return
+        if path == "/human/maps":
+            self.send_json(200, all_maps(root))
             return
         m = re.fullmatch(r"/human/training/(?:([^/]+)\.json)?", path)
         if m:
@@ -216,7 +348,7 @@ class FreshHandler(SimpleHTTPRequestHandler):
         if path == "/human/server/queue":
             self.send_json(200, cmd_watch.pending(root))
             return
-        super().do_GET()
+        self.send_static()
 
     def read_body(self):
         n = int(self.headers.get("Content-Length") or 0)
@@ -227,19 +359,17 @@ class FreshHandler(SimpleHTTPRequestHandler):
         root = Path(self.directory)
         m = re.fullmatch(r"/human/training/([^/]+)/(pick|close)", path)
         try:
+            body = self.read_body()
             if path == "/human/compile":
-                body = self.read_body()
                 status, out = cmd_watch.compile_writing(root, body.get("name"), body.get("kind"),
                                                         body.get("id"), body.get("text"), body.get("words"))
             elif path == "/human/file":
-                status, out = new_file(root, self.read_body().get("name"))
+                status, out = new_file(root, body.get("name"))
             elif path == "/human/human":
-                body = self.read_body()
                 status, out = new_human(root, body.get("name"), body.get("place"))
             elif m and m.group(2) == "close":
                 status, out = cmd_train.close_road(root, m.group(1))
             elif m:
-                body = self.read_body()
                 status, out = cmd_train.pick(root, m.group(1),
                                              body.get("row"), body.get("picked"), body.get("comment"))
             else:

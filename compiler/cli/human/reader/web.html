@@ -222,15 +222,18 @@ function drawer(on){side.classList.toggle("open",on);shade.classList.toggle("on"
 document.getElementById("menu").addEventListener("click",function(){drawer(!side.classList.contains("open"));});
 shade.addEventListener("click",function(){drawer(false);});
 
-function loadFile(f){
-  return fetch("explanation_"+f.replace(/\//g,"__")+".json",{cache:"no-store"})
+function loadMaps(){
+  return fetch("maps",{cache:"no-store"})
     .then(function(r){return r.ok?r.json():null;})
     .catch(function(){return null;})
-    .then(function(d){
-      if(!d||!Array.isArray(d.explanations))
-        d={explanations:[],not_covered:{code_lines:[],blank_lines:[]}};
-      return {file:f,d:d,code:null};
-    });
+    .then(function(m){return m||{files:{},humans:{},project:null};});
+}
+function held(d){
+  return d&&Array.isArray(d.explanations)?d:{explanations:[],not_covered:{code_lines:[],blank_lines:[]}};
+}
+function fromMaps(m,n){
+  return n.indexOf("human/human_")===0?{file:n,d:held(m.humans[bareOf(n)]),code:null}
+    :{file:n,d:held(m.files[n]),code:null};
 }
 
 var placeOf={};
@@ -253,33 +256,23 @@ function keepPlaces(hs){
 }
 function noCodeFile(file){return file.indexOf("human/")===0;}
 
-function loadHuman(n){
-  return fetch("human_"+n+".json",{cache:"no-store"})
-    .then(function(r){return r.ok?r.json():null;})
-    .catch(function(){return null;})
-    .then(function(d){
-      if(!d||!Array.isArray(d.explanations))
-        d={explanations:[],not_covered:{code_lines:[],blank_lines:[]}};
-      return {file:humanPath(n),d:d,code:null};
-    });
+var listTag="";
+function loadList(){
+  return fetch("human.json",{cache:"no-store",headers:listTag?{"If-None-Match":listTag}:{}}).then(function(r){
+    if(r.status===304) return null;
+    if(!r.ok) throw new Error("no list");
+    return r.json().then(function(h){listTag=r.headers.get("ETag")||"";return h;});
+  });
 }
 
-fetch("human.json",{cache:"no-store"}).then(function(r){return r.json();}).then(function(h){
+Promise.all([loadList(),loadMaps()]).then(function(x){
+  var h=x[0], m=x[1];
   if(h.code_file) document.title="Human · "+h.code_file;
-  var names=h.files||[];
-  return Promise.all(names.map(loadFile)).then(function(fs){
-    return Promise.all(keepPlaces(h.humans).map(loadHuman)).then(function(hs){
-      return fetch("project.json",{cache:"no-store"})
-        .then(function(r){return r.ok?r.json():null;})
-        .catch(function(){return null;})
-        .then(function(pj){
-          fs=hs.concat(fs);
-          if(pj&&Array.isArray(pj.explanations)) fs.unshift({file:"human/project.json",d:pj,code:null});
-          fs.unshift({file:"human/human.json",d:h,code:null});
-          return fs.length?{name:h.code_file||"project",files:fs}:null;
-        });
-    });
-  });
+  var fs=keepPlaces(h.humans).map(humanPath).concat(h.files||[]).map(function(n){return fromMaps(m,n);});
+  var pj=m.project;
+  if(pj&&Array.isArray(pj.explanations)) fs.unshift({file:"human/project.json",d:pj,code:null});
+  fs.unshift({file:"human/human.json",d:h,code:null});
+  return fs.length?{name:h.code_file||"project",files:fs}:null;
 }).then(function(p){
   if(!p){msg("no files — run human init at the project root");return;}
   projs=[p];
@@ -317,7 +310,8 @@ function refreshFiles(){
   if(!cur) return Promise.resolve(false);
   if(refreshing) return refreshing;
   var p=cur.proj;
-  refreshing=fetch("human.json",{cache:"no-store"}).then(function(r){return r.json();}).then(function(h){
+  refreshing=loadList().then(function(h){
+    if(!h) return false;
     var want=keepPlaces(h.humans).map(humanPath).concat(h.files||[]), have={};
     p.files.forEach(function(f){have[f.file]=f;});
     var fixed=function(f){return f.file==="human/human.json"||f.file==="human/project.json";};
@@ -327,10 +321,10 @@ function refreshFiles(){
     shownList=shownNow;
     if(same) return false;
     if(held){buildTree(p,cur.file);return false;}
-    return Promise.all(want.map(function(n){
-      return have[n]?Promise.resolve(have[n])
-        :n.indexOf("human/human_")===0?loadHuman(bareOf(n)):loadFile(n);
-    })).then(function(fs){
+    var missing=want.some(function(n){return !have[n];});
+    return (missing?loadMaps():Promise.resolve(null)).then(function(m){
+      return want.map(function(n){return have[n]||fromMaps(m,n);});
+    }).then(function(fs){
       p.files=p.files.filter(fixed).concat(fs);
       var still=fileOf(cur.file);
       buildTree(p,still?cur.file:p.files[0].file);

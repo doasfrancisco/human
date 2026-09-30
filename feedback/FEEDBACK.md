@@ -88,3 +88,41 @@ Roads, from the smallest:
 - **Name the mapped files in `human/human.json`.** `write_files` already lists the files; it can mark which of them have a map. The page then asks only for the 127 that exist — 105 rounds become 21.
 - **Draw the tree first.** `buildTree` needs the names alone, not the maps. Draw it, open the first file, and let the other maps land after, so nothing waits on a full set.
 - **One answer for all the maps.** A road like `/human/maps` that hands out every map in one block: one round trip instead of 127, at the price of a bigger answer.
+
+## 7. An expansion stands below its target until claude finishes
+
+A written expansion is mapped at once — `human map <name> --verbatim` in the `expand` road of `cmd_watch.py` — but nothing ties it to the entry it expands. The reader places an entry above another only by the pins between them: `sorted` in `compiler/cli/human/reader/web.html` gives an entry a higher layer when a pin of the target points into it. That pin — `[the words](e<entry>:anchor words)` in the target — is the last step of the `expand` event, written by claude. Until that step lands, the new entry is a plain entry, drawn after the target, as if it were a second telling of the same thing.
+
+Example, 2026-09-29, the project `mina`. The user highlighted the "NEW QUOTE REQUEST ON PLATFORM" section of entry 1, wrote an expansion and pressed compile. The server mapped entry 2 and queued event 22. The reader showed entry 2 under entry 1, not above it, and the user asked why the lower layer showed down. The event then stopped half done, so entry 2 stayed below for as long as the event stayed open. The last step had a problem of its own: the highlighted section already holds pins, and a pin cannot hold pins, so the full section can never be the pinned words — only one plain line of it.
+
+What the change implies: the place of an expansion is known at the click — the event carries `entry`, `target` and `words` — so the reader need not wait for the pin.
+
+- **Read the open events.** The reader already knows the queued events for the compiling mark (`queuedMark`). For an open `expand` event with an `entry`, `sorted` can count one edge from `target` into `entry`, so the expansion stands above its target from the first draw. The pin, when it lands, gives the same order, and the open edge goes away with the ack.
+- **Mark the highlighted words.** Until the pin exists, the reader can underline the highlighted words in the target, faint, so the user sees what the expansion stands on.
+- **Say it in the compiling line.** "entry 2 expands entry 1 and waits for claude" tells the user the order is not final yet.
+
+A highlight that holds pins cannot be pinned whole; the reader could refuse such a highlight at the click, or the event could name the one plain line claude will pin, so the user is not surprised at the end.
+
+## 8. The answer of a compile lists every file with no telling
+
+A map with no code under it answers every write with its coverage: `covered: 12 of 400 files`, then `not covered:` and the name of each file no pin reaches (`print_coverage` in `compiler/cli/human/cmd_project.py`, line `print("not covered: " + ...)`). The server hands that answer to the reader whole, and the reader shows it on top of the file.
+
+Example, 2026-09-29, the project `mina`. A compile on `mina.human` answered with three lines: the entry, `covered: 12 of 400 files`, and a `not covered:` line of 388 paths. On a wide screen it filled the whole reader, from the head bar to the bottom edge, and the words the user wrote could not be seen.
+
+What the change implies: the answer should be as short as `covered: 12 of 400 files`. The list of files belongs to `human show`, where a person asks for it.
+
+- **Count, not name.** `not covered: 388 files` — or drop the line, since `covered: 12 of 400` already says it.
+- **Name only a few.** When the list is short, five files or fewer, name them; past that, give the count and point to `human show <name>`.
+- **Cut in the reader.** The reader could show the first line of the answer and fold the rest behind a click, so a long answer never covers the words.
+
+## 9. The server walks the whole project to answer "did a file change?"
+
+The reader asks for `human/human.json` every 5 seconds (`refreshFiles` in `compiler/cli/human/reader/web.html`), and the server answers with a full `os.walk` of the project each time (`fresh_map` and `scan_files` in `compiler/cli/human/__init__.py`). On `mina`, 402 files, the walk runs twelve times a minute, almost always to find that nothing changed. The planned version code (a hash of the list, sent back as "no change") saves the answer, but not the walk; the folder time stamps save most of the walk, but still look at every folder.
+
+What the change implies: the file list could cost nothing between changes.
+
+- **A signal from the system.** The server asks the system to tell it when a file is made, removed or renamed — inotify on Linux, FSEvents on macOS, ReadDirectoryChangesW on Windows, or the `watchdog` library over all three — and changes the list and its version code only then. The cost is one more library and a different behaviour on each system, so it waits until the time stamps are not enough.
+
+## 10. A pin could point at a collection of pins
+
+A pin points at one place: a file, a block, or an anchor. The logic of one thought of the abstraction can be in many files. Maybe a pin could point at a collection of pins, one for each place, so the words stay whole and still reach all of them.
