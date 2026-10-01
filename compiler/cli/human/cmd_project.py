@@ -311,7 +311,7 @@ def git(root, *args):
 
 def old_text_of(root, rel):
     code, out = git(root, "show", f"HEAD:{rel}")
-    return out if code == 0 else ""
+    return out if code == 0 else None
 
 
 def changed_files(root, data):
@@ -326,13 +326,51 @@ def changed_files(root, data):
     return sorted(c for c in changed if c in known)
 
 
-def project_diff(root, changed):
+def reached_lines(root, rel, entries):
+    out = set()
+    for e in entries:
+        for x in e.get("anchors", []):
+            if x.get("file") != rel:
+                continue
+            if "lines" in x:
+                out |= decompiler.expand(x["lines"])
+            elif "entry" in x:
+                d = map_of(root, rel)
+                t = entry_of(d, x["entry"]) if d else None
+                for y in (t or {}).get("anchors", []):
+                    if y["words"] == x["anchor"] and "lines" in y and "file" not in y:
+                        out |= decompiler.expand(y["lines"])
+    return out
+
+
+def new_file_diff(rel, lines, keep):
+    nums = sorted(n for n in keep if 1 <= n <= len(lines))
+    if not nums:
+        return []
+    out = ["--- /dev/null", f"+++ b/{rel}"]
+    i = 0
+    while i < len(nums):
+        j = i
+        while j + 1 < len(nums) and nums[j + 1] == nums[j] + 1:
+            j += 1
+        out.append(f"@@ -0,0 +{nums[i]},{nums[j] - nums[i] + 1} @@")
+        out += [f"+{lines[n - 1]}" for n in range(nums[i], nums[j] + 1)]
+        i = j + 1
+    return out
+
+
+def project_diff(root, changed, entries):
     out = []
     for rel in changed:
-        old = old_text_of(root, rel).splitlines()
+        if not any(x.get("file") == rel for e in entries for x in e.get("anchors", [])):
+            continue
         fp = root / rel
         new = fp.read_text().splitlines() if fp.is_file() else []
-        out += difflib.unified_diff(old, new, f"a/{rel}", f"b/{rel}", lineterm="")
+        old = old_text_of(root, rel)
+        if old is not None:
+            out += difflib.unified_diff(old.splitlines(), new, f"a/{rel}", f"b/{rel}", lineterm="")
+        else:
+            out += new_file_diff(rel, new, reached_lines(root, rel, entries))
     return "\n".join(out)
 
 
@@ -498,7 +536,7 @@ def cmd_sync(a):
                        for i in sorted(cand) if decompiler.needed_words(data, i)) or "none"
     prompt = (SYNC_PROMPT.replace("<root>", str(root))
               .replace("<changed>", changed_note)
-              .replace("<diff>", project_diff(root, changed) or "none")
+              .replace("<diff>", project_diff(root, changed, [e for e in data["explanations"] if e["id"] in cand]) or "none")
               .replace("<broken>", broken_note(broken, root))
               .replace("<files>", "\n".join(files_of(root)))
               .replace("<candidates>", cands)
@@ -544,7 +582,7 @@ def snapshot(root, kind, name=WORD):
     if kind == "sync":
         changed = [c for c in changed_files(root, data) if c in under]
         files = {rel: (root / rel).read_text() for rel in changed if (root / rel).is_file()}
-        return {"changed": changed, "files": files, "diff": project_diff(root, changed)}
+        return {"changed": changed, "files": files, "diff": project_diff(root, changed, data["explanations"])}
     return {"files": {rel: (root / rel).read_text() for rel in under if (root / rel).is_file()}}
 
 

@@ -147,3 +147,7 @@ Example, 2026-10-01. A change in the design of the reader came in through the wo
 - "the project name sits above in capitals with no card, the files sit in a card…"
 - "a play triangle for compile" in place of "a spark for compile"
 - a new line: "the caret is yellow, the colour of the dot in the tree."
+
+## 13. A pin could point at an action
+
+A pin points at a thing: a file, a block, or an anchor. Some words tell an action, not a thing. For example, a line of code that the compiler wrote is an action of the compiler. Maybe a pin could point at that action, so the words reach what was done and not only where it is.

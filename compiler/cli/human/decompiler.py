@@ -535,9 +535,14 @@ def recompute(data, lines):
 def ask_claude(prompt, root):
     r = subprocess.run(["claude", "-p", "--output-format", "json"], input=prompt,
                        capture_output=True, text=True, timeout=600, cwd=str(root))
-    if r.returncode != 0:
-        sys.exit(f"claude failed: {r.stderr[-500:]}")
-    raw = json.loads(r.stdout)["result"]
+    try:
+        out = json.loads(r.stdout)
+    except ValueError:
+        out = {}
+    if r.returncode != 0 or out.get("is_error"):
+        reason = str(out.get("result") or r.stderr or r.stdout).strip()
+        sys.exit(f"claude failed: {reason[-500:]}")
+    raw = out["result"]
     return json.loads(raw[raw.index("{"):raw.rindex("}") + 1])
 
 
