@@ -261,6 +261,63 @@ def new_human(root, name, place=""):
                  "output": f"{shown} made, empty; write its abstraction, with no file under it"}
 
 
+DRAFTS_LOCK = threading.Lock()
+
+
+def drafts_path(root):
+    return cmd_watch.folder(root) / "drafts.json"
+
+
+def read_drafts(root):
+    try:
+        d = json.loads(drafts_path(root).read_text())
+    except (OSError, ValueError):
+        return {}
+    return d if isinstance(d, dict) else {}
+
+
+def spent_draft(root, k, v):
+    if not v:
+        return True
+    m = re.fullmatch(r"human-draft:[^/]*/(.+)/([^/]+)", k)
+    if not m:
+        return False
+    rel, tail = m.groups()
+    p = root / rel
+    if tail == "code":
+        try:
+            return v == p.read_text()
+        except (OSError, ValueError):
+            return False
+    if not tail.isdigit():
+        return False
+    d = read_map(p if rel.startswith("human/") else helpers.map_path_of(p, root))
+    if d is None:
+        return False
+    texts = {e.get("id"): e.get("text") for e in d.get("explanations", [])}
+    return texts.get(int(tail), v) == v
+
+
+def tidy_drafts(root, changes):
+    with DRAFTS_LOCK:
+        d = read_drafts(root)
+        d.update(changes)
+        kept = {k: v for k, v in d.items() if not spent_draft(root, k, v)}
+        if changes or kept != d:
+            p = drafts_path(root)
+            tmp = p.with_name(p.name + ".tmp")
+            tmp.write_text(json.dumps(kept, indent=1) + "\n")
+            tmp.replace(p)
+    return kept
+
+
+def keep_drafts(root, changes):
+    if not isinstance(changes, dict) or not all(
+            isinstance(k, str) and (v is None or isinstance(v, str)) for k, v in changes.items()):
+        return 400, "a draft is a name and its text, or no text to remove it"
+    return 200, {"drafts": len(tidy_drafts(root, changes))}
+
+
 class FreshHandler(SimpleHTTPRequestHandler):
     verbose = False
     protocol_version = "HTTP/1.1"
@@ -348,6 +405,9 @@ class FreshHandler(SimpleHTTPRequestHandler):
         if path == "/human/server/queue":
             self.send_json(200, cmd_watch.pending(root))
             return
+        if path == "/human/server/drafts":
+            self.send_json(200, tidy_drafts(root, {}))
+            return
         self.send_static()
 
     def read_body(self):
@@ -367,6 +427,8 @@ class FreshHandler(SimpleHTTPRequestHandler):
                 status, out = new_file(root, body.get("name"))
             elif path == "/human/human":
                 status, out = new_human(root, body.get("name"), body.get("place"))
+            elif path == "/human/server/drafts":
+                status, out = keep_drafts(root, body.get("drafts"))
             elif m and m.group(2) == "close":
                 status, out = cmd_train.close_road(root, m.group(1))
             elif m:

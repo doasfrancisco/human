@@ -7,18 +7,18 @@
       "block_lines": [
         [
           1,
-          1518
+          1604
         ]
       ],
-      "text": "[# WEB LOADS PROJECT](script)\n\nthe page asks for human.json which holds the file names of the project. \n\nat the same time it asks the server once for maps, which holds the explanation_<name>.json of every file in the map folder. \n\na file with no .json record gets an empty one, so the page still shows it. \nthe file itself shows and gets requested only when you open the file. \nhuman.json is always in the list, first, under the name human/human.json.\n\nweb also reads project.json from maps, the abstraction about the project as a whole; \nif it holds abstractions it joins the list too, under the name human/project.json. \n\nhuman.json also names:\n  the human files,\n  abstractions with no code under them,\n  the place each one was made in.\nfor each one: \n  the page reads its .json record, human_<name>.json, from maps\nthen it joins the list at that place, under its own name, <name>.human, at the root when it has no place.\nthe record it reads and writes stays human/human_<name>.json\n\nevery five seconds it [asks for human.json again](refreshFiles);\nwhen human.json did not change since the last ask, the server says so and the page reads nothing more.\nwhen the files or the human files in it changed: \n  the page asks for maps again only when a new file is in the list, and the files it already holds stay as they are,\n  the tree shows the new list,\n  the file you read stays open, \n  or the first file opens when yours is gone.\n\n\n[# THE FILE TREE](main)\non the left: the project name and its files.\n  a file that holds a writing which is not compiled shows small white dot at the left of its row. the dot goes out when the compile passes.\na left click on a file opens that file.\nif a right click on the files, a folder or empty space:\n  opens a list with two options: \"create file\" and \"create human\".\n  if any option is clicked:\n    a box opens for a name under the folder the right click it's from.\n    the grey words say where the name will land, like <path>/<name>\n    a name that starts with / drops the folder and lands at the root.\n\n    if empty space, the box stands on the last row of the tree, and that row gives the folder: the root, or the folder it stands in.\n    enter [asks the server to make that file inside that folder](makeNamed)\n    if human:\n      the box takes the bare name \n      the folder is the place it shows in \n      it makes a human file, an abstraction with no code under it. \n  pressing escape or clicking anywhere closes the box or the list.\n\nthe server's answer shows on top of the reader: \n  a pass opens the new file and marks it in the tree\n  a refusal stays in the warning colour.\n\n\n[# USER OPENS FILE](open)\na file keeps the lines of the file and every abstraction.\nthe .json has which piece of the file each abstraction is about.\n\nif open for the first time, file opens at its top.\nif user comes back to a file, the abstractions left open stay open as you left it, and the page stands where you had scrolled it. \na writing box left open closes when user goes to another file.\n\n\u25cf  the page puts the abstractions in order               ([sorted](sorted))\n\u2502     A pin points from one abstraction at another. The abstraction\n\u2502     nobody points at is the most abstract, and it goes last. An\n\u2502     abstraction that a pin points at goes above the one that holds\n\u2502     the pin, and so on upward. Among equals, the one about earlier\n\u2502     lines goes first.\n\n\n\n[# THE WEB DRAWS THE LIST](render)\ndraws an abstraction as one header line:\n  a small arrow, \n  the name of its piece\n  its lines. \nabstraction start folded the first time.\nunder the header the words are drawn exactly as written.\n\na pin whose target has an abstraction is lit; \na pin with none is muted; \na pin the map does not hold yet, one you just typed, is [read from the target it names](guessAnchor). \n\nthe bar on top says how many are open.\nonly as soon as anything differs from the map:\n  the word \"unsaved\", [a compile button](header) shows in the page.\n  and a dot on that file's row, which even if file is closed, shows.\n \n\n# NEW ABSTRACTION POSITIONS\n\nthe position of the abstraction words you expand on stands on top of the list while the ask is open; \nif file with no map:\n  shows one place for a new abstraction and the code of the file under it, \n  the bar says there is no abstraction yet, in the place of the count, with the compiling mark beside it. \nif human.json, no writing.\nif human file or project.json:\n  show the abstractions alone, because they have no code. \n\nan abstraction whose writing waits for the ai harness is marked compiling, with a count when more than one waits. \na redraw of the same file keeps the page where you had scrolled it, so the words stay under your eyes. \nthe head line of an abstraction you asked to take away holds that ask in the place of its name until you send it or drop it.\n\n\n\u25cf  you write                                          ([the box](startEdit))\n\u2502     A click on the words puts a box in their place, with the caret\n\u2502     where you clicked. A muted pin shows a name beside its words,\n\u2502     and that name counts too, so a click after one lands where you\n\u2502     meant. It holds the text as it is in the map \u2014 the pins in\n\u2502     their brackets, the targets visible \u2014 or the code of the file,\n\u2502     or nothing for a new abstraction. The box grows as you type,\n\u2502     and the page stays where you scrolled it. Escape, or a click\n\u2502     away, [closes the box](leaveEdit) and keeps what you\n\u2502     wrote. The bar says unsaved until [ctrl-S keeps it in the\n\u2502     browser](save), so a box you come back to holds what you left.\n\u2502     Your words stay in the place you wrote them, even when the page\n\u2502     draws again between one box and the next. Only the box now open\n\u2502     answers a click away; an older box the page left behind closes\n\u2502     nothing.\n\u2502\n\u25cf  you ask ai harness for an abstraction                  ([the menu](menuAt))\n\u2502     A right click opens a small menu where you point. On the header\n\u2502     of an abstraction it offers [a wider one above it](create) and\n\u2502     [to take that one away](deleteOpen); the ask to take away stands\n\u2502     on the head line itself, a click on its name [sends it](deleteSend),\n\u2502     and cancel, or escape, [lets it go](deleteClose). On\n\u2502     [words you picked](selectedRaw), in the text or in the open box,\n\u2502     it offers to expand on them: [a place opens on top of the\n\u2502     list](expandOpen) where you may add your own words, or none, a\n\u2502     click on its name [sends the ask](expandSend), and cancel\n\u2502     [drops it](expandClose). A file with no abstraction yet and some\n\u2502     code in it carries decompile over its writing place, which asks\n\u2502     for [the whole file to be read and told](decompile); an empty\n\u2502     file calls that place new abstraction, and a human file, which\n\u2502     has no code, calls it that too. Each of these [goes to the\n\u2502     server](ask) like a compile and comes back as a writing that\n\u2502     waits for claude.\n\u2502\n\u25cf  you press compile and the server answers            ([compile](compile))\n\u2502     The button in the bar sends every place you changed, one after\n\u2502     the other, and each runs the command you would have typed. A\n\u2502     refusal comes back in the command's own words, named by the\n\u2502     place it came from, in the warning colour, and your words stay\n\u2502     on the page. A pass forgets the draft, redraws the page with\n\u2502     [the map read again](reloadMap) and says which writing now\n\u2502     waits for claude.\n\u2502\n\u25cf  the page watches the queue                         ([pollQueue](pollQueue))\n\u2502     Every three seconds it asks the server what still waits and\n\u2502     marks the entries. When claude finishes, the mark goes, the\n\u2502     page reads the map of that file again, so the new words show,\n\u2502     and the training looks again for new rows.\n\u2502\n\u25cf  you click                                                ([jump](jump))\n\u2502     A click on a header folds or unfolds that abstraction.\n\u2502     A click on a lit pin scrolls to the abstraction it points at,\n\u2502     unfolds it, and lights it for a moment; it opens no box.\n\u2502\n\u25cf  you cross to another file                      ([crossJump](crossJump))\n\u2502     A pin can name a file of the project instead of a piece of\n\u2502     this one. A click on it opens that file and goes to the piece\n\u2502     the pin names. A pin to a file the project does not hold, or\n\u2502     to a piece with no abstraction, is muted and shows the piece\n\u2502     name. A pin can also name one abstraction of that file and\n\u2502     words inside it: a click opens the file, goes to that\n\u2502     abstraction, and lights those words for a moment. Such a pin\n\u2502     to words the abstraction does not hold is muted and shows the\n\u2502     file and the number of the abstraction; when the file holds no\n\u2502     such abstraction at all, a line on top says so.\n\u2502\n\u25cf  the page shows the training                    ([loadTrain](loadTrain))\n\u2502     Every five seconds the page asks the server for the training\n\u2502     sessions. An open session covers the whole page with its rows.\n\u2502     Hide puts it away until the session gains a row, and [a short\n\u2502     line in the bar](chip) counts its rows and picks; a click on it\n\u2502     shows the training again. With no open session the line says\n\u2502     only training, and a click shows the last session. A list on\n\u2502     top goes to another session. When the store does not answer,\n\u2502     the line says why and takes no click. A session with no rows\n\u2502     yet says that claude writes them after the event.\n\u2502\n\u25cf  you look through the rows                    ([renderRows](renderRows))\n\u2502     Each row is one change claude wrote for, and it fills the\n\u2502     screen; a swipe up brings the next row. A swipe to the side\n\u2502     goes to the next version of the same row: best, refinement and\n\u2502     free for a sync, best and free for any other. [A card](cardHtml)\n\u2502     names the file, the kind of change, the level and the entry, and\n\u2502     the version with its shape; a refinement that keeps the words\n\u2502     as they were is called current, and a row brought over from an\n\u2502     earlier session says carried. The words show with their pins,\n\u2502     but a pin here leads nowhere. When claude wrote a version more\n\u2502     than once, v1, v2 and on let you read each text; an older one\n\u2502     stands in a dashed frame, and the pick always takes the latest.\n\u2502     Copy [puts the words you see on the clipboard](copyText). A\n\u2502     version not written yet says so. A redraw keeps each row at the\n\u2502     version you had swiped to.\n\u2502\n\u25cf  you pick a version                             ([sendPick](sendPick))\n\u2502     Pick this one opens a box for why you chose it, which you may\n\u2502     leave empty; pick sends it, and cancel drops it. The picked card\n\u2502     lights up and shows your why, and a press on it takes the pick\n\u2502     back. A refused pick says why in a line under the top bar. In a\n\u2502     finished session, or on a row already put in the map, a card\n\u2502     only says what was picked, or that it was taken by default, and\n\u2502     the entry it became.\n\u2502\n\u25cf  you close the training                       ([closeTrain](closeTrain))\n      Close training asks first and says [what the close will\n      do](closeLine): how many rows are picked, how many take best,\n      and how many carry over to the next session, a sync row with no\n      pick and a row claude has not written yet. Close sends it;\n      cancel, or escape, drops the ask. A pass reads the map of every\n      file in the session again, puts the training away, and shows\n      the server's answer on top of the reader. A refusal stays in the\n      line under the top bar, and the session stays open.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n[#WEB DESIGN](style)\n\ntwo panes on a quiet ground: \n  the tree on the left, \n  the reader on the right, as wide as the window lets it. \na dark and a light version, chosen by your system. \n\nthe tree looks like the list of apple notes:\n  dark: pure black ground behind it, like the reader.\n  light: the soft grey ground of apple notes, #f2f2f7.\n  the project name and the tree each sit in a card: dark grey #1c1c1e, or white in light, with large round corners and no edge.\n  file names in off-white, folder names and icons in grey #8e8e93.\n  the open file wears a lighter grey row, no lively colour.\n\nthe reader:\n  dark: pure black ground, off-white words, like apple notes.\n  light: pure white ground, near-black words.\n  the buttons are dark grey glass with a thin lighter edge, white icons.\n\nfont is SF Pro, the San Francisco font of Apple. If not apple device, use typewriter font.\nside and vertical scroll ui, small pill, no bar, and fades.\n\non a narrow screen:\n  the text fades on the top and bottom.\n  the colour of the reader fills the whole screen\n\n  the tree hides and slides in over the reader. if tree opens, the reader section appears dark fading\n  the reader fills the screen, no frame.\n  the words font:\n    size is 14px\n    they keep that size when you read and when you write. specially in safari mobile.\n  a line wider than the screen scrolls sideways. \n\n  sideway scroll at furthest at the bottom\n \n  the top bar has no line of its own. two buttons float over the words:\n     top left, a round button with the burger in a center. it opens the tree.\n     top right, one shared pill holding the lucide icon buttons: graduation-cap for training and square-sparkles for compile, like the share and more pill of apple notes. with proper space between them.\n  the buttons use the black ground, the grey glass and the white icons, with no lively colour.\n  the file name and the count do not show.\n  a non-pill, green filled circle with a white check inside icon to save:\n    almost as big as the pill buttons, a bit smaller so it looks good\n    apppears in an animation, on the right of compile\n    enough space to not press compiler by mistake. \n    if clicked, file saves.\n\n  the buttons float on top of the text. \n\n\nthe box for the name of a new file stands under the row you right clicked, or under the last row when you clicked empty space, and takes that row's width, over everything, in the typewriter face. \nthe writing box sits in the place of the words, and grows with what you type. \nan empty place stands in its own room and lights up under the pointer, so you see where you can write. \non a wide screen, a word on a head line that does something wears the lively colour and underlines itself under the pointer. \nthe little menu floats where you point, over everything, and each of its rows lights under the pointer.\non a wide screen, the training line in the bar wears the lively colour, and turns faint when the store does not answer. \nthe training lies over the whole page:\n  each row fills the screen and each card fills its width, \n  both snap into place, so one swipe moves one card. \n  the name of a picked card wears the lively colour;\n  an older text has a dashed frame. \n  on a small phone the words of a card grow smaller.\n\n\n# HELPER FUNCTIONS\n\n[esc](esc)\nmakes text safe to show on a page                        \n\n[msg](msg)\nshows one line when there is nothing to read              \n        \n[drawer](drawer)\nopens and hides the tree on a narrow screen\n\n[loadMaps](loadMaps)\nreads the records of every file, human file and the project in one ask, or gives empty ones\n\n[held](held)\ngives a record, or an empty one when it holds no abstractions\n\n[fromMaps](fromMaps)\ntakes the record of one file or human file out of maps\n\n[humanPath](humanPath)\nnames the record of a human file\n                \n[bareOf](bareOf)\ngives the bare name of a human path\n\n[shownPath](shownPath)\ngives the name a human file wears in the tree\n\n[recordPath](recordPath)\ngives the record behind a shown name\n\n     says a file has no code under it           ([noCodeFile](noCodeFile))\n     asks for human.json, or gives nothing when it did not change  ([loadList](loadList))\n     builds the file tree for one project         ([buildTree](buildTree))\n     shuts the box for the name of a new file       ([newClose](newClose))\n             \n[treeLast](treeLast)\nfinds the row above the empty space you clicked \n\n[treeRoots](treeRoots)\nfinds the roots the tree draws in            \n\n[treeRows](treeRows)\ngives every row of the tree                   \n\n[newOpen](newOpen)\nopens that box under a row, empty, and keeps that row's folder for the enter\n\n     finds the tree row you right clicked            ([treeRow](treeRow))\n     gives the folder that row stands in             ([treeDir](treeDir))\n     asks for the file when you open it             ([loadCode](loadCode))\n     finds a file of the project by name                ([fileOf](fileOf))\n     says if a piece has an abstraction         ([crossEntry](crossEntry))\n     says if an abstraction has those words   ([crossAnchor](crossAnchor))\n     finds which abstraction a pin points at        ([targetOf](targetOf))\n     reads a pin the map does not hold    ([guessAnchor](guessAnchor))\n     finds the pin behind one bracket                     ([pinOf](pinOf))\n     says what a muted pin shows beside it          ([suffixOf](suffixOf))\n     turns the pins of one line into links          ([lineHtml](lineHtml))\n     says the name the server knows a file by       ([nameOf](nameOf))\n     names where a draft is kept in the browser           ([key](key))\n     gives the text a box opens with            ([baseText](baseText))\n     says if a place for words is open here      ([expandHere](expandHere))\n     says if a delete is asked here              ([deleteHere](deleteHere))\n     gives the text now shown, draft or map   ([shownText](shownText))\n\n[changed](changed)\nsays if a text differs from the map          \n\n[baseFor](baseFor)\ngives the text the map of any file holds for one place\n\n[waiting](waiting)\nsays which files hold a writing not compiled    \n\n[markSoon](markSoon)\nputs the dots as soon as the tree stands\n\n[markWaiting](markWaiting)\nputs a dot on those rows of the tree\n\n     says if a change is not kept yet             ([unsaved](unsaved))\n     lists every place the file takes writing         ([slots](slots))\n     marks what still waits for claude          ([queuedMark](queuedMark))\n     says which place holds the box           ([isEditing](isEditing))\n     draws the writing box                      ([editorHtml](editorHtml))\n     draws the telling of a whole file    ([mapSlotHtml](mapSlotHtml))\n     draws the place for your own words  ([expandSlotHtml](expandSlotHtml))\n     numbers the lines of the code      ([codeSlotHtml](codeSlotHtml))\n     makes the box as tall as its text without moving the page   ([fit](fit))\n     puts the caret in the new box without moving the page        ([focusEditor](focusEditor))\n     holds what you typed while the page redraws     ([keep](keep))\n     takes the words out of the open box          ([keepBox](keepBox))\n     finds the letter you clicked                 ([caretAt](caretAt))\n     finds that letter in the raw text        ([rawOffset](rawOffset))\n     finds it past the line numbers         ([codeOffset](codeOffset))\n     sends one ask to the server                        ([post](post))\n     shuts the little menu                      ([menuClose](menuClose))\n     finds a file by the name the server knows it by  ([fileNamed](fileNamed))\n     lights the words a pin points at         ([flashAnchor](flashAnchor))\n     names where a hidden session is kept in the browser  ([hideKey](hideKey))\n     reads one version of a row, in the old form or the new  ([versionOf](versionOf))\n     lists every text of a version, oldest first      ([textsOf](textsOf))\n     gives the text a card shows now            ([cardShown](cardShown))\n     draws the pins of a card without links      ([cardText](cardText))\n     lists the versions a row takes               ([slotsOf](slotsOf))\n     draws one row of cards                         ([rowHtml](rowHtml))\n     draws one row again where you swiped it  ([rerenderRow](rerenderRow))\n     draws the top bar of the training          ([renderTop](renderTop))\n     shows one line under the top bar of the training  ([noteTrain](noteTrain))\n     shows or puts away the training            ([showTrain](showTrain))\n     reads an answer of the store, or its refusal     ([stored](stored))",
+      "text": "[# WEB LOADS PROJECT](script)\n\nthe page asks for human.json which holds the file names of the project. \n\nat the same time it asks the server once for maps, which holds the explanation_<name>.json of every file in the map folder. \n\na file with no .json record gets an empty one, so the page still shows it. \nthe file itself shows and gets requested only when you open the file. \nhuman.json is always in the list, first, under the name human/human.json.\n\nweb also reads project.json from maps, the abstraction about the project as a whole; \nif it holds abstractions it joins the list too, under the name human/project.json. \n\nhuman.json also names:\n  the human files,\n  abstractions with no code under them,\n  the place each one was made in.\nfor each one: \n  the page reads its .json record, human_<name>.json, from maps\nthen it joins the list at that place, under its own name, <name>.human, at the root when it has no place.\nthe record it reads and writes stays human/human_<name>.json\n\nevery five seconds it [asks for human.json again](refreshFiles);\nwhen human.json did not change since the last ask, the server says so and the page reads nothing more.\nwhen the files or the human files in it changed: \n  the page asks for maps again only when a new file is in the list, and the files it already holds stay as they are,\n  the tree shows the new list,\n  the file you read stays open, \n  or the first file opens when yours is gone.\n\n\n[# THE FILE TREE](main)\non the left: the project name and its files.\n  a file that holds a writing which is not compiled shows small yellow dot at the left of its row. the dot goes out when the compile passes.\na left click on a file opens that file.\nif a right click on the files, a folder or empty space:\n  opens a list with two options: \"create file\" and \"create human\".\n  if any option is clicked:\n    a box opens for a name under the folder the right click it's from.\n    the grey words say where the name will land, like <path>/<name>\n    a name that starts with / drops the folder and lands at the root.\n\n    if empty space, the box stands on the last row of the tree, and that row gives the folder: the root, or the folder it stands in.\n    enter [asks the server to make that file inside that folder](makeNamed)\n    if human:\n      the box takes the bare name \n      the folder is the place it shows in \n      it makes a human file, an abstraction with no code under it. \n  pressing escape or clicking anywhere closes the box or the list.\n\nthe server's answer shows on top of the reader: \n  a pass opens the new file and marks it in the tree\n  a refusal stays in the warning colour.\n\n\n[# USER OPENS FILE](open)\na file keeps the lines of the file and every abstraction.\nthe .json has which piece of the file each abstraction is about.\n\nif open for the first time, file opens at its top.\nif user comes back to a file, the abstractions left open stay open as you left it, and the page stands where you had scrolled it. \na writing box left open closes when user goes to another file.\n\n\u25cf  the page puts the abstractions in order               ([sorted](sorted))\n\u2502     A pin points from one abstraction at another. The abstraction\n\u2502     nobody points at is the most abstract, and it goes last. An\n\u2502     abstraction that a pin points at goes above the one that holds\n\u2502     the pin, and so on upward. Among equals, the one about earlier\n\u2502     lines goes first.\n\n\n\n[# THE WEB DRAWS THE LIST](render)\ndraws an abstraction as one header line:\n  a small arrow, \n  the name of its piece\n  its lines. \nabstraction start folded the first time.\nunder the header the words are drawn exactly as written.\n\na pin whose target has an abstraction is lit; \na pin with none is muted; \na pin the map does not hold yet, one you just typed, is [read from the target it names](guessAnchor). \n\nthe bar on top says how many are open.\nonly as soon as anything differs from the map:\n  the word \"unsaved\", [a compile button](header) shows in the page.\n  and a dot on that file's row, which even if file is closed, shows.\n \n\n# NEW ABSTRACTION POSITIONS\n\nthe position of the abstraction words you expand on stands on top of the list while the ask is open; \nif file with no map:\n  shows one place for a new abstraction and the code of the file under it, \n  the bar says there is no abstraction yet, in the place of the count, with the compiling mark beside it. \nif human.json, no writing.\nif human file or project.json:\n  show the abstractions alone, because they have no code. \n\nan abstraction whose writing waits for the ai harness is marked compiling, with a count when more than one waits. \na redraw of the same file keeps the page where you had scrolled it, so the words stay under your eyes. \nthe head line of an abstraction you asked to take away holds that ask in the place of its name until you send it or drop it.\n\n\n[# USER WRITES](startEdit)\nif click on the words:\n  a box is put in their place,\n  the caret is where user clicked. \n\na muted pin shows a name beside its words, and that name counts too\na pin holds the text as it is in the map:\n  the pins in their brackets, the targets visible or the code of the file, or nothing for a new abstraction. \n\nif more text is typed than the size of the box:\n  the box grows\n  the page stays where you scrolled it. \n\nif escape presed, or user clicks away:\n  [the box closes](leaveEdit) \n  the text written is kept\n\nthe green circle stays until [ctrl-S or tap on it keeps it on the server](save), in human/server/\nhuman code stay in the place written. if the page draws again between one box and the next, same.\nonly the box now open answers a click away; an older box the page left behind closes nothing.\n\n\n\n\u25cf  you ask ai harness for an abstraction                  ([the menu](menuAt))\n\u2502     A right click opens a small menu where you point. On the header\n\u2502     of an abstraction it offers [a wider one above it](create) and\n\u2502     [to take that one away](deleteOpen); the ask to take away stands\n\u2502     on the head line itself, a click on its name [sends it](deleteSend),\n\u2502     and cancel, or escape, [lets it go](deleteClose). On\n\u2502     [words you picked](selectedRaw), in the text or in the open box,\n\u2502     it offers to expand on them: [a place opens on top of the\n\u2502     list](expandOpen) where you may add your own words, or none, a\n\u2502     click on its name [sends the ask](expandSend), and cancel\n\u2502     [drops it](expandClose). A file with no abstraction yet and some\n\u2502     code in it carries decompile over its writing place, which asks\n\u2502     for [the whole file to be read and told](decompile); an empty\n\u2502     file calls that place new abstraction, and a human file, which\n\u2502     has no code, calls it that too. Each of these [goes to the\n\u2502     server](ask) like a compile and comes back as a writing that\n\u2502     waits for claude.\n\u2502\n\u25cf  you press compile and the server answers            ([compile](compile))\n\u2502     The button in the bar sends every place you changed, one after\n\u2502     the other, and each runs the command you would have typed. A\n\u2502     refusal comes back in the command's own words, named by the\n\u2502     place it came from, in the warning colour, and your words stay\n\u2502     on the page. A pass forgets the draft, redraws the page with\n\u2502     [the map read again](reloadMap) and says which writing now\n\u2502     waits for claude.\n\u2502\n\u25cf  the page watches the queue                         ([pollQueue](pollQueue))\n\u2502     Every three seconds it asks the server what still waits and\n\u2502     marks the entries. When claude finishes, the mark goes, the\n\u2502     page reads the map of that file again, so the new words show,\n\u2502     and the training looks again for new rows.\n\u2502\n\u25cf  you click                                                ([jump](jump))\n\u2502     A click on a header folds or unfolds that abstraction.\n\u2502     A click on a lit pin scrolls to the abstraction it points at,\n\u2502     unfolds it, and lights it for a moment; it opens no box.\n\u2502\n\u25cf  you cross to another file                      ([crossJump](crossJump))\n\u2502     A pin can name a file of the project instead of a piece of\n\u2502     this one. A click on it opens that file and goes to the piece\n\u2502     the pin names. A pin to a file the project does not hold, or\n\u2502     to a piece with no abstraction, is muted and shows the piece\n\u2502     name. A pin can also name one abstraction of that file and\n\u2502     words inside it: a click opens the file, goes to that\n\u2502     abstraction, and lights those words for a moment. Such a pin\n\u2502     to words the abstraction does not hold is muted and shows the\n\u2502     file and the number of the abstraction; when the file holds no\n\u2502     such abstraction at all, a line on top says so.\n\u2502\n\u25cf  the page shows the training                    ([loadTrain](loadTrain))\n\u2502     Every five seconds the page asks the server for the training\n\u2502     sessions. An open session covers the whole page with its rows.\n\u2502     Hide puts it away until the session gains a row, and [a short\n\u2502     line in the bar](chip) counts its rows and picks; a click on it\n\u2502     shows the training again. With no open session the line says\n\u2502     only training, and a click shows the last session. A list on\n\u2502     top goes to another session. When the store does not answer,\n\u2502     the line says why and takes no click. A session with no rows\n\u2502     yet says that claude writes them after the event.\n\u2502\n\u25cf  you look through the rows                    ([renderRows](renderRows))\n\u2502     Each row is one change claude wrote for, and it fills the\n\u2502     screen; a swipe up brings the next row. A swipe to the side\n\u2502     goes to the next version of the same row: best, refinement and\n\u2502     free for a sync, best and free for any other. [A card](cardHtml)\n\u2502     names the file, the kind of change, the level and the entry, and\n\u2502     the version with its shape; a refinement that keeps the words\n\u2502     as they were is called current, and a row brought over from an\n\u2502     earlier session says carried. The words show with their pins,\n\u2502     but a pin here leads nowhere. When claude wrote a version more\n\u2502     than once, v1, v2 and on let you read each text; an older one\n\u2502     stands in a dashed frame, and the pick always takes the latest.\n\u2502     Copy [puts the words you see on the clipboard](copyText). A\n\u2502     version not written yet says so. A redraw keeps each row at the\n\u2502     version you had swiped to.\n\u2502\n\u25cf  you pick a version                             ([sendPick](sendPick))\n\u2502     Pick this one opens a box for why you chose it, which you may\n\u2502     leave empty; pick sends it, and cancel drops it. The picked card\n\u2502     lights up and shows your why, and a press on it takes the pick\n\u2502     back. A refused pick says why in a line under the top bar. In a\n\u2502     finished session, or on a row already put in the map, a card\n\u2502     only says what was picked, or that it was taken by default, and\n\u2502     the entry it became.\n\u2502\n\u25cf  you close the training                       ([closeTrain](closeTrain))\n      Close training asks first and says [what the close will\n      do](closeLine): how many rows are picked, how many take best,\n      and how many carry over to the next session, a sync row with no\n      pick and a row claude has not written yet. Close sends it;\n      cancel, or escape, drops the ask. A pass reads the map of every\n      file in the session again, puts the training away, and shows\n      the server's answer on top of the reader. A refusal stays in the\n      line under the top bar, and the session stays open.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n[#WEB DESIGN](style)\n\na dark and a light version, chosen by your system. \nfont is SF Pro, the San Francisco font of Apple. If not apple device, use typewriter font.\nside and vertical scroll ui, small pill, no bar, and fades.\n\ntwo panes on a quiet ground: \n  the tree on the left, \n  the reader on the right, as wide as the window lets it.\n\nthe tree looks like the list of apple notes:\n  dark: #0b0b0b\n  light: the soft grey ground of apple notes, #f2f2f7.\n  the project name shows in upper case.\n  the tree is below, same indent as the project name\n  file names in off-white, folder names and icons in grey #8e8e93.\n  the open file wears a lighter grey row, no lively colour.\n\n  if on a narrow screen:\n    the tree sits in a card: dark grey #1c1c1e, or white in light, with large round corners and no edge.\n    the tree hides and slides in over the reader. if tree opens, the reader section appears dark fading\n    \n\nthe reader:\n  dark: pure black ground, off-white words, like apple notes.\n  light: pure white ground, near-black words.\n  caret is dark yellow and slightly thick\n  the buttons are dark grey glass with a thin lighter edge, white icons.\n  \n  the reader fills the screen, no frame.\n  the reader separates from the file tree with a faint soft grey line\n\n  the file name and count show in the same filled screen. horizontally centered. top division has no line divider.\n  \n  top right, one shared pill holding the lucide icon buttons float over words: \n    graduation-cap for training and play for compile, like the share and more pill of apple notes. with proper space between them.\n    play lucide icon shows a bit smaller than default for better design\n  \n  a non-pill, green filled circle with a white check inside icon to save:\n    almost as big as the pill buttons, a bit smaller so it looks good\n    apppears in an animation, on the right of compile\n    enough space to not press compiler by mistake. \n    if clicked, file saves. \n  the buttons use the black ground, the grey glass and the white icons, with no lively colour. same height as the file name and count\n\n  the text fades on the top and bottom.\n  if highlighting the text, the highlight color is yellow\n  a line wider than the screen scrolls sideways. \n        \n  if on a narrow screen:\n    the colour of the reader fills the whole screen\n    the words font:\n      size is 14px\n      they keep that size when you read and when you write. specially in safari mobile.\n  \n    sideway scroll at furthest at the bottom\n    the file name and the count do not show.\n    \n    the top bar has no line of its own. \n    top left, a round button with the burger in a center floats over the words. it opens the tree.\n\n\nthe box for the name of a new file stands under the row you right clicked, or under the last row when you clicked empty space, and takes that row's width, over everything, in the typewriter face. \nthe writing box sits in the place of the words, and grows with what you type. \nan empty place stands in its own room and lights up under the pointer, so you see where you can write. \non a wide screen, a word on a head line that does something wears the lively colour and underlines itself under the pointer. \nthe little menu floats where you point, over everything, and each of its rows lights under the pointer.\non a wide screen, the training line in the bar wears the lively colour, and turns faint when the store does not answer. \nthe training lies over the whole page:\n  each row fills the screen and each card fills its width, \n  both snap into place, so one swipe moves one card. \n  the name of a picked card wears the lively colour;\n  an older text has a dashed frame. \n  on a small phone the words of a card grow smaller.\n\n\n# HELPER FUNCTIONS\n\n[esc](esc)\nmakes text safe to show on a page                        \n\n[msg](msg)\nshows one line when there is nothing to read              \n        \n[drawer](drawer)\nopens and hides the tree on a narrow screen\n\n[loadMaps](loadMaps)\nreads the records of every file, human file and the project in one ask, or gives empty ones\n\n[held](held)\ngives a record, or an empty one when it holds no abstractions\n\n[fromMaps](fromMaps)\ntakes the record of one file or human file out of maps\n\n[humanPath](humanPath)\nnames the record of a human file\n                \n[bareOf](bareOf)\ngives the bare name of a human path\n\n[shownPath](shownPath)\ngives the name a human file wears in the tree\n\n[recordPath](recordPath)\ngives the record behind a shown name\n\n     says a file has no code under it           ([noCodeFile](noCodeFile))\n     asks for human.json, or gives nothing when it did not change  ([loadList](loadList))\n     builds the file tree for one project         ([buildTree](buildTree))\n     shuts the box for the name of a new file       ([newClose](newClose))\n             \n[treeLast](treeLast)\nfinds the row above the empty space you clicked \n\n[treeRoots](treeRoots)\nfinds the roots the tree draws in            \n\n[treeRows](treeRows)\ngives every row of the tree                   \n\n[newOpen](newOpen)\nopens that box under a row, empty, and keeps that row's folder for the enter\n\n     finds the tree row you right clicked            ([treeRow](treeRow))\n     gives the folder that row stands in             ([treeDir](treeDir))\n     asks for the file when you open it             ([loadCode](loadCode))\n     finds a file of the project by name                ([fileOf](fileOf))\n     says if a piece has an abstraction         ([crossEntry](crossEntry))\n     says if an abstraction has those words   ([crossAnchor](crossAnchor))\n     finds which abstraction a pin points at        ([targetOf](targetOf))\n     reads a pin the map does not hold    ([guessAnchor](guessAnchor))\n     finds the pin behind one bracket                     ([pinOf](pinOf))\n     says what a muted pin shows beside it          ([suffixOf](suffixOf))\n     turns the pins of one line into links          ([lineHtml](lineHtml))\n     says the name the server knows a file by       ([nameOf](nameOf))\n     names where a draft is kept on the server           ([key](key))\n     gives the text a box opens with            ([baseText](baseText))\n     says if a place for words is open here      ([expandHere](expandHere))\n     says if a delete is asked here              ([deleteHere](deleteHere))\n     gives the text now shown, draft or map   ([shownText](shownText))\n\n[changed](changed)\nsays if a text differs from the map          \n\n[baseFor](baseFor)\ngives the text the map of any file holds for one place\n\n[waiting](waiting)\nsays which files hold a writing not compiled    \n\n[markSoon](markSoon)\nputs the dots as soon as the tree stands\n\n[markWaiting](markWaiting)\nputs a dot on those rows of the tree\n\n     says if a change is not kept yet             ([unsaved](unsaved))\n     lists every place the file takes writing         ([slots](slots))\n     marks what still waits for claude          ([queuedMark](queuedMark))\n     says which place holds the box           ([isEditing](isEditing))\n     draws the writing box                      ([editorHtml](editorHtml))\n     draws the telling of a whole file    ([mapSlotHtml](mapSlotHtml))\n     draws the place for your own words  ([expandSlotHtml](expandSlotHtml))\n     numbers the lines of the code      ([codeSlotHtml](codeSlotHtml))\n     makes the box as tall as its text without moving the page   ([fit](fit))\n     puts the caret in the new box without moving the page        ([focusEditor](focusEditor))\n     holds what you typed while the page redraws     ([keep](keep))\n     takes the words out of the open box          ([keepBox](keepBox))\n     finds the letter you clicked                 ([caretAt](caretAt))\n     finds that letter in the raw text        ([rawOffset](rawOffset))\n     finds it past the line numbers         ([codeOffset](codeOffset))\n     sends one ask to the server                        ([post](post))\n     shuts the little menu                      ([menuClose](menuClose))\n     finds a file by the name the server knows it by  ([fileNamed](fileNamed))\n     lights the words a pin points at         ([flashAnchor](flashAnchor))\n     names where a hidden session is kept on the server  ([hideKey](hideKey))\n     reads one version of a row, in the old form or the new  ([versionOf](versionOf))\n     lists every text of a version, oldest first      ([textsOf](textsOf))\n     gives the text a card shows now            ([cardShown](cardShown))\n     draws the pins of a card without links      ([cardText](cardText))\n     lists the versions a row takes               ([slotsOf](slotsOf))\n     draws one row of cards                         ([rowHtml](rowHtml))\n     draws one row again where you swiped it  ([rerenderRow](rerenderRow))\n     draws the top bar of the training          ([renderTop](renderTop))\n     shows one line under the top bar of the training  ([noteTrain](noteTrain))\n     shows or puts away the training            ([showTrain](showTrain))\n     reads an answer of the store, or its refusal     ([stored](stored))",
       "anchors": [
         {
           "words": "# WEB LOADS PROJECT",
           "block": "script",
           "lines": [
             [
-              208,
-              1516
+              213,
+              1602
             ]
           ]
         },
@@ -27,8 +27,8 @@
           "block": "refreshFiles",
           "lines": [
             [
-              309,
-              336
+              314,
+              341
             ]
           ]
         },
@@ -37,8 +37,8 @@
           "block": "main",
           "lines": [
             [
-              188,
-              199
+              193,
+              204
             ]
           ]
         },
@@ -47,8 +47,8 @@
           "block": "makeNamed",
           "lines": [
             [
-              339,
-              356
+              344,
+              361
             ]
           ]
         },
@@ -57,8 +57,8 @@
           "block": "open",
           "lines": [
             [
-              409,
-              427
+              414,
+              432
             ]
           ]
         },
@@ -67,8 +67,8 @@
           "block": "sorted",
           "lines": [
             [
-              469,
-              490
+              474,
+              495
             ]
           ]
         },
@@ -77,8 +77,8 @@
           "block": "render",
           "lines": [
             [
-              718,
-              762
+              764,
+              808
             ]
           ]
         },
@@ -87,8 +87,8 @@
           "block": "guessAnchor",
           "lines": [
             [
-              498,
-              508
+              503,
+              513
             ]
           ]
         },
@@ -97,38 +97,38 @@
           "block": "header",
           "lines": [
             [
-              705,
-              716
+              751,
+              762
             ]
           ]
         },
         {
-          "words": "the box",
+          "words": "# USER WRITES",
           "block": "startEdit",
           "lines": [
             [
-              828,
-              833
+              907,
+              912
             ]
           ]
         },
         {
-          "words": "closes the box",
+          "words": "the box closes",
           "block": "leaveEdit",
           "lines": [
             [
-              835,
-              841
+              914,
+              920
             ]
           ]
         },
         {
-          "words": "ctrl-S keeps it in the\n\u2502     browser",
+          "words": "ctrl-S or tap on it keeps it on the server",
           "block": "save",
           "lines": [
             [
-              843,
-              853
+              922,
+              935
             ]
           ]
         },
@@ -137,8 +137,8 @@
           "block": "menuAt",
           "lines": [
             [
-              937,
-              951
+              1019,
+              1033
             ]
           ]
         },
@@ -147,8 +147,8 @@
           "block": "create",
           "lines": [
             [
-              909,
-              911
+              991,
+              993
             ]
           ]
         },
@@ -157,8 +157,8 @@
           "block": "deleteOpen",
           "lines": [
             [
-              913,
-              917
+              995,
+              999
             ]
           ]
         },
@@ -167,8 +167,8 @@
           "block": "deleteSend",
           "lines": [
             [
-              925,
-              934
+              1007,
+              1016
             ]
           ]
         },
@@ -177,8 +177,8 @@
           "block": "deleteClose",
           "lines": [
             [
-              919,
-              923
+              1001,
+              1005
             ]
           ]
         },
@@ -187,8 +187,8 @@
           "block": "selectedRaw",
           "lines": [
             [
-              954,
-              972
+              1036,
+              1054
             ]
           ]
         },
@@ -197,8 +197,8 @@
           "block": "expandOpen",
           "lines": [
             [
-              880,
-              887
+              962,
+              969
             ]
           ]
         },
@@ -207,8 +207,8 @@
           "block": "expandSend",
           "lines": [
             [
-              898,
-              907
+              980,
+              989
             ]
           ]
         },
@@ -217,8 +217,8 @@
           "block": "expandClose",
           "lines": [
             [
-              889,
-              896
+              971,
+              978
             ]
           ]
         },
@@ -227,8 +227,8 @@
           "block": "decompile",
           "lines": [
             [
-              876,
-              878
+              958,
+              960
             ]
           ]
         },
@@ -237,8 +237,8 @@
           "block": "ask",
           "lines": [
             [
-              860,
-              874
+              942,
+              956
             ]
           ]
         },
@@ -247,8 +247,8 @@
           "block": "compile",
           "lines": [
             [
-              983,
-              1017
+              1065,
+              1099
             ]
           ]
         },
@@ -257,8 +257,8 @@
           "block": "reloadMap",
           "lines": [
             [
-              974,
-              981
+              1056,
+              1063
             ]
           ]
         },
@@ -267,8 +267,8 @@
           "block": "pollQueue",
           "lines": [
             [
-              1025,
-              1037
+              1107,
+              1119
             ]
           ]
         },
@@ -277,8 +277,8 @@
           "block": "jump",
           "lines": [
             [
-              1040,
-              1048
+              1122,
+              1130
             ]
           ]
         },
@@ -287,8 +287,8 @@
           "block": "crossJump",
           "lines": [
             [
-              1061,
-              1084
+              1143,
+              1166
             ]
           ]
         },
@@ -297,8 +297,8 @@
           "block": "loadTrain",
           "lines": [
             [
-              1358,
-              1377
+              1444,
+              1463
             ]
           ]
         },
@@ -307,8 +307,8 @@
           "block": "chip",
           "lines": [
             [
-              1333,
-              1344
+              1418,
+              1430
             ]
           ]
         },
@@ -317,8 +317,8 @@
           "block": "renderRows",
           "lines": [
             [
-              1276,
-              1293
+              1361,
+              1378
             ]
           ]
         },
@@ -327,8 +327,8 @@
           "block": "cardHtml",
           "lines": [
             [
-              1224,
-              1261
+              1309,
+              1346
             ]
           ]
         },
@@ -337,8 +337,8 @@
           "block": "copyText",
           "lines": [
             [
-              1467,
-              1474
+              1553,
+              1560
             ]
           ]
         },
@@ -347,8 +347,8 @@
           "block": "sendPick",
           "lines": [
             [
-              1476,
-              1483
+              1562,
+              1569
             ]
           ]
         },
@@ -357,8 +357,8 @@
           "block": "closeTrain",
           "lines": [
             [
-              1379,
-              1399
+              1465,
+              1485
             ]
           ]
         },
@@ -367,8 +367,8 @@
           "block": "closeLine",
           "lines": [
             [
-              1295,
-              1310
+              1380,
+              1395
             ]
           ]
         },
@@ -378,7 +378,7 @@
           "lines": [
             [
               9,
-              185
+              190
             ]
           ]
         },
@@ -387,8 +387,8 @@
           "block": "esc",
           "lines": [
             [
-              211,
-              211
+              216,
+              216
             ]
           ]
         },
@@ -397,8 +397,8 @@
           "block": "msg",
           "lines": [
             [
-              217,
-              217
+              222,
+              222
             ]
           ]
         },
@@ -407,8 +407,8 @@
           "block": "drawer",
           "lines": [
             [
-              221,
-              221
+              226,
+              226
             ]
           ]
         },
@@ -417,8 +417,8 @@
           "block": "loadMaps",
           "lines": [
             [
-              225,
-              230
+              230,
+              235
             ]
           ]
         },
@@ -427,8 +427,8 @@
           "block": "held",
           "lines": [
             [
-              231,
-              233
+              236,
+              238
             ]
           ]
         },
@@ -437,8 +437,8 @@
           "block": "fromMaps",
           "lines": [
             [
-              234,
-              237
+              239,
+              242
             ]
           ]
         },
@@ -447,8 +447,8 @@
           "block": "humanPath",
           "lines": [
             [
-              240,
-              240
+              245,
+              245
             ]
           ]
         },
@@ -457,8 +457,8 @@
           "block": "bareOf",
           "lines": [
             [
-              241,
-              241
+              246,
+              246
             ]
           ]
         },
@@ -467,8 +467,8 @@
           "block": "shownPath",
           "lines": [
             [
-              243,
-              243
+              248,
+              248
             ]
           ]
         },
@@ -477,8 +477,8 @@
           "block": "recordPath",
           "lines": [
             [
-              244,
-              248
+              249,
+              253
             ]
           ]
         },
@@ -487,8 +487,8 @@
           "block": "noCodeFile",
           "lines": [
             [
-              257,
-              257
+              262,
+              262
             ]
           ]
         },
@@ -497,8 +497,8 @@
           "block": "loadList",
           "lines": [
             [
-              260,
-              266
+              265,
+              271
             ]
           ]
         },
@@ -507,8 +507,8 @@
           "block": "buildTree",
           "lines": [
             [
-              284,
-              306
+              289,
+              311
             ]
           ]
         },
@@ -517,8 +517,8 @@
           "block": "newClose",
           "lines": [
             [
-              360,
-              360
+              365,
+              365
             ]
           ]
         },
@@ -527,8 +527,8 @@
           "block": "treeLast",
           "lines": [
             [
-              396,
-              400
+              401,
+              405
             ]
           ]
         },
@@ -537,8 +537,8 @@
           "block": "treeRoots",
           "lines": [
             [
-              615,
-              623
+              661,
+              669
             ]
           ]
         },
@@ -547,8 +547,8 @@
           "block": "treeRows",
           "lines": [
             [
-              625,
-              632
+              671,
+              678
             ]
           ]
         },
@@ -557,8 +557,8 @@
           "block": "newOpen",
           "lines": [
             [
-              361,
-              369
+              366,
+              374
             ]
           ]
         },
@@ -567,8 +567,8 @@
           "block": "treeRow",
           "lines": [
             [
-              380,
-              387
+              385,
+              392
             ]
           ]
         },
@@ -577,8 +577,8 @@
           "block": "treeDir",
           "lines": [
             [
-              388,
-              395
+              393,
+              400
             ]
           ]
         },
@@ -587,8 +587,8 @@
           "block": "loadCode",
           "lines": [
             [
-              429,
-              440
+              434,
+              445
             ]
           ]
         },
@@ -597,8 +597,8 @@
           "block": "fileOf",
           "lines": [
             [
-              442,
-              446
+              447,
+              451
             ]
           ]
         },
@@ -607,8 +607,8 @@
           "block": "crossEntry",
           "lines": [
             [
-              448,
-              452
+              453,
+              457
             ]
           ]
         },
@@ -617,8 +617,8 @@
           "block": "crossAnchor",
           "lines": [
             [
-              454,
-              460
+              459,
+              465
             ]
           ]
         },
@@ -627,8 +627,8 @@
           "block": "targetOf",
           "lines": [
             [
-              462,
-              467
+              467,
+              472
             ]
           ]
         },
@@ -637,8 +637,8 @@
           "block": "guessAnchor",
           "lines": [
             [
-              498,
-              508
+              503,
+              513
             ]
           ]
         },
@@ -647,8 +647,8 @@
           "block": "pinOf",
           "lines": [
             [
-              516,
-              516
+              521,
+              521
             ]
           ]
         },
@@ -657,8 +657,8 @@
           "block": "suffixOf",
           "lines": [
             [
-              518,
-              522
+              523,
+              527
             ]
           ]
         },
@@ -667,8 +667,8 @@
           "block": "lineHtml",
           "lines": [
             [
-              524,
-              556
+              529,
+              561
             ]
           ]
         },
@@ -677,8 +677,8 @@
           "block": "nameOf",
           "lines": [
             [
-              558,
-              563
+              563,
+              568
             ]
           ]
         },
@@ -687,8 +687,8 @@
           "block": "key",
           "lines": [
             [
-              565,
-              565
+              570,
+              570
             ]
           ]
         },
@@ -697,8 +697,8 @@
           "block": "baseText",
           "lines": [
             [
-              567,
-              567
+              613,
+              613
             ]
           ]
         },
@@ -707,8 +707,8 @@
           "block": "expandHere",
           "lines": [
             [
-              569,
-              569
+              615,
+              615
             ]
           ]
         },
@@ -717,8 +717,8 @@
           "block": "deleteHere",
           "lines": [
             [
-              570,
-              570
+              616,
+              616
             ]
           ]
         },
@@ -727,8 +727,8 @@
           "block": "shownText",
           "lines": [
             [
-              572,
-              577
+              618,
+              623
             ]
           ]
         },
@@ -737,8 +737,8 @@
           "block": "changed",
           "lines": [
             [
-              579,
-              579
+              625,
+              625
             ]
           ]
         },
@@ -747,8 +747,8 @@
           "block": "baseFor",
           "lines": [
             [
-              581,
-              589
+              627,
+              635
             ]
           ]
         },
@@ -757,8 +757,8 @@
           "block": "waiting",
           "lines": [
             [
-              591,
-              608
+              637,
+              654
             ]
           ]
         },
@@ -767,8 +767,8 @@
           "block": "markSoon",
           "lines": [
             [
-              610,
-              613
+              656,
+              659
             ]
           ]
         },
@@ -777,8 +777,8 @@
           "block": "markWaiting",
           "lines": [
             [
-              634,
-              647
+              680,
+              693
             ]
           ]
         },
@@ -787,8 +787,8 @@
           "block": "unsaved",
           "lines": [
             [
-              649,
-              654
+              695,
+              700
             ]
           ]
         },
@@ -797,8 +797,8 @@
           "block": "slots",
           "lines": [
             [
-              656,
-              665
+              702,
+              711
             ]
           ]
         },
@@ -807,8 +807,8 @@
           "block": "queuedMark",
           "lines": [
             [
-              667,
-              670
+              713,
+              716
             ]
           ]
         },
@@ -817,8 +817,8 @@
           "block": "isEditing",
           "lines": [
             [
-              672,
-              672
+              718,
+              718
             ]
           ]
         },
@@ -827,8 +827,8 @@
           "block": "editorHtml",
           "lines": [
             [
-              674,
-              676
+              720,
+              722
             ]
           ]
         },
@@ -837,8 +837,8 @@
           "block": "mapSlotHtml",
           "lines": [
             [
-              678,
-              685
+              724,
+              731
             ]
           ]
         },
@@ -847,8 +847,8 @@
           "block": "expandSlotHtml",
           "lines": [
             [
-              687,
-              694
+              733,
+              740
             ]
           ]
         },
@@ -857,8 +857,8 @@
           "block": "codeSlotHtml",
           "lines": [
             [
-              696,
-              703
+              742,
+              749
             ]
           ]
         },
@@ -867,8 +867,8 @@
           "block": "fit",
           "lines": [
             [
-              764,
-              764
+              810,
+              810
             ]
           ]
         },
@@ -877,8 +877,8 @@
           "block": "focusEditor",
           "lines": [
             [
-              766,
-              773
+              812,
+              820
             ]
           ]
         },
@@ -887,8 +887,8 @@
           "block": "keep",
           "lines": [
             [
-              775,
-              778
+              854,
+              857
             ]
           ]
         },
@@ -897,8 +897,8 @@
           "block": "keepBox",
           "lines": [
             [
-              780,
-              784
+              859,
+              863
             ]
           ]
         },
@@ -907,8 +907,8 @@
           "block": "caretAt",
           "lines": [
             [
-              786,
-              799
+              865,
+              878
             ]
           ]
         },
@@ -917,8 +917,8 @@
           "block": "rawOffset",
           "lines": [
             [
-              801,
-              816
+              880,
+              895
             ]
           ]
         },
@@ -927,8 +927,8 @@
           "block": "codeOffset",
           "lines": [
             [
-              818,
-              826
+              897,
+              905
             ]
           ]
         },
@@ -937,8 +937,8 @@
           "block": "post",
           "lines": [
             [
-              855,
-              858
+              937,
+              940
             ]
           ]
         },
@@ -947,8 +947,8 @@
           "block": "menuClose",
           "lines": [
             [
-              952,
-              952
+              1034,
+              1034
             ]
           ]
         },
@@ -957,8 +957,8 @@
           "block": "fileNamed",
           "lines": [
             [
-              1019,
-              1023
+              1101,
+              1105
             ]
           ]
         },
@@ -967,8 +967,8 @@
           "block": "flashAnchor",
           "lines": [
             [
-              1050,
-              1059
+              1132,
+              1141
             ]
           ]
         },
@@ -977,8 +977,8 @@
           "block": "hideKey",
           "lines": [
             [
-              1192,
-              1192
+              1277,
+              1277
             ]
           ]
         },
@@ -987,8 +987,8 @@
           "block": "versionOf",
           "lines": [
             [
-              1194,
-              1199
+              1279,
+              1284
             ]
           ]
         },
@@ -997,8 +997,8 @@
           "block": "textsOf",
           "lines": [
             [
-              1201,
-              1203
+              1286,
+              1288
             ]
           ]
         },
@@ -1007,8 +1007,8 @@
           "block": "cardShown",
           "lines": [
             [
-              1205,
-              1210
+              1290,
+              1295
             ]
           ]
         },
@@ -1017,8 +1017,8 @@
           "block": "cardText",
           "lines": [
             [
-              1212,
-              1220
+              1297,
+              1305
             ]
           ]
         },
@@ -1027,8 +1027,8 @@
           "block": "slotsOf",
           "lines": [
             [
-              1222,
-              1222
+              1307,
+              1307
             ]
           ]
         },
@@ -1037,8 +1037,8 @@
           "block": "rowHtml",
           "lines": [
             [
-              1263,
-              1265
+              1348,
+              1350
             ]
           ]
         },
@@ -1047,8 +1047,8 @@
           "block": "rerenderRow",
           "lines": [
             [
-              1267,
-              1274
+              1352,
+              1359
             ]
           ]
         },
@@ -1057,8 +1057,8 @@
           "block": "renderTop",
           "lines": [
             [
-              1312,
-              1327
+              1397,
+              1412
             ]
           ]
         },
@@ -1067,8 +1067,8 @@
           "block": "noteTrain",
           "lines": [
             [
-              1329,
-              1331
+              1414,
+              1416
             ]
           ]
         },
@@ -1077,8 +1077,8 @@
           "block": "showTrain",
           "lines": [
             [
-              1346,
-              1351
+              1432,
+              1437
             ]
           ]
         },
@@ -1087,133 +1087,141 @@
           "block": "stored",
           "lines": [
             [
-              1353,
-              1356
+              1439,
+              1442
             ]
           ]
         }
       ],
       "verbatim": {
-        "origin": "# WEB LOADS PROJECT\n\nthe page asks for human.json which holds the file names of the project. \n\nfor every file, it asks for its explanation_<name>.json in the map folder. \n\na file with no .json record gets an empty one, so the page still shows it. \nthe file itself shows and gets requested only when you open the file. \nhuman.json is always in the list, first, under the name human/human.json.\n\nweb also requests project.json, the abstraction about the project as a whole; \nif it holds abstractions it joins the list too, under the name human/project.json. \n\nhuman.json also names:\n  the human files,\n  abstractions with no code under them,\n  the place each one was made in.\nfor each one: \n  the page asks for its .json record, human_<name>.json, \nthen it joins the list at that place, under its own name, <name>.human, at the root when it has no place.\nthe record it reads and writes stays human/human_<name>.json\n\nevery five seconds it asks for human.json again;\nwhen the files or the human files in it changed: \n  the tree shows the new list,\n  the file you read stays open, \n  or the first file opens when yours is gone.\n\n\n# THE FILE TREE\non the left: the project name and its files.\n  a file that holds a writing which is not compiled shows small white dot at the left of its row. the dot goes out when the compile passes.\na left click on a file opens that file.\nif a right click on the files, a folder or empty space:\n  opens a list with two options: \"create file\" and \"create human\".\n  if any option is clicked:\n    a box opens for a name under the folder the right click it's from.\n    the grey words say where the name will land, like <path>/<name>\n    a name that starts with / drops the folder and lands at the root.\n\n    if empty space, the box stands on the last row of the tree, and that row gives the folder: the root, or the folder it stands in.\n    enter asks the server to make that file inside that folder\n    if human:\n      the box takes the bare name \n      the folder is the place it shows in \n      it makes a human file, an abstraction with no code under it. \n  pressing escape or clicking anywhere closes the box or the list.\n\nthe server's answer shows on top of the reader: \n  a pass opens the new file and marks it in the tree\n  a refusal stays in the warning colour.\n\n\n# USER OPENS FILE\na file keeps the lines of the file and every abstraction.\nthe .json has which piece of the file each abstraction is about.\n\nif open for the first time, file opens at its top.\nif user comes back to a file, the abstractions left open stay open as you left it, and the page stands where you had scrolled it. \na writing box left open closes when user goes to another file.\n\n\u25cf  the page puts the abstractions in order               (sorted)\n\u2502     A pin points from one abstraction at another. The abstraction\n\u2502     nobody points at is the most abstract, and it goes last. An\n\u2502     abstraction that a pin points at goes above the one that holds\n\u2502     the pin, and so on upward. Among equals, the one about earlier\n\u2502     lines goes first.\n\n\n\n# THE WEB DRAWS THE LIST\ndraws an abstraction as one header line:\n  a small arrow, \n  the name of its piece\n  its lines. \nabstraction start folded the first time.\nunder the header the words are drawn exactly as written.\n\na pin whose target has an abstraction is lit; \na pin with none is muted; \na pin the map does not hold yet, one you just typed, is read from the target it names. \n\nthe bar on top says how many are open.\nonly as soon as anything differs from the map:\n  the word \"unsaved\", a compile button shows in the page.\n  and a dot on that file's row, which even if file is closed, shows.\n \n\n# NEW ABSTRACTION POSITIONS\n\nthe position of the abstraction words you expand on stands on top of the list while the ask is open; \nif file with no map:\n  shows one place for a new abstraction and the code of the file under it, \n  the bar says there is no abstraction yet, in the place of the count, with the compiling mark beside it. \nif human.json, no writing.\nif human file or project.json:\n  show the abstractions alone, because they have no code. \n\nan abstraction whose writing waits for the ai harness is marked compiling, with a count when more than one waits. \na redraw of the same file keeps the page where you had scrolled it, so the words stay under your eyes. \nthe head line of an abstraction you asked to take away holds that ask in the place of its name until you send it or drop it.\n\n\n\u25cf  you write                                          (the box)\n\u2502     A click on the words puts a box in their place, with the caret\n\u2502     where you clicked. A muted pin shows a name beside its words,\n\u2502     and that name counts too, so a click after one lands where you\n\u2502     meant. It holds the text as it is in the map \u2014 the pins in\n\u2502     their brackets, the targets visible \u2014 or the code of the file,\n\u2502     or nothing for a new abstraction. The box grows as you type,\n\u2502     and the page stays where you scrolled it. Escape, or a click\n\u2502     away, closes the box and keeps what you\n\u2502     wrote. The bar says unsaved until ctrl-S keeps it in the\n\u2502     browser, so a box you come back to holds what you left.\n\u2502     Your words stay in the place you wrote them, even when the page\n\u2502     draws again between one box and the next. Only the box now open\n\u2502     answers a click away; an older box the page left behind closes\n\u2502     nothing.\n\u2502\n\u25cf  you ask ai harness for an abstraction                  (the menu)\n\u2502     A right click opens a small menu where you point. On the header\n\u2502     of an abstraction it offers a wider one above it and\n\u2502     to take that one away; the ask to take away stands\n\u2502     on the head line itself, a click on its name sends it,\n\u2502     and cancel, or escape, lets it go. On\n\u2502     words you picked, in the text or in the open box,\n\u2502     it offers to expand on them: a place opens on top of the\n\u2502     list where you may add your own words, or none, a\n\u2502     click on its name sends the ask, and cancel\n\u2502     drops it. A file with no abstraction yet and some\n\u2502     code in it carries decompile over its writing place, which asks\n\u2502     for the whole file to be read and told; an empty\n\u2502     file calls that place new abstraction, and a human file, which\n\u2502     has no code, calls it that too. Each of these goes to the\n\u2502     server like a compile and comes back as a writing that\n\u2502     waits for claude.\n\u2502\n\u25cf  you press compile and the server answers            (compile)\n\u2502     The button in the bar sends every place you changed, one after\n\u2502     the other, and each runs the command you would have typed. A\n\u2502     refusal comes back in the command's own words, named by the\n\u2502     place it came from, in the warning colour, and your words stay\n\u2502     on the page. A pass forgets the draft, redraws the page with\n\u2502     the map read again and says which writing now\n\u2502     waits for claude.\n\u2502\n\u25cf  the page watches the queue                         (pollQueue)\n\u2502     Every three seconds it asks the server what still waits and\n\u2502     marks the entries. When claude finishes, the mark goes, the\n\u2502     page reads the map of that file again, so the new words show,\n\u2502     and the training looks again for new rows.\n\u2502\n\u25cf  you click                                                (jump)\n\u2502     A click on a header folds or unfolds that abstraction.\n\u2502     A click on a lit pin scrolls to the abstraction it points at,\n\u2502     unfolds it, and lights it for a moment; it opens no box.\n\u2502\n\u25cf  you cross to another file                      (crossJump)\n\u2502     A pin can name a file of the project instead of a piece of\n\u2502     this one. A click on it opens that file and goes to the piece\n\u2502     the pin names. A pin to a file the project does not hold, or\n\u2502     to a piece with no abstraction, is muted and shows the piece\n\u2502     name. A pin can also name one abstraction of that file and\n\u2502     words inside it: a click opens the file, goes to that\n\u2502     abstraction, and lights those words for a moment. Such a pin\n\u2502     to words the abstraction does not hold is muted and shows the\n\u2502     file and the number of the abstraction; when the file holds no\n\u2502     such abstraction at all, a line on top says so.\n\u2502\n\u25cf  the page shows the training                    (loadTrain)\n\u2502     Every five seconds the page asks the server for the training\n\u2502     sessions. An open session covers the whole page with its rows.\n\u2502     Hide puts it away until the session gains a row, and a short\n\u2502     line in the bar counts its rows and picks; a click on it\n\u2502     shows the training again. With no open session the line says\n\u2502     only training, and a click shows the last session. A list on\n\u2502     top goes to another session. When the store does not answer,\n\u2502     the line says why and takes no click. A session with no rows\n\u2502     yet says that claude writes them after the event.\n\u2502\n\u25cf  you look through the rows                    (renderRows)\n\u2502     Each row is one change claude wrote for, and it fills the\n\u2502     screen; a swipe up brings the next row. A swipe to the side\n\u2502     goes to the next version of the same row: best, refinement and\n\u2502     free for a sync, best and free for any other. A card\n\u2502     names the file, the kind of change, the level and the entry, and\n\u2502     the version with its shape; a refinement that keeps the words\n\u2502     as they were is called current, and a row brought over from an\n\u2502     earlier session says carried. The words show with their pins,\n\u2502     but a pin here leads nowhere. When claude wrote a version more\n\u2502     than once, v1, v2 and on let you read each text; an older one\n\u2502     stands in a dashed frame, and the pick always takes the latest.\n\u2502     Copy puts the words you see on the clipboard. A\n\u2502     version not written yet says so. A redraw keeps each row at the\n\u2502     version you had swiped to.\n\u2502\n\u25cf  you pick a version                             (sendPick)\n\u2502     Pick this one opens a box for why you chose it, which you may\n\u2502     leave empty; pick sends it, and cancel drops it. The picked card\n\u2502     lights up and shows your why, and a press on it takes the pick\n\u2502     back. A refused pick says why in a line under the top bar. In a\n\u2502     finished session, or on a row already put in the map, a card\n\u2502     only says what was picked, or that it was taken by default, and\n\u2502     the entry it became.\n\u2502\n\u25cf  you close the training                       (closeTrain)\n      Close training asks first and says what the close will\n      do: how many rows are picked, how many take best,\n      and how many carry over to the next session, a sync row with no\n      pick and a row claude has not written yet. Close sends it;\n      cancel, or escape, drops the ask. A pass reads the map of every\n      file in the session again, puts the training away, and shows\n      the server's answer on top of the reader. A refusal stays in the\n      line under the top bar, and the session stays open.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n#WEB DESIGN\n\ntwo panes on a quiet ground: \n  the tree on the left, \n  the reader on the right, as wide as the window lets it. \na dark and a light version, chosen by your system. \n\nthe tree looks like the list of apple notes:\n  dark: pure black ground behind it, like the reader.\n  light: the soft grey ground of apple notes, #f2f2f7.\n  the project name and the tree each sit in a card: dark grey #1c1c1e, or white in light, with large round corners and no edge.\n  file names in off-white, folder names and icons in grey #8e8e93.\n  the open file wears a lighter grey row, no lively colour.\n\nthe reader:\n  dark: pure black ground, off-white words, like apple notes.\n  light: pure white ground, near-black words.\n  the buttons are dark grey glass with a thin lighter edge, white icons.\n\nfont is SF Pro, the San Francisco font of Apple. If not apple device, use typewriter font.\nside and vertical scroll ui, small pill, no bar, and fades.\n\non a narrow screen:\n  the text fades on the top and bottom.\n  the colour of the reader fills the whole screen\n\n  the tree hides and slides in over the reader. if tree opens, the reader section appears dark fading\n  the reader fills the screen, no frame.\n  the words font:\n    size is 14px\n    they keep that size when you read and when you write. specially in safari mobile.\n  a line wider than the screen scrolls sideways. \n\n  sideway scroll at furthest at the bottom\n \n  the top bar has no line of its own. two buttons float over the words:\n     top left, a round button with the burger in a center. it opens the tree.\n     top right, one shared pill holding the lucide icon buttons: graduation-cap for training and square-sparkles for compile, like the share and more pill of apple notes. with proper space between them.\n  the buttons use the black ground, the grey glass and the white icons, with no lively colour.\n  the file name and the count do not show.\n  a non-pill, green filled circle with a white check inside icon to save:\n    almost as big as the pill buttons, a bit smaller so it looks good\n    apppears in an animation, on the right of compile\n    enough space to not press compiler by mistake. \n    if clicked, file saves.\n\n  the buttons float on top of the text. \n\n\nthe box for the name of a new file stands under the row you right clicked, or under the last row when you clicked empty space, and takes that row's width, over everything, in the typewriter face. \nthe writing box sits in the place of the words, and grows with what you type. \nan empty place stands in its own room and lights up under the pointer, so you see where you can write. \non a wide screen, a word on a head line that does something wears the lively colour and underlines itself under the pointer. \nthe little menu floats where you point, over everything, and each of its rows lights under the pointer.\non a wide screen, the training line in the bar wears the lively colour, and turns faint when the store does not answer. \nthe training lies over the whole page:\n  each row fills the screen and each card fills its width, \n  both snap into place, so one swipe moves one card. \n  the name of a picked card wears the lively colour;\n  an older text has a dashed frame. \n  on a small phone the words of a card grow smaller.\n\n\n# HELPER FUNCTIONS\n\nesc\nmakes text safe to show on a page                        \n\nmsg\nshows one line when there is nothing to read              \n        \ndrawer\nopens and hides the tree on a narrow screen\n\nloadFile\nreads the record of one file, or gives it an empty one\n\nhumanPath\nnames the record of a human file\n                \nbareOf\ngives the bare name of a human path\n\nshownPath\ngives the name a human file wears in the tree\n\nrecordPath\ngives the record behind a shown name\n\n     says a file has no code under it           (noCodeFile)\n     reads the record of one human file, or an empty one  (loadHuman)\n     builds the file tree for one project         (buildTree)\n     shuts the box for the name of a new file       (newClose)\n             \ntreeLast\nfinds the row above the empty space you clicked \n\ntreeRoots\nfinds the roots the tree draws in            \n\ntreeRows\ngives every row of the tree                   \n\nnewOpen\nopens that box under a row, empty, and keeps that row's folder for the enter\n\n     finds the tree row you right clicked            (treeRow)\n     gives the folder that row stands in             (treeDir)\n     asks for the file when you open it             (loadCode)\n     finds a file of the project by name                (fileOf)\n     says if a piece has an abstraction         (crossEntry)\n     says if an abstraction has those words   (crossAnchor)\n     finds which abstraction a pin points at        (targetOf)\n     reads a pin the map does not hold    (guessAnchor)\n     finds the pin behind one bracket                     (pinOf)\n     says what a muted pin shows beside it          (suffixOf)\n     turns the pins of one line into links          (lineHtml)\n     says the name the server knows a file by       (nameOf)\n     names where a draft is kept in the browser           (key)\n     gives the text a box opens with            (baseText)\n     says if a place for words is open here      (expandHere)\n     says if a delete is asked here              (deleteHere)\n     gives the text now shown, draft or map   (shownText)\n\nchanged\nsays if a text differs from the map          \n\nbaseFor\ngives the text the map of any file holds for one place\n\nwaiting\nsays which files hold a writing not compiled    \n\nmarkSoon\nputs the dots as soon as the tree stands\n\nmarkWaiting\nputs a dot on those rows of the tree\n\n     says if a change is not kept yet             (unsaved)\n     lists every place the file takes writing         (slots)\n     marks what still waits for claude          (queuedMark)\n     says which place holds the box           (isEditing)\n     draws the writing box                      (editorHtml)\n     draws the telling of a whole file    (mapSlotHtml)\n     draws the place for your own words  (expandSlotHtml)\n     numbers the lines of the code      (codeSlotHtml)\n     makes the box as tall as its text without moving the page   (fit)\n     puts the caret in the new box without moving the page        (focusEditor)\n     holds what you typed while the page redraws     (keep)\n     takes the words out of the open box          (keepBox)\n     finds the letter you clicked                 (caretAt)\n     finds that letter in the raw text        (rawOffset)\n     finds it past the line numbers         (codeOffset)\n     sends one ask to the server                        (post)\n     shuts the little menu                      (menuClose)\n     finds a file by the name the server knows it by  (fileNamed)\n     lights the words a pin points at         (flashAnchor)\n     names where a hidden session is kept in the browser  (hideKey)\n     reads one version of a row, in the old form or the new  (versionOf)\n     lists every text of a version, oldest first      (textsOf)\n     gives the text a card shows now            (cardShown)\n     draws the pins of a card without links      (cardText)\n     lists the versions a row takes               (slotsOf)\n     draws one row of cards                         (rowHtml)\n     draws one row again where you swiped it  (rerenderRow)\n     draws the top bar of the training          (renderTop)\n     shows one line under the top bar of the training  (noteTrain)\n     shows or puts away the training            (showTrain)\n     reads an answer of the store, or its refusal     (stored)"
+        "origin": "# WEB LOADS PROJECT\n\nthe page asks for human.json which holds the file names of the project. \n\nat the same time it asks the server once for maps, which holds the explanation_<name>.json of every file in the map folder. \n\na file with no .json record gets an empty one, so the page still shows it. \nthe file itself shows and gets requested only when you open the file. \nhuman.json is always in the list, first, under the name human/human.json.\n\nweb also reads project.json from maps, the abstraction about the project as a whole; \nif it holds abstractions it joins the list too, under the name human/project.json. \n\nhuman.json also names:\n  the human files,\n  abstractions with no code under them,\n  the place each one was made in.\nfor each one: \n  the page reads its .json record, human_<name>.json, from maps\nthen it joins the list at that place, under its own name, <name>.human, at the root when it has no place.\nthe record it reads and writes stays human/human_<name>.json\n\nevery five seconds it asks for human.json again;\nwhen human.json did not change since the last ask, the server says so and the page reads nothing more.\nwhen the files or the human files in it changed: \n  the page asks for maps again only when a new file is in the list, and the files it already holds stay as they are,\n  the tree shows the new list,\n  the file you read stays open, \n  or the first file opens when yours is gone.\n\n\n# THE FILE TREE\non the left: the project name and its files.\n  a file that holds a writing which is not compiled shows small yellow dot at the left of its row. the dot goes out when the compile passes.\na left click on a file opens that file.\nif a right click on the files, a folder or empty space:\n  opens a list with two options: \"create file\" and \"create human\".\n  if any option is clicked:\n    a box opens for a name under the folder the right click it's from.\n    the grey words say where the name will land, like <path>/<name>\n    a name that starts with / drops the folder and lands at the root.\n\n    if empty space, the box stands on the last row of the tree, and that row gives the folder: the root, or the folder it stands in.\n    enter asks the server to make that file inside that folder\n    if human:\n      the box takes the bare name \n      the folder is the place it shows in \n      it makes a human file, an abstraction with no code under it. \n  pressing escape or clicking anywhere closes the box or the list.\n\nthe server's answer shows on top of the reader: \n  a pass opens the new file and marks it in the tree\n  a refusal stays in the warning colour.\n\n\n# USER OPENS FILE\na file keeps the lines of the file and every abstraction.\nthe .json has which piece of the file each abstraction is about.\n\nif open for the first time, file opens at its top.\nif user comes back to a file, the abstractions left open stay open as you left it, and the page stands where you had scrolled it. \na writing box left open closes when user goes to another file.\n\n\u25cf  the page puts the abstractions in order               (sorted)\n\u2502     A pin points from one abstraction at another. The abstraction\n\u2502     nobody points at is the most abstract, and it goes last. An\n\u2502     abstraction that a pin points at goes above the one that holds\n\u2502     the pin, and so on upward. Among equals, the one about earlier\n\u2502     lines goes first.\n\n\n\n# THE WEB DRAWS THE LIST\ndraws an abstraction as one header line:\n  a small arrow, \n  the name of its piece\n  its lines. \nabstraction start folded the first time.\nunder the header the words are drawn exactly as written.\n\na pin whose target has an abstraction is lit; \na pin with none is muted; \na pin the map does not hold yet, one you just typed, is read from the target it names. \n\nthe bar on top says how many are open.\nonly as soon as anything differs from the map:\n  the word \"unsaved\", a compile button shows in the page.\n  and a dot on that file's row, which even if file is closed, shows.\n \n\n# NEW ABSTRACTION POSITIONS\n\nthe position of the abstraction words you expand on stands on top of the list while the ask is open; \nif file with no map:\n  shows one place for a new abstraction and the code of the file under it, \n  the bar says there is no abstraction yet, in the place of the count, with the compiling mark beside it. \nif human.json, no writing.\nif human file or project.json:\n  show the abstractions alone, because they have no code. \n\nan abstraction whose writing waits for the ai harness is marked compiling, with a count when more than one waits. \na redraw of the same file keeps the page where you had scrolled it, so the words stay under your eyes. \nthe head line of an abstraction you asked to take away holds that ask in the place of its name until you send it or drop it.\n\n\n# USER WRITES\nif click on the words:\n  a box is put in their place,\n  the caret is where user clicked. \n\na muted pin shows a name beside its words, and that name counts too\na pin holds the text as it is in the map:\n  the pins in their brackets, the targets visible or the code of the file, or nothing for a new abstraction. \n\nif more text is typed than the size of the box:\n  the box grows\n  the page stays where you scrolled it. \n\nif escape presed, or user clicks away:\n  the box closes \n  the text written is kept\n\nthe green circle stays until ctrl-S or tap on it keeps it on the server, in human/server/\nhuman code stay in the place written. if the page draws again between one box and the next, same.\nonly the box now open answers a click away; an older box the page left behind closes nothing.\n\n\n\n\u25cf  you ask ai harness for an abstraction                  (the menu)\n\u2502     A right click opens a small menu where you point. On the header\n\u2502     of an abstraction it offers a wider one above it and\n\u2502     to take that one away; the ask to take away stands\n\u2502     on the head line itself, a click on its name sends it,\n\u2502     and cancel, or escape, lets it go. On\n\u2502     words you picked, in the text or in the open box,\n\u2502     it offers to expand on them: a place opens on top of the\n\u2502     list where you may add your own words, or none, a\n\u2502     click on its name sends the ask, and cancel\n\u2502     drops it. A file with no abstraction yet and some\n\u2502     code in it carries decompile over its writing place, which asks\n\u2502     for the whole file to be read and told; an empty\n\u2502     file calls that place new abstraction, and a human file, which\n\u2502     has no code, calls it that too. Each of these goes to the\n\u2502     server like a compile and comes back as a writing that\n\u2502     waits for claude.\n\u2502\n\u25cf  you press compile and the server answers            (compile)\n\u2502     The button in the bar sends every place you changed, one after\n\u2502     the other, and each runs the command you would have typed. A\n\u2502     refusal comes back in the command's own words, named by the\n\u2502     place it came from, in the warning colour, and your words stay\n\u2502     on the page. A pass forgets the draft, redraws the page with\n\u2502     the map read again and says which writing now\n\u2502     waits for claude.\n\u2502\n\u25cf  the page watches the queue                         (pollQueue)\n\u2502     Every three seconds it asks the server what still waits and\n\u2502     marks the entries. When claude finishes, the mark goes, the\n\u2502     page reads the map of that file again, so the new words show,\n\u2502     and the training looks again for new rows.\n\u2502\n\u25cf  you click                                                (jump)\n\u2502     A click on a header folds or unfolds that abstraction.\n\u2502     A click on a lit pin scrolls to the abstraction it points at,\n\u2502     unfolds it, and lights it for a moment; it opens no box.\n\u2502\n\u25cf  you cross to another file                      (crossJump)\n\u2502     A pin can name a file of the project instead of a piece of\n\u2502     this one. A click on it opens that file and goes to the piece\n\u2502     the pin names. A pin to a file the project does not hold, or\n\u2502     to a piece with no abstraction, is muted and shows the piece\n\u2502     name. A pin can also name one abstraction of that file and\n\u2502     words inside it: a click opens the file, goes to that\n\u2502     abstraction, and lights those words for a moment. Such a pin\n\u2502     to words the abstraction does not hold is muted and shows the\n\u2502     file and the number of the abstraction; when the file holds no\n\u2502     such abstraction at all, a line on top says so.\n\u2502\n\u25cf  the page shows the training                    (loadTrain)\n\u2502     Every five seconds the page asks the server for the training\n\u2502     sessions. An open session covers the whole page with its rows.\n\u2502     Hide puts it away until the session gains a row, and a short\n\u2502     line in the bar counts its rows and picks; a click on it\n\u2502     shows the training again. With no open session the line says\n\u2502     only training, and a click shows the last session. A list on\n\u2502     top goes to another session. When the store does not answer,\n\u2502     the line says why and takes no click. A session with no rows\n\u2502     yet says that claude writes them after the event.\n\u2502\n\u25cf  you look through the rows                    (renderRows)\n\u2502     Each row is one change claude wrote for, and it fills the\n\u2502     screen; a swipe up brings the next row. A swipe to the side\n\u2502     goes to the next version of the same row: best, refinement and\n\u2502     free for a sync, best and free for any other. A card\n\u2502     names the file, the kind of change, the level and the entry, and\n\u2502     the version with its shape; a refinement that keeps the words\n\u2502     as they were is called current, and a row brought over from an\n\u2502     earlier session says carried. The words show with their pins,\n\u2502     but a pin here leads nowhere. When claude wrote a version more\n\u2502     than once, v1, v2 and on let you read each text; an older one\n\u2502     stands in a dashed frame, and the pick always takes the latest.\n\u2502     Copy puts the words you see on the clipboard. A\n\u2502     version not written yet says so. A redraw keeps each row at the\n\u2502     version you had swiped to.\n\u2502\n\u25cf  you pick a version                             (sendPick)\n\u2502     Pick this one opens a box for why you chose it, which you may\n\u2502     leave empty; pick sends it, and cancel drops it. The picked card\n\u2502     lights up and shows your why, and a press on it takes the pick\n\u2502     back. A refused pick says why in a line under the top bar. In a\n\u2502     finished session, or on a row already put in the map, a card\n\u2502     only says what was picked, or that it was taken by default, and\n\u2502     the entry it became.\n\u2502\n\u25cf  you close the training                       (closeTrain)\n      Close training asks first and says what the close will\n      do: how many rows are picked, how many take best,\n      and how many carry over to the next session, a sync row with no\n      pick and a row claude has not written yet. Close sends it;\n      cancel, or escape, drops the ask. A pass reads the map of every\n      file in the session again, puts the training away, and shows\n      the server's answer on top of the reader. A refusal stays in the\n      line under the top bar, and the session stays open.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n#WEB DESIGN\n\na dark and a light version, chosen by your system. \nfont is SF Pro, the San Francisco font of Apple. If not apple device, use typewriter font.\nside and vertical scroll ui, small pill, no bar, and fades.\n\ntwo panes on a quiet ground: \n  the tree on the left, \n  the reader on the right, as wide as the window lets it.\n\nthe tree looks like the list of apple notes:\n  dark: #0b0b0b\n  light: the soft grey ground of apple notes, #f2f2f7.\n  the project name shows in upper case.\n  the tree is below, same indent as the project name\n  file names in off-white, folder names and icons in grey #8e8e93.\n  the open file wears a lighter grey row, no lively colour.\n\n  if on a narrow screen:\n    the tree sits in a card: dark grey #1c1c1e, or white in light, with large round corners and no edge.\n    the tree hides and slides in over the reader. if tree opens, the reader section appears dark fading\n    \n\nthe reader:\n  dark: pure black ground, off-white words, like apple notes.\n  light: pure white ground, near-black words.\n  caret is dark yellow and slightly thick\n  the buttons are dark grey glass with a thin lighter edge, white icons.\n  \n  the reader fills the screen, no frame.\n  the reader separates from the file tree with a faint soft grey line\n\n  the file name and count show in the same filled screen. horizontally centered. top division has no line divider.\n  \n  top right, one shared pill holding the lucide icon buttons float over words: \n    graduation-cap for training and play for compile, like the share and more pill of apple notes. with proper space between them.\n    play lucide icon shows a bit smaller than default for better design\n  \n  a non-pill, green filled circle with a white check inside icon to save:\n    almost as big as the pill buttons, a bit smaller so it looks good\n    apppears in an animation, on the right of compile\n    enough space to not press compiler by mistake. \n    if clicked, file saves. \n  the buttons use the black ground, the grey glass and the white icons, with no lively colour. same height as the file name and count\n\n  the text fades on the top and bottom.\n  if highlighting the text, the highlight color is yellow\n  a line wider than the screen scrolls sideways. \n        \n  if on a narrow screen:\n    the colour of the reader fills the whole screen\n    the words font:\n      size is 14px\n      they keep that size when you read and when you write. specially in safari mobile.\n  \n    sideway scroll at furthest at the bottom\n    the file name and the count do not show.\n    \n    the top bar has no line of its own. \n    top left, a round button with the burger in a center floats over the words. it opens the tree.\n\n\nthe box for the name of a new file stands under the row you right clicked, or under the last row when you clicked empty space, and takes that row's width, over everything, in the typewriter face. \nthe writing box sits in the place of the words, and grows with what you type. \nan empty place stands in its own room and lights up under the pointer, so you see where you can write. \non a wide screen, a word on a head line that does something wears the lively colour and underlines itself under the pointer. \nthe little menu floats where you point, over everything, and each of its rows lights under the pointer.\non a wide screen, the training line in the bar wears the lively colour, and turns faint when the store does not answer. \nthe training lies over the whole page:\n  each row fills the screen and each card fills its width, \n  both snap into place, so one swipe moves one card. \n  the name of a picked card wears the lively colour;\n  an older text has a dashed frame. \n  on a small phone the words of a card grow smaller.\n\n\n# HELPER FUNCTIONS\n\nesc\nmakes text safe to show on a page                        \n\nmsg\nshows one line when there is nothing to read              \n        \ndrawer\nopens and hides the tree on a narrow screen\n\nloadMaps\nreads the records of every file, human file and the project in one ask, or gives empty ones\n\nheld\ngives a record, or an empty one when it holds no abstractions\n\nfromMaps\ntakes the record of one file or human file out of maps\n\nhumanPath\nnames the record of a human file\n                \nbareOf\ngives the bare name of a human path\n\nshownPath\ngives the name a human file wears in the tree\n\nrecordPath\ngives the record behind a shown name\n\n     says a file has no code under it           (noCodeFile)\n     asks for human.json, or gives nothing when it did not change  (loadList)\n     builds the file tree for one project         (buildTree)\n     shuts the box for the name of a new file       (newClose)\n             \ntreeLast\nfinds the row above the empty space you clicked \n\ntreeRoots\nfinds the roots the tree draws in            \n\ntreeRows\ngives every row of the tree                   \n\nnewOpen\nopens that box under a row, empty, and keeps that row's folder for the enter\n\n     finds the tree row you right clicked            (treeRow)\n     gives the folder that row stands in             (treeDir)\n     asks for the file when you open it             (loadCode)\n     finds a file of the project by name                (fileOf)\n     says if a piece has an abstraction         (crossEntry)\n     says if an abstraction has those words   (crossAnchor)\n     finds which abstraction a pin points at        (targetOf)\n     reads a pin the map does not hold    (guessAnchor)\n     finds the pin behind one bracket                     (pinOf)\n     says what a muted pin shows beside it          (suffixOf)\n     turns the pins of one line into links          (lineHtml)\n     says the name the server knows a file by       (nameOf)\n     names where a draft is kept on the server           (key)\n     gives the text a box opens with            (baseText)\n     says if a place for words is open here      (expandHere)\n     says if a delete is asked here              (deleteHere)\n     gives the text now shown, draft or map   (shownText)\n\nchanged\nsays if a text differs from the map          \n\nbaseFor\ngives the text the map of any file holds for one place\n\nwaiting\nsays which files hold a writing not compiled    \n\nmarkSoon\nputs the dots as soon as the tree stands\n\nmarkWaiting\nputs a dot on those rows of the tree\n\n     says if a change is not kept yet             (unsaved)\n     lists every place the file takes writing         (slots)\n     marks what still waits for claude          (queuedMark)\n     says which place holds the box           (isEditing)\n     draws the writing box                      (editorHtml)\n     draws the telling of a whole file    (mapSlotHtml)\n     draws the place for your own words  (expandSlotHtml)\n     numbers the lines of the code      (codeSlotHtml)\n     makes the box as tall as its text without moving the page   (fit)\n     puts the caret in the new box without moving the page        (focusEditor)\n     holds what you typed while the page redraws     (keep)\n     takes the words out of the open box          (keepBox)\n     finds the letter you clicked                 (caretAt)\n     finds that letter in the raw text        (rawOffset)\n     finds it past the line numbers         (codeOffset)\n     sends one ask to the server                        (post)\n     shuts the little menu                      (menuClose)\n     finds a file by the name the server knows it by  (fileNamed)\n     lights the words a pin points at         (flashAnchor)\n     names where a hidden session is kept on the server  (hideKey)\n     reads one version of a row, in the old form or the new  (versionOf)\n     lists every text of a version, oldest first      (textsOf)\n     gives the text a card shows now            (cardShown)\n     draws the pins of a card without links      (cardText)\n     lists the versions a row takes               (slotsOf)\n     draws one row of cards                         (rowHtml)\n     draws one row again where you swiped it  (rerenderRow)\n     draws the top bar of the training          (renderTop)\n     shows one line under the top bar of the training  (noteTrain)\n     shows or puts away the training            (showTrain)\n     reads an answer of the store, or its refusal     (stored)"
       }
     }
   ],
   "not_covered": {
     "code_lines": [],
     "blank_lines": [
-      210,
-      216,
-      218,
-      224,
-      238,
-      258,
-      267,
-      283,
-      307,
-      338,
-      357,
-      379,
-      408,
-      428,
-      441,
-      447,
-      453,
-      461,
-      468,
-      491,
-      497,
-      509,
-      511,
-      515,
-      517,
-      523,
-      557,
-      564,
-      566,
-      568,
+      215,
+      221,
+      223,
+      229,
+      243,
+      263,
+      272,
+      288,
+      312,
+      343,
+      362,
+      384,
+      413,
+      433,
+      446,
+      452,
+      458,
+      466,
+      473,
+      496,
+      502,
+      514,
+      516,
+      520,
+      522,
+      528,
+      562,
+      569,
       571,
-      578,
-      580,
-      590,
-      609,
+      573,
+      589,
+      607,
+      612,
       614,
+      617,
       624,
-      633,
-      648,
+      626,
+      636,
       655,
-      666,
-      671,
-      673,
-      677,
-      686,
-      695,
-      704,
+      660,
+      670,
+      679,
+      694,
+      701,
+      712,
       717,
+      719,
+      723,
+      732,
+      741,
+      750,
       763,
-      765,
-      774,
-      779,
-      785,
-      800,
-      817,
-      827,
-      834,
-      842,
-      854,
-      859,
-      875,
+      809,
+      811,
+      821,
+      823,
+      829,
+      846,
+      853,
+      858,
+      864,
       879,
-      888,
-      897,
-      908,
-      912,
-      918,
-      924,
-      935,
-      953,
-      973,
-      982,
-      1018,
-      1024,
-      1039,
-      1049,
-      1060,
-      1085,
-      1092,
-      1098,
-      1112,
-      1119,
-      1130,
-      1134,
-      1138,
-      1187,
-      1191,
-      1193,
-      1200,
+      896,
+      906,
+      913,
+      921,
+      936,
+      941,
+      957,
+      961,
+      970,
+      979,
+      990,
+      994,
+      1000,
+      1006,
+      1017,
+      1035,
+      1055,
+      1064,
+      1100,
+      1106,
+      1121,
+      1131,
+      1142,
+      1167,
+      1175,
+      1183,
+      1197,
       1204,
-      1211,
-      1221,
+      1215,
+      1219,
       1223,
-      1262,
-      1266,
-      1275,
-      1294,
-      1311,
-      1328,
-      1332,
-      1345,
-      1352,
-      1357,
-      1378,
-      1400,
-      1414,
-      1423,
-      1428,
-      1462,
-      1466,
-      1475,
-      1484,
-      1487
+      1272,
+      1276,
+      1278,
+      1285,
+      1289,
+      1296,
+      1306,
+      1308,
+      1347,
+      1351,
+      1360,
+      1379,
+      1396,
+      1413,
+      1417,
+      1431,
+      1438,
+      1443,
+      1464,
+      1486,
+      1500,
+      1509,
+      1514,
+      1548,
+      1552,
+      1561,
+      1570,
+      1573
     ]
   }
 }

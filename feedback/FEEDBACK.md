@@ -126,3 +126,24 @@ What the change implies: the file list could cost nothing between changes.
 ## 10. A pin could point at a collection of pins
 
 A pin points at one place: a file, a block, or an anchor. The logic of one thought of the abstraction can be in many files. Maybe a pin could point at a collection of pins, one for each place, so the words stay whole and still reach all of them.
+
+## 11. A refusal for a kept anchor does not say who points at it
+
+When a new text drops an anchor that another entry pins, the compile is refused, but the refusal names only the anchor, not the entry that points at it. The user must then find that pin and fix it by hand before the words can go in.
+
+Example, 2026-10-01. A compile on `compiler/cli/human/__init__.py` answered `entry 1: [RETEXT-ANCHORS] other entries point at the anchors ['the body']; the new text must keep them`. The new words had `[as JSON](read_body)` in place of `[the body](read_body)`. The pin was in entry 1 of `human/project.json`: `[its body read as JSON](compiler/cli/human/__init__.py:e1:the body)`.
+
+What the change implies:
+
+- **Name the pointers.** The refusal names each map and entry that points at the anchor, with the pin line: `project e1: [its body read as JSON](…:e1:the body)`.
+- **Fix the pin in one step.** The reader offers to move that pin to an anchor of the new text, or to the block, and then compiles the words.
+
+## 12. A sync rewords a top abstraction that is still true
+
+When a lower abstraction changes, the sync or the stale repair of the top abstraction rewords it to agree with the new details. The top abstraction should change only when the lower change makes it untrue, so that it must add or remove a fact. When the top abstraction still tells the lower one correctly, it keeps its words.
+
+Example, 2026-10-01. A change in the design of the reader came in through the words of `web.html`. The project sync changed three lines of the user's words in project entry 1, to agree with the new design:
+
+- "the project name sits above in capitals with no card, the files sit in a card…"
+- "a play triangle for compile" in place of "a spark for compile"
+- a new line: "the caret is yellow, the colour of the dot in the tree."
