@@ -1,0 +1,19 @@
+{
+  "code_file": "install",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "install",
+      "block_lines": [],
+      "text": "analyze \"curl -fsSL https://claude.ai/install.sh | bash\", \"curl -fsSL https://t3.codes/install.sh | sh\"\n\ncreate a script using domain doashuman.com \n\nscript:\n    installs human same as uv tool install humanlang, but also installs the human skill\n    updates how do they work? do releases are what update human for the user? claude code updates automatically i like that but how? can you check?\n \n\nasume the user can't control which version to install. always forced to be in latest version \n(but what happens for opened readers or turned on servers? i know t3code shows update button, then it opens again?, the update bottom should be on the bottom right of the file tree section))\n\n\n\nand for windows.\n\nirm\nscoop\nwinget \n\ncommands",
+      "anchors": [],
+      "verbatim": {
+        "origin": "analyze \"curl -fsSL https://claude.ai/install.sh | bash\", \"curl -fsSL https://t3.codes/install.sh | sh\"\n\ncreate a script using domain doashuman.com \n\nscript:\n    installs human same as uv tool install humanlang, but also installs the human skill\n    updates how do they work? do releases are what update human for the user? claude code updates automatically i like that but how? can you check?\n \n\nasume the user can't control which version to install. always forced to be in latest version \n(but what happens for opened readers or turned on servers? i know t3code shows update button, then it opens again?, the update bottom should be on the bottom right of the file tree section))\n\n\n\nand for windows.\n\nirm\nscoop\nwinget \n\ncommands"
+      }
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": []
+  }
+}

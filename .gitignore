@@ -1,6 +1,7 @@
 **/human/feed.html
 **/human/training/
 **/human/trees.js
+**/human/shiki.js
 **/human/web.html
 *.egg-info/
 .claude/
@@ -17,6 +18,7 @@ graphify-out/
 harness_idea/
 human/training/
 human/trees.js
+human/shiki.js
 human/web.html
 human/server/
 **/human/server/

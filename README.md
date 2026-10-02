@@ -8,7 +8,7 @@ Requires [Claude Code](https://claude.com/claude-code) and [uv](https://docs.ast
 
 ```bash
 uv tool install humanlang
-human skills          # installs the /human and /decompile skills into ~/.claude/skills
+human skills          # installs the /human skill into ~/.claude/skills
 ```
 
 Upgrade to the latest version with:
@@ -30,7 +30,7 @@ human init            # creates the human/ folder: the maps and the reader live 
 Then in Claude Code:
 
 - `/human <abstraction>` — compile free text into code, mapped to your words.
-- `/decompile <file>` — explain an existing file, pinned to its lines.
+- `/human how does <file> work?` — explain an existing file, pinned to its lines.
 
 ## Read
 
@@ -43,7 +43,7 @@ Open `http://localhost:8010/human/web.html`. Every entry opens as a notepad, and
 ## Train
 
 ```bash
-human train --open    # start a session; /decompile now writes three versions per file
+human train --open    # start a session; claude now writes two or three versions per telling
 human train --close   # map the versions you picked and finish the session
 ```
 

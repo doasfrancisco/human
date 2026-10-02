@@ -66,7 +66,7 @@ def cmd_init(a):
     root.mkdir(parents=True, exist_ok=True)
     h = root / "human"
     h.mkdir(exist_ok=True)
-    for name in ("web.html", "trees.js"):
+    for name in ("web.html", "trees.js", "shiki.js"):
         shutil.copy(PKG / "reader" / name, h / name)
     (h / "feed.html").unlink(missing_ok=True)
     map_path = h / "human.json"
@@ -82,6 +82,12 @@ def cmd_init(a):
     found, data = write_files(root, data)
     if not cmd_project.map_path(root).exists():
         cmd_project.save(root, cmd_project.load(root))
+    for p in sorted(h.glob("explanation_*.json")):
+        d = read_map(p)
+        name = d.get("code_file") if d else None
+        if isinstance(name, str) and not (root / name).is_file():
+            p.unlink()
+            print(f"deleted {p.name}: {name} is not on disk")
     for bare in [cmd_project.WORD] + helpers.human_names(root):
         if (root / bare).exists():
             print(f"warning: a file named {bare} sits at the root; the bare name reaches the map with "

@@ -8,7 +8,7 @@ Requires [Claude Code](https://claude.com/claude-code) and [uv](https://docs.ast
 
 ```bash
 uv tool install git+https://github.com/doasfrancisco/human.git#subdirectory=compiler/cli
-human skills          # installs the /human and /decompile skills into ~/.claude/skills
+human skills          # installs the /human skill into ~/.claude/skills
 ```
 
 ## Use
@@ -22,7 +22,7 @@ human init            # creates the human/ folder: the maps and the reader live 
 Then in Claude Code:
 
 - `/human <abstraction>` — compile free text into code, mapped to your words.
-- `/decompile <file>` — explain an existing file, pinned to its lines.
+- `/human how does <file> work?` — explain an existing file, pinned to its lines.
 
 ## Read
 
