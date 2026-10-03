@@ -9,5 +9,6 @@ The catalog of validated abstraction shapes. One file per shape: when it fits, t
 | [desk](desk.md) | the detailed telling of a file that only dispatches what the user types: one head per command |
 | [dialogue](dialogue.md) | the telling of a rulebook — a skill, a procedure — as the exchange between you, claude, and the tool |
 | [skeleton](skeleton.md) | the detailed telling of a code file, written as the file's own structure with plain words in the slots |
+| [example](example.md) | the first global flow of a project that already has code, written in the project map on the first use: one numbered line per step, with pins |
 
 The shape follows the kind of file. A file with one real run — a web page, a script that runs top to bottom — takes the rail. A file of functions takes the sections. A file that reads what the user types and hands it on takes the desk. A rulebook takes the dialogue. A zoom on one block takes the rail.

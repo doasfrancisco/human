@@ -65,6 +65,7 @@
     "compiler/cli/human/shapes/README.md",
     "compiler/cli/human/shapes/desk.md",
     "compiler/cli/human/shapes/dialogue.md",
+    "compiler/cli/human/shapes/example.md",
     "compiler/cli/human/shapes/rail.md",
     "compiler/cli/human/shapes/sections.md",
     "compiler/cli/human/shapes/skeleton.md",

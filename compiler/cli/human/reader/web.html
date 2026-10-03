@@ -198,6 +198,15 @@
     .bhead .act{color:var(--ink);}
     .pill{padding:6px 10px;}
   }
+  @keyframes glow{0%,100%{box-shadow:0 0 0 2px rgba(201,154,0,.45);}50%{box-shadow:0 0 0 6px rgba(201,154,0,.2);}}
+  @keyframes glowgo{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.55);}50%{box-shadow:0 0 0 9px rgba(34,197,94,0);}}
+  .tipline{background:rgba(201,154,0,.16);border-radius:4px;animation:glow 1.8s ease-in-out infinite;}
+  #go.tip{border-radius:50%;animation:glowgo 1.6s ease-out infinite;}
+  .tipnote,#tipbox{max-width:320px;padding:12px 14px;border-radius:14px;background:rgba(44,44,46,.92);color:#fff;font-size:13px;line-height:1.45;white-space:normal;border:1px solid rgba(255,255,255,.14);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);}
+  .tipnote{margin:10px 0 14px 14px;}
+  #tipbox{position:absolute;right:16px;top:72px;z-index:30;}
+  #tipbox[hidden]{display:none;}
+  .tipok{display:block;margin-top:8px;color:#c99a00;cursor:pointer;text-align:right;}
 </style>
 </head>
 <body>
@@ -209,7 +218,7 @@
   </div>
   <div id="wrap">
     <div id="readwrap">
-      <section class="pane" id="reader"><div class="phead"><span id="menu">☰</span><span id="head"></span><span id="btns"><span id="pill"><span id="tchip" hidden></span><span id="go" hidden>compile</span></span><span id="state"></span></span></div><div class="rows" id="rows"></div><div id="hbar" hidden><div id="hthumb"></div></div><div id="vbar" hidden><div id="vthumb"></div></div></section>
+      <section class="pane" id="reader"><div class="phead"><span id="menu">☰</span><span id="head"></span><span id="btns"><span id="pill"><span id="tchip" hidden></span><span id="go" hidden>compile</span></span><span id="state"></span></span></div><div class="rows" id="rows"></div><div id="hbar" hidden><div id="hthumb"></div></div><div id="vbar" hidden><div id="vthumb"></div></div><div id="tipbox" hidden><span id="tipsay"></span><span class="tipok">got it</span></div></section>
       <div id="msg" hidden></div>
     </div>
   </div>
@@ -282,7 +291,7 @@ function loadList(){
   });
 }
 
-Promise.all([loadList(),loadMaps(),loadDrafts()]).then(function(x){
+Promise.all([loadList(),loadMaps(),loadDrafts(),loadTip()]).then(function(x){
   var h=x[0], m=x[1];
   if(h.code_file) document.title="Human · "+h.code_file;
   var fs=keepPlaces(h.humans).map(humanPath).concat(h.files||[]).map(function(n){return fromMaps(m,n);});
@@ -294,8 +303,15 @@ Promise.all([loadList(),loadMaps(),loadDrafts()]).then(function(x){
   if(!p){msg("no files — run human init at the project root");return;}
   projs=[p];
   var start=p.files[0];
+  if(tip) p.files.forEach(function(f){if(f.file===tip.file)start=f;});
   buildTree(p,start.file);
   open(p,start);
+  if(tipHere()&&tip.kind==="line"){
+    openSet[tip.entry]=1;
+    render();
+    var el=rows.querySelector(".tipline");
+    if(el) rows.scrollTop+=el.getBoundingClientRect().top-rows.getBoundingClientRect().top-rows.clientHeight/3;
+  }
 }).catch(function(){msg("could not load — run human serve at the project root");});
 
 function buildTree(p,sel){
@@ -587,6 +603,29 @@ function lineHtml(e,l){
   return out;
 }
 
+var tip=null;
+function loadTip(){
+  return fetch("server/tip",{cache:"no-store"}).then(function(r){return r.ok?r.json():{};})
+    .catch(function(){return {};}).then(function(t){tip=t&&t.file?t:null;});
+}
+function tipHere(){return !!(tip&&cur&&cur.file===tip.file);}
+function tipLine(e,l){return tipHere()&&tip.kind==="line"&&e.id===tip.entry&&l.indexOf(tip.words)>=0;}
+function showTip(){
+  var on=tipHere()&&tip.kind==="compile";
+  document.getElementById("tipbox").hidden=!on;
+  document.getElementById("go").classList.toggle("tip",on);
+  if(on) document.getElementById("tipsay").textContent=tip.say;
+}
+function endTip(){
+  if(!tip) return;
+  tip=null;
+  fetch("server/tip",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"}).catch(function(){});
+  if(cur) render();
+}
+document.addEventListener("click",function(ev){
+  if(ev.target.classList&&ev.target.classList.contains("tipok")){ev.stopPropagation();endTip();}
+},true);
+
 function nameOf(file){
   if(file==="human/project.json") return "project";
   if(file==="human/human.json") return null;
@@ -823,6 +862,7 @@ function header(){
   var go=document.getElementById("go");
   go.hidden=!any&&!sending;
   go.classList.toggle("busy",sending);
+  showTip();
   markWaiting();
 }
 
@@ -859,7 +899,8 @@ function render(){
           +esc(e.block)+(spans?' · '+spans:"")+queuedMark(name,e.id)+'</span></div>')
       +'<div class="body">'+(isEditing("retext",e.id)?editorHtml(shownText("retext",e.id),"retext",e.id)
         :'<div class="chunk'+(name?' plain" data-edit="retext" data-id="'+e.id:'')+'">'
-          +shownText("retext",e.id).split("\n").map(function(l){return lineHtml(e,l);}).join("\n")+'</div>')
+          +shownText("retext",e.id).split("\n").map(function(l){var h=lineHtml(e,l);return tipLine(e,l)?'<span class="tipline">'+h+'</span>':h;}).join("\n")+'</div>')
+      +(on&&tipHere()&&tip.kind==="line"&&tip.entry===e.id?'<div class="tipnote">'+esc(tip.say)+'<span class="tipok">got it</span></div>':'')
       +'</div></div>';
   });
   var bare=(cur.d.not_covered&&cur.d.not_covered.code_lines||[]).length;
@@ -1164,6 +1205,7 @@ function compile(){
         if(!x.ok){says.push(label+": "+(x.j.error||"refused"));failed=true;step(i+1);return;}
         var k=key(file,s.kind,s.id);
         dropDraft(k); delete typed[k];
+        if(tip&&tip.file===file) endTip();
         if(s.kind==="code"){f.code=body.text;codeOk=true;}
         step(i+1);
       })

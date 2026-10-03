@@ -9,6 +9,7 @@ import re
 import secrets
 import shutil
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -97,8 +98,26 @@ def cmd_init(a):
     hidden = len(found) - len(data["files"])
     tail = f", {hidden} ignored" if hidden else ""
     print(f"project {root.name}: {len(data['files'])} files{tail}, id {data['project']}")
-    print(f"wrote {map_path}")
-    print(f"read it with: human serve  (from {root})")
+    print(f"wrote {map_path}", flush=True)
+    serve_away(root, a.port)
+
+
+def serve_away(root, port):
+    pid = cmd_store.project_id(root)
+    if not hand_over(root, port):
+        me = [sys.executable] if updater.frozen() else [sys.executable, "-c", "from human import main; main()"]
+        log = cmd_watch.folder(root) / "serve.log"
+        away = {"creationflags": 0x00000008 | 0x00000200} if os.name == "nt" else {"start_new_session": True}
+        with open(log, "ab") as out:
+            subprocess.Popen([*me, "serve", str(root), "--port", str(port)], cwd=str(root),
+                             stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT, **away)
+        for _ in range(50):
+            if hand_over(root, port):
+                break
+            time.sleep(0.2)
+        else:
+            sys.exit(f"the human server did not start on port {port}; read {log}")
+    print_links(pid, port)
 
 
 def write_files(root, data=None):
@@ -270,6 +289,66 @@ def new_human(root, name, place=""):
 
 
 DRAFTS_LOCK = threading.Lock()
+
+
+def tip_path(root):
+    return cmd_watch.folder(root) / "tip.json"
+
+
+def read_tip(root):
+    try:
+        d = json.loads(tip_path(root).read_text())
+    except (OSError, ValueError):
+        return {}
+    return d if isinstance(d, dict) else {}
+
+
+def reader_file(root, name):
+    p, kind = helpers.name_to_map(name, root)
+    if kind == "project":
+        return p, "human/project.json"
+    if helpers.no_code(name, root):
+        return p, f"human/{p.name}"
+    path = Path(name) if Path(name).is_absolute() else root / name
+    return p, path.resolve().relative_to(root).as_posix()
+
+
+def cmd_tip(a):
+    root = decompiler.find_root(Path.cwd())
+    if a.clear:
+        tip_path(root).unlink(missing_ok=True)
+        print("tip cleared")
+        return
+    if not a.code_file or not a.say:
+        sys.exit("a tip takes a name and --say <the words the reader shows>")
+    p, file = reader_file(root, a.code_file)
+    if a.draft is not None:
+        if not p.exists():
+            if not helpers.no_code(a.code_file, root):
+                sys.exit(f"{a.code_file} has no map; a draft tip goes on a human file or the project map")
+            status, out = new_human(root, a.code_file)
+            if status != 200:
+                sys.exit(out)
+            write_files(root)
+        d = read_map(p)
+        if d is None or d.get("explanations"):
+            sys.exit(f"{a.code_file} already holds an abstraction; a draft tip goes on an empty map")
+        top = json.loads((root / "human" / "human.json").read_text()).get("code_file") or root.name
+        tidy_drafts(root, {f"human-draft:{top}/{file}/map": a.draft})
+        tip = {"file": file, "kind": "compile", "say": a.say}
+    else:
+        d = read_map(p)
+        if d is None:
+            sys.exit(f"{a.code_file} has no map")
+        e = next((x for x in d.get("explanations", []) if x.get("id") == a.entry), None)
+        if e is None:
+            sys.exit(f"{a.code_file} has no entry {a.entry}")
+        if not a.words or not any(a.words in line for line in e["text"].split("\n")):
+            sys.exit(f"--words must be found inside one line of entry {a.entry}, as it is written in the map")
+        tip = {"file": file, "kind": "line", "entry": a.entry, "words": a.words, "say": a.say}
+    out = tip_path(root)
+    out.write_text(json.dumps(tip, indent=1) + "\n")
+    print(f"tip kept in {out}; the reader shows it on its next open")
 
 
 def drafts_path(root):
@@ -508,6 +587,9 @@ class FreshHandler(SimpleHTTPRequestHandler):
         if path == "/human/server/drafts":
             self.send_json(200, tidy_drafts(root, {}))
             return
+        if path == "/human/server/tip":
+            self.send_json(200, read_tip(root))
+            return
         self.send_static(Path(self.translate_path(path)))
 
     def read_body(self):
@@ -559,6 +641,9 @@ class FreshHandler(SimpleHTTPRequestHandler):
                 status, out = new_human(root, body.get("name"), body.get("place"))
             elif path == "/human/server/drafts":
                 status, out = keep_drafts(root, body.get("drafts"))
+            elif path == "/human/server/tip":
+                tip_path(root).unlink(missing_ok=True)
+                status, out = 200, {}
             elif m and m.group(2) == "close":
                 status, out = cmd_train.close_road(root, m.group(1))
             elif m:
@@ -658,6 +743,8 @@ def cmd_skills(a):
             shutil.copytree(PKG / "skills" / name, dst)
             shutil.copytree(PKG / "shapes", dst / "shapes", dirs_exist_ok=True)
             print(f"installed {name} -> {dst}")
+    shutil.copytree(PKG / "shapes", updater.HOME / "shapes", dirs_exist_ok=True)
+    print(f"installed shapes -> {updater.HOME / 'shapes'}")
 
 
 def main():
@@ -665,6 +752,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     i = sub.add_parser("init")
     i.add_argument("folder", nargs="?", default=".")
+    i.add_argument("--port", type=int, default=8010)
     v = sub.add_parser("serve")
     v.add_argument("folder", nargs="?", default=".")
     v.add_argument("--port", type=int, default=8010)
@@ -712,9 +800,16 @@ def main():
     c.add_argument("seq", type=int)
     g = sub.add_parser("login")
     g.add_argument("key")
-    a = ap.parse_args()
+    n = sub.add_parser("tip")
+    n.add_argument("code_file", nargs="?")
+    n.add_argument("--entry", type=int, default=1)
+    n.add_argument("--words")
+    n.add_argument("--draft")
+    n.add_argument("--say")
+    n.add_argument("--clear", action="store_true")
     if updater.from_pypi():
         print(updater.MOVED, file=sys.stderr)
+    a = ap.parse_args()
     if a.cmd in cmd_project.COMMANDS and helpers.no_code(a.code_file, decompiler.find_root(Path.cwd())):
         cmd_project.COMMANDS[a.cmd](a)
         return
@@ -723,7 +818,7 @@ def main():
      "show": decompiler.cmd_show, "lines": decompiler.cmd_lines,
      "sync": decompiler.cmd_sync, "train": cmd_train.cmd_train,
      "watch": cmd_watch.cmd_watch, "ack": cmd_watch.cmd_ack,
-     "login": cmd_store.cmd_login}[a.cmd](a)
+     "login": cmd_store.cmd_login, "tip": cmd_tip}[a.cmd](a)
 
 
 if __name__ == "__main__":
