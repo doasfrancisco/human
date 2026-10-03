@@ -21,7 +21,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import cmd_map, cmd_project, cmd_store, cmd_train, cmd_watch, decompiler, helpers, updater
+from . import cmd_map, cmd_project, cmd_watch, decompiler, helpers, updater
 
 PKG = Path(__file__).parent
 READER = ("web.html", "trees.js", "shiki.js")
@@ -73,25 +73,28 @@ def cmd_init(a):
     h.mkdir(exist_ok=True)
     (h / "feed.html").unlink(missing_ok=True)
     map_path = h / "human.json"
-    if map_path.exists():
-        data = json.loads(map_path.read_text())
-        decompiler.guard_structure(data, map_path)
-    else:
-        data = {"code_file": root.name, "explanations": [],
-                "not_covered": {"code_lines": [], "blank_lines": []}}
+    data = json.loads(map_path.read_text()) if map_path.exists() else {}
+    if not data.get("explanations"):
+        data.pop("explanations", None)
+        data.pop("not_covered", None)
     data["code_file"] = root.name
     if not data.get("project"):
         data["project"] = secrets.token_hex(4)
+    helpers.migrate(root)
+    if not helpers.human_names(root):
+        first = helpers.first_human_name(root)
+        status, out = new_human(root, first)
+        if status != 200:
+            sys.exit(out)
+        print(f"made the first human file {first}.human")
     found, data = write_files(root, data)
-    if not cmd_project.map_path(root).exists():
-        cmd_project.save(root, cmd_project.load(root))
-    for p in sorted(h.glob("explanation_*.json")):
+    for p in sorted(h.glob(f"{helpers.MAP_PREFIX}*.json")):
         d = read_map(p)
         name = d.get("code_file") if d else None
         if isinstance(name, str) and not (root / name).is_file():
             p.unlink()
             print(f"deleted {p.name}: {name} is not on disk")
-    for bare in [cmd_project.WORD] + helpers.human_names(root):
+    for bare in helpers.human_names(root):
         if (root / bare).exists():
             print(f"warning: a file named {bare} sits at the root; the bare name reaches the map with "
                   f"no code under it, the file needs a path like ./{bare}")
@@ -103,7 +106,7 @@ def cmd_init(a):
 
 
 def serve_away(root, port):
-    pid = cmd_store.project_id(root)
+    pid = helpers.project_id(root)
     if not hand_over(root, port):
         me = [sys.executable] if updater.frozen() else [sys.executable, "-c", "from human import main; main()"]
         log = cmd_watch.folder(root) / "serve.log"
@@ -207,7 +210,7 @@ def read_map(p):
 def all_maps(root):
     h = root / "human"
     files, humans = {}, {}
-    for p in sorted(h.glob("explanation_*.json")):
+    for p in sorted(h.glob(f"{helpers.MAP_PREFIX}*.json")):
         d = read_map(p)
         name = d.get("code_file") if d else None
         if isinstance(name, str) and (root / name).is_file():
@@ -216,7 +219,7 @@ def all_maps(root):
         d = read_map(p)
         if d:
             humans[p.stem[len(helpers.HUMAN_PREFIX):]] = d
-    return {"files": files, "humans": humans, "project": read_map(cmd_project.map_path(root))}
+    return {"files": files, "humans": humans}
 
 
 def new_file(root, name):
@@ -270,8 +273,6 @@ def new_human(root, name, place=""):
     bare = name.strip()
     if not helpers.is_bare(bare) or bare.startswith("."):
         return 400, f"{bare} is not a bare name; a human file takes one word, no folder and no suffix"
-    if bare == cmd_project.WORD:
-        return 400, f"{bare} is the word of the project map"
     p = helpers.human_map_path(root, bare)
     if p.exists():
         return 400, f"{bare} is held by another human file"
@@ -305,8 +306,8 @@ def read_tip(root):
 
 def reader_file(root, name):
     p, kind = helpers.name_to_map(name, root)
-    if kind == "project":
-        return p, "human/project.json"
+    if kind == "folder":
+        sys.exit(f"{name} is a folder; a tip goes on a file or a human file")
     if helpers.no_code(name, root):
         return p, f"human/{p.name}"
     path = Path(name) if Path(name).is_absolute() else root / name
@@ -325,7 +326,7 @@ def cmd_tip(a):
     if a.draft is not None:
         if not p.exists():
             if not helpers.no_code(a.code_file, root):
-                sys.exit(f"{a.code_file} has no map; a draft tip goes on a human file or the project map")
+                sys.exit(f"{a.code_file} has no map; a draft tip goes on a human file")
             status, out = new_human(root, a.code_file)
             if status != 200:
                 sys.exit(out)
@@ -419,6 +420,7 @@ def keep_drafts(root, changes):
 
 PROJECTS_LOCK = threading.Lock()
 SERVED = {}
+MIGRATED = set()
 BUSY = [0]
 BUSY_LOCK = threading.Lock()
 
@@ -438,7 +440,8 @@ def read_projects():
 
 
 def add_project(root):
-    pid = cmd_store.project_id(root)
+    helpers.migrate(root)
+    pid = helpers.project_id(root)
     with PROJECTS_LOCK:
         d = read_projects()
         d[pid] = root
@@ -459,6 +462,9 @@ def project_root(pid):
         root = SERVED.get(pid)
     if root is None or not (root / "human" / "human.json").is_file():
         return None
+    if root not in MIGRATED:
+        helpers.migrate(root)
+        MIGRATED.add(root)
     return root
 
 
@@ -578,21 +584,6 @@ class FreshHandler(SimpleHTTPRequestHandler):
         if path == "/human/maps":
             self.send_json(200, all_maps(root))
             return
-        m = re.fullmatch(r"/human/training/(?:([^/]+)\.json)?", path)
-        if m:
-            try:
-                if m.group(1):
-                    out = cmd_store.get_session(m.group(1))
-                    if out.get("project") != cmd_store.project_id(root):
-                        raise cmd_store.Refused(404, f"no session {m.group(1)} in this project")
-                else:
-                    out = cmd_train.list_sessions(root)
-                self.send_json(200, out)
-            except cmd_store.Refused as e:
-                self.send_json(e.status, {"error": e.message})
-            except cmd_store.Unreachable as e:
-                self.send_json(502, {"error": str(e)})
-            return
         if path == "/human/server/queue":
             self.send_json(200, cmd_watch.pending(root))
             return
@@ -635,13 +626,12 @@ class FreshHandler(SimpleHTTPRequestHandler):
         try:
             root = Path(self.read_body().get("root") or "")
             pid = add_project(root.resolve())
-        except (ValueError, OSError, cmd_store.Refused) as e:
+        except (ValueError, OSError) as e:
             self.send_json(400, {"error": str(e)})
             return
         self.send_json(200, {"id": pid})
 
     def write(self, root, path):
-        m = re.fullmatch(r"/human/training/([^/]+)/(pick|close)", path)
         try:
             body = self.read_body()
             if path == "/human/compile":
@@ -656,11 +646,6 @@ class FreshHandler(SimpleHTTPRequestHandler):
             elif path == "/human/server/tip":
                 tip_path(root).unlink(missing_ok=True)
                 status, out = 200, {}
-            elif m and m.group(2) == "close":
-                status, out = cmd_train.close_road(root, m.group(1))
-            elif m:
-                status, out = cmd_train.pick(root, m.group(1),
-                                             body.get("row"), body.get("picked"), body.get("comment"))
             else:
                 status, out = 404, "not found"
         except (ValueError, OSError) as e:
@@ -720,9 +705,9 @@ def print_links(pid, port):
 def cmd_serve(a):
     root = decompiler.find_root(Path(a.folder).resolve())
     try:
-        pid = cmd_store.project_id(root)
-    except cmd_store.Refused as e:
-        sys.exit(e.message)
+        pid = helpers.project_id(root)
+    except ValueError as e:
+        sys.exit(str(e))
     if hand_over(root, a.port):
         print_links(pid, a.port)
         return
@@ -794,24 +779,10 @@ def main():
     y.add_argument("--stale", type=int)
     y.add_argument("--for", dest="for_entry", type=int)
     y.add_argument("--tries", type=int, default=4)
-    t = sub.add_parser("train")
-    t.add_argument("code_file", nargs="?")
-    t.add_argument("--open", action="store_true")
-    t.add_argument("--close", action="store_true")
-    t.add_argument("--as", dest="slot", choices=cmd_train.SLOTS)
-    t.add_argument("--shape")
-    t.add_argument("--kind", choices=("create", "sync"), default="create")
-    t.add_argument("--entry", type=int)
-    t.add_argument("--block")
-    t.add_argument("--target", type=int)
-    t.add_argument("--words")
-    t.add_argument("--text")
     w = sub.add_parser("watch")
     w.add_argument("--once", action="store_true")
     c = sub.add_parser("ack")
     c.add_argument("seq", type=int)
-    g = sub.add_parser("login")
-    g.add_argument("key")
     n = sub.add_parser("tip")
     n.add_argument("code_file", nargs="?")
     n.add_argument("--entry", type=int, default=1)
@@ -824,15 +795,16 @@ def main():
     if updater.from_pypi():
         print(updater.MOVED, file=sys.stderr)
     a = ap.parse_args()
+    if a.cmd in ("map", "retext", "undo", "show", "lines", "sync") and Path(a.code_file).is_dir():
+        sys.exit(f"{a.code_file} is a folder; a folder has no map, name a file or a human file")
     if a.cmd in cmd_project.COMMANDS and helpers.no_code(a.code_file, decompiler.find_root(Path.cwd())):
         cmd_project.COMMANDS[a.cmd](a)
         return
     {"init": cmd_init, "serve": cmd_serve, "skills": cmd_skills, "map": cmd_map.cmd_map,
      "retext": decompiler.cmd_retext, "undo": decompiler.cmd_undo,
      "show": decompiler.cmd_show, "lines": decompiler.cmd_lines,
-     "sync": decompiler.cmd_sync, "train": cmd_train.cmd_train,
-     "watch": cmd_watch.cmd_watch, "ack": cmd_watch.cmd_ack,
-     "login": cmd_store.cmd_login, "tip": cmd_tip}[a.cmd](a)
+     "sync": decompiler.cmd_sync,
+     "watch": cmd_watch.cmd_watch, "ack": cmd_watch.cmd_ack, "tip": cmd_tip}[a.cmd](a)
 
 
 if __name__ == "__main__":

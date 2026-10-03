@@ -39,13 +39,4 @@ human serve
 
 Open the link it prints, like `http://localhost:8010/<project id>/human/web.html`. One server reads every project of the machine: `human serve` in a second project gives it to the server that runs and prints its link. Every entry opens as a notepad, and "compile" hands your words to claude. A right click on the file tree gives "create file" and "create human"; "create file" makes an empty file, in a new folder too, under the folder you clicked; write its abstraction and claude writes the code under it.
 
-## Train
-
-```bash
-human train --open    # start a session; claude now writes two or three versions per telling
-human train --close   # map the versions you picked and finish the session
-```
-
-Pick in the reader: an open session shows as a layer over it, swipe sideways for the versions, down for the next file, and say why you picked if you want. A "close training" button applies the picks; a new abstraction you do not pick takes best, a sync you do not pick carries over. A write in the reader that asks claude for a telling opens a session by itself. The sessions live in the training store, one JSON per session under your user and per project, with a copy of the code and of the abstraction each row worked on; `human login <key>` once per machine names you, and `human init` gives the project its id.
-
 Everything the project writes lives in the `human/` folder — one `rm -rf human/` removes it completely.

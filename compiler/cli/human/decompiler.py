@@ -272,34 +272,6 @@ def touched_note(code_path, old, new, root):
             f"Read the ones a new sentence needs; do not read the rest of the project.")
 
 
-def norm_dup(line):
-    line = ANCHOR_RE.sub(lambda m: m.group(1), line)
-    return " ".join(re.findall(r"[0-9a-z']+", line.lower()))
-
-
-def dup_warnings(root):
-    h = root / "human"
-    paths = sorted(h.glob("explanation_*.json"))
-    if (h / "human.json").exists():
-        paths.append(h / "human.json")
-    seen = {}
-    out = []
-    for mp in paths:
-        data = json.loads(mp.read_text())
-        fname = "human.json" if mp.name == "human.json" else data.get("code_file", mp.name)
-        for e in data["explanations"]:
-            for raw in e["text"].splitlines():
-                key = norm_dup(raw)
-                if len(key) < 30:
-                    continue
-                first = seen.setdefault(key, (fname, e["id"]))
-                if first[0] != fname:
-                    shown = raw.strip().lstrip("│●○·─ ").strip()
-                    out.append(f'the line "{shown[:60]}" is in {first[0]} entry {first[1]} '
-                               f"and in {fname} entry {e['id']} — one telling, one home")
-    return out
-
-
 def expand(span_list):
     s = set()
     for a, b in span_list:
@@ -346,13 +318,6 @@ def resolve_code_target(words, raw, spans, folder):
         return {"words": words, "file": raw}
     raise AssertionError(f"[ANCHOR-TARGET] {raw!r} is not a block of this file, "
                          f"not a file of the folder, and not a map with no code under it")
-
-
-def project_pins(anchors):
-    bad = [x["words"] for x in anchors if "file" not in x]
-    assert not bad, f"[PROJECT-PIN] a pin of a map with no code under it points at a file, at one " \
-                    f"block of a file, at an abstraction of a file's map, or at an abstraction of " \
-                    f"another map with no code under it; {', '.join(repr(w) for w in bad)} does not"
 
 
 def build_anchors(text, data, spans, self_id, folder):
@@ -622,11 +587,8 @@ def cmd_retext(a):
     root = find_root(code_path)
     map_path, data = load_existing(code_path)
     folder = root
-    if code_path.is_dir():
-        lines, spans = [], {}
-    else:
-        lines = code_path.read_text().splitlines()
-        spans = block_spans(code_path, lines)
+    lines = code_path.read_text().splitlines()
+    spans = block_spans(code_path, lines)
     entry = next((e for e in data["explanations"] if e["id"] == a.id), None)
     if entry is None:
         sys.exit(f"no entry {a.id} in {map_path.name}")
@@ -635,8 +597,6 @@ def cmd_retext(a):
     need = needed_words(data, a.id) | cmd_project.pins_into(root, code_name, a.id)
     try:
         anchors = build_anchors(text, data, spans, a.id, folder)
-        if code_path.is_dir():
-            project_pins(anchors)
         gone = need - {x["words"] for x in anchors}
         assert not gone, f"[RETEXT-ANCHORS] other entries point at the anchors {sorted(gone)}; " \
                          "the new text must keep them"
@@ -658,8 +618,6 @@ def cmd_retext(a):
         print(f"entries {', '.join(map(str, kids))} depend on entry {a.id} and are marked stale; "
               f"repair each with human sync {code_name} --stale <id>")
     report_project_stale(cmd_project.mark_stale(root, code_name, a.id, old_text) if changed else [])
-    from . import cmd_train
-    cmd_train.refresh_row(root, code_name, a.id, old_text, text)
     if stale_notes(entry):
         print(f"entry {a.id} stays stale; repair it with human sync {code_name} --stale {a.id}")
     print(f"wrote {map_path}")
@@ -681,17 +639,6 @@ def undo_gate(root, data, name, entry):
     held = cmd_project.maps_into(root, name, entry["id"])
     if held:
         sys.exit(f"the map of {held[0]} points at entry {entry['id']} through anchors; retext it first")
-    from . import cmd_store
-    if not cmd_store.credentials():
-        return
-    try:
-        session = cmd_store.open_session(cmd_store.project_id(root))
-    except (cmd_store.Refused, cmd_store.Unreachable) as e:
-        sys.exit(f"the undo cannot check the open training session: {e}")
-    rows = [i for i, r in enumerate(session["rows"])
-            if r["file"] == name and r["entry"] == entry["id"] and not r["applied"]] if session else []
-    if rows:
-        sys.exit(f"the open training session holds row {rows[0]} on entry {entry['id']}; close it first")
 
 
 def cmd_undo(a):
@@ -703,13 +650,11 @@ def cmd_undo(a):
     gone = undo_target(data, a.entry)
     undo_gate(root, data, rel_name(code_path, root), gone)
     data["explanations"].remove(gone)
-    lines = [] if code_path.is_dir() else code_path.read_text().splitlines()
+    lines = code_path.read_text().splitlines()
     missing, blank = recompute(data, lines)
     map_path.write_text(json.dumps(data, indent=2) + "\n")
-    tail = "" if code_path.is_dir() else f", lines {fmt(expand(gone['block_lines']))}"
-    print(f"removed entry {gone['id']}: {gone['block']}{tail}")
-    if not code_path.is_dir():
-        print_coverage(missing, blank, lines)
+    print(f"removed entry {gone['id']}: {gone['block']}, lines {fmt(expand(gone['block_lines']))}")
+    print_coverage(missing, blank, lines)
     print(f"wrote {map_path}")
 
 
@@ -719,15 +664,11 @@ def cmd_show(a):
     map_path = map_path_of(code_path, root)
     if not map_path.exists():
         print(f"no map file at {map_path}")
-        if code_path.is_dir():
-            for w in dup_warnings(root):
-                print(f"warning: {w}")
         return
     data = json.loads(map_path.read_text())
     guard_structure(data, map_path)
-    is_dir = code_path.is_dir()
-    lines = [] if is_dir else code_path.read_text().splitlines()
-    spans = {} if is_dir else block_spans(code_path, lines)
+    lines = code_path.read_text().splitlines()
+    spans = block_spans(code_path, lines)
     folder = root
     code_name = rel_name(code_path, root)
     warnings = []
@@ -768,9 +709,9 @@ def cmd_show(a):
                 if not parent or x["anchor"] not in {y["words"] for y in parent.get("anchors", [])}:
                     warnings.append(f"entry {e['id']}: the anchor {x['words']!r} points at "
                                     f"e{x['explanation']}:{x['anchor']}, which does not exist")
-        if not is_dir and e["block"] != code_name and e["block"] not in spans:
+        if e["block"] != code_name and e["block"] not in spans:
             warnings.append(f"entry {e['id']}: the block {e['block']!r} is not in the file; run human sync")
-    if not is_dir and code_path.suffix == ".py":
+    if code_path.suffix == ".py":
         whole = next((e for e in data["explanations"] if e["block"] == code_name), None)
         if whole:
             pinned = {x.get("file") for x in whole.get("anchors", [])}
@@ -778,19 +719,14 @@ def cmd_show(a):
                 if map_path_of(root / rel, root).exists() and rel not in pinned:
                     warnings.append(f"{code_name} imports {rel} but entry {whole['id']} "
                                     f"has no pin to it")
-    if is_dir:
-        warnings += dup_warnings(root)
     for w in warnings:
         print(f"warning: {w}")
-    if not is_dir:
-        missing, blank = recompute(data, lines)
-        print_coverage(missing, blank, lines)
+    missing, blank = recompute(data, lines)
+    print_coverage(missing, blank, lines)
 
 
 def cmd_lines(a):
     code_path = Path(a.code_file).resolve()
-    if code_path.is_dir():
-        sys.exit("a folder has no lines")
     print(numbered(code_path.read_text().splitlines()))
 
 
@@ -993,17 +929,6 @@ def cmd_sync(a):
     root = find_root(code_path)
     map_path, data = load_existing(code_path)
     written = written_for(a, data, map_path.name)
-    if code_path.is_dir():
-        if a.stale is not None:
-            sys.exit("a project map has no stale entries")
-        broken = re_resolve(data, root.name, {}, 0, root)
-        map_path.write_text(json.dumps(data, indent=2) + "\n")
-        for eid, name in broken:
-            print(f"entry {eid}: {name!r} is gone; retext the entry")
-        if not broken:
-            print("every pin re-resolved, no claude call")
-        print(f"wrote {map_path}")
-        return
     code_name = rel_name(code_path, root)
     new_lines = code_path.read_text().splitlines()
     spans = block_spans(code_path, new_lines)

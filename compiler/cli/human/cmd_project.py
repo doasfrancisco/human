@@ -7,7 +7,6 @@ from pathlib import Path
 
 from . import cmd_map, decompiler, helpers
 
-WORD = "project"
 CROSS_RE = re.compile(r"^(.+?):e(\d+):(.+)$")
 
 SYNC_PROMPT = """The project changed. Explanation texts were written for the old state of the project. Mend the words the change made wrong, and add a sentence for each behaviour the change added.
@@ -53,18 +52,18 @@ def root_of():
 
 
 def name_of(a):
-    return getattr(a, "code_file", None) or WORD
+    return a.code_file
 
 
-def map_path(root, name=WORD):
+def map_path(root, name):
     return helpers.name_to_map(name, root)[0]
 
 
-def load(root, name=WORD):
+def load(root, name):
     return cmd_map.load_map(map_path(root, name), name)
 
 
-def save(root, data, name=WORD):
+def save(root, data, name):
     map_path(root, name).write_text(json.dumps(data, indent=2) + "\n")
 
 
@@ -218,8 +217,6 @@ def cmd_retext(a):
     if decompiler.stale_notes(entry):
         print(f"entry {a.id} stays stale; repair it with human sync {name} --stale {a.id}")
     decompiler.report_project_stale(mark_stale(root, name, a.id, old_text) if changed else [])
-    from . import cmd_train
-    cmd_train.refresh_row(root, name, a.id, old_text, text)
     print(f"wrote {map_path(root, name)}")
 
 
@@ -374,7 +371,7 @@ def project_diff(root, changed, entries):
     return "\n".join(out)
 
 
-def re_resolve(data, root, name=WORD):
+def re_resolve(data, root, name):
     broken = decompiler.re_resolve(data, name, {}, 0, root)
     for e in data["explanations"]:
         for x in e.get("anchors", []):
@@ -447,7 +444,7 @@ def ask(prompt, root, tries, check):
     sys.exit(f"the repair failed after {tries} tries, last error: {last}")
 
 
-def repair_stale(a, root, data, name=WORD):
+def repair_stale(a, root, data, name):
     entry = entry_of(data, a.stale)
     if entry is None:
         sys.exit(f"no entry {a.stale} in {map_path(root, name).name}")
@@ -567,23 +564,6 @@ def cmd_sync(a):
     save(root, trial, name)
     print_coverage(root, trial)
     print(f"wrote {map_path(root, name)}")
-
-
-def files_under(root, data, name):
-    if name == WORD:
-        return files_of(root)
-    return sorted({x["file"] for e in data["explanations"] for x in e.get("anchors", [])
-                   if "file" in x and (root / x["file"]).is_file()})
-
-
-def snapshot(root, kind, name=WORD):
-    data = load(root, name)
-    under = files_under(root, data, name)
-    if kind == "sync":
-        changed = [c for c in changed_files(root, data) if c in under]
-        files = {rel: (root / rel).read_text() for rel in changed if (root / rel).is_file()}
-        return {"changed": changed, "files": files, "diff": project_diff(root, changed, data["explanations"])}
-    return {"files": {rel: (root / rel).read_text() for rel in under if (root / rel).is_file()}}
 
 
 COMMANDS = {"retext": cmd_retext, "undo": cmd_undo, "show": cmd_show,

@@ -10,8 +10,7 @@ from pathlib import Path
 from . import cmd_project, decompiler, helpers
 
 FOLDER = "server"
-KINDS = ("retext", "map", "code", "decompile", "expand", "create", "delete", "link")
-TRAINED = ("decompile", "expand", "create")
+KINDS = ("retext", "map", "code", "decompile", "expand", "create", "delete")
 WRITTEN = ("retext", "map", "code")
 LOCK = threading.Lock()
 ENTRY_RE = re.compile(r"^entry (\d+)", re.M)
@@ -82,7 +81,7 @@ def map_of(root, name):
 def pins_reaching(root, name):
     out = []
     maps = [mp for _, mp in helpers.no_code_maps(root)]
-    maps += sorted((root / "human").glob("explanation_*.json"))
+    maps += sorted((root / "human").glob(f"{helpers.MAP_PREFIX}*.json"))
     for mp in maps:
         if not mp.exists():
             continue
@@ -98,24 +97,9 @@ def pins_reaching(root, name):
     return out
 
 
-def training_for(root, event):
-    from . import cmd_store, cmd_train
-    if event["kind"] not in TRAINED or event.get("new_text") is not None or not cmd_store.credentials():
-        return
-    notes = []
-    try:
-        session, made = cmd_train.ensure_open(root, notes)
-    except (cmd_store.Refused, cmd_store.Unreachable) as e:
-        event["session"] = None
-        event["output"] += f"  ·  no training: {e}"
-        return
-    event["session"] = session["session_id"]
-    event["output"] += f"  ·  training {session['session_id']}" + (" opened" if made else "")
-
-
 def compile_writing(root, name, kind, eid, text, words=None):
-    if kind not in KINDS or kind == "link":
-        return 400, f"unknown kind {kind!r}; one of {', '.join(KINDS[:-1])}"
+    if kind not in KINDS:
+        return 400, f"unknown kind {kind!r}; one of {', '.join(KINDS)}"
     if kind in WRITTEN and (not text or not text.strip()):
         return 400, "the text is empty"
     no_code = helpers.no_code(name, root)
@@ -125,6 +109,7 @@ def compile_writing(root, name, kind, eid, text, words=None):
     if not no_code and (root / "human") in file_path.parents:
         return 400, f"{name} belongs to the human folder; the maps take no writing"
     map_p, data = map_of(root, name)
+    held = bool(data and data.get("explanations"))
     event = {"kind": kind, "name": name, "map": str(map_p), "entry": eid,
              "file": None if no_code else str(file_path)}
     if kind == "retext":
@@ -136,7 +121,7 @@ def compile_writing(root, name, kind, eid, text, words=None):
             return 400, out
         event.update({"old_text": entry["text"], "new_text": text, "output": out})
     elif kind == "map":
-        if data and not no_code:
+        if held and not no_code:
             return 400, f"{name} has a map; write on its entries"
         code, out = run_cli(root, ["map", name, "--verbatim"], text)
         if code != 0:
@@ -147,7 +132,7 @@ def compile_writing(root, name, kind, eid, text, words=None):
     elif kind == "decompile":
         if no_code:
             return 400, f"{name} has no code under it"
-        if data:
+        if held:
             return 400, f"{name} has a map; expand or create on its entries"
         if not file_path.read_text(errors="replace").strip():
             return 400, f"{name} is empty; write its telling, and claude writes the code under it"
@@ -187,7 +172,7 @@ def compile_writing(root, name, kind, eid, text, words=None):
     else:
         if no_code:
             return 400, f"{name} has no code under it"
-        if data:
+        if held:
             return 400, f"{name} has a map; write on its entries, not on the code"
         old = file_path.read_text()
         file_path.write_text(text if text.endswith("\n") else text + "\n")
@@ -196,7 +181,6 @@ def compile_writing(root, name, kind, eid, text, words=None):
             return 200, {"seq": None, "output": f"{name} saved; no telling stands on it"}
         event.update({"map": None, "entry": None, "old_text": old, "new_text": text,
                       "pins": pins, "output": f"{name} saved; {len(pins)} pins reach it"})
-    training_for(root, event)
     with LOCK:
         seq = append_event(root, event)
     return 200, {"seq": seq, "output": event["output"]}

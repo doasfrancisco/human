@@ -31,35 +31,11 @@ def verbatim_record(a, text):
     return {"verbatim": {"origin": decompiler.strip_pins(text)}}
 
 
-def map_project(a, root):
-    if a.block:
-        sys.exit("a project map has no blocks of its own; drop --block")
-    map_path = root / "human" / "human.json"
-    data = load_map(map_path, root.name)
-    text = decompiler.read_text_arg(a)
-    eid = next_id(data)
-    try:
-        anchors = decompiler.build_anchors(text, data, {}, eid, root)
-        decompiler.project_pins(anchors)
-    except AssertionError as e:
-        sys.exit(str(e))
-    record = {"id": eid, "block": root.name, "block_lines": [],
-              "text": text, "anchors": anchors}
-    data["explanations"].append(record)
-    map_path.write_text(json.dumps(data, indent=2) + "\n")
-    files = sorted({x["file"] for x in anchors})
-    print(f"entry {eid}: {root.name}, {len(anchors)} pins into {len(files)} files ({', '.join(files)})")
-    print(f"wrote {map_path}")
-
-
 def cmd_map(a):
     root = decompiler.find_root(Path(a.code_file).resolve())
     map_path, sort = helpers.name_to_map(a.code_file, root)
     if sort in helpers.NO_CODE:
         cmd_project.cmd_map_project(a)
-        return
-    if sort == "folder":
-        map_project(a, root)
         return
     code_path = Path(a.code_file).resolve()
     if not code_path.is_file():
