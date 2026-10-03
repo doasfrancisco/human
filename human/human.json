@@ -58,6 +58,7 @@
     "compiler/cli/human/cmd_watch.py",
     "compiler/cli/human/decompiler.py",
     "compiler/cli/human/helpers.py",
+    "compiler/cli/human/updater.py",
     "compiler/cli/human/reader/shiki.js",
     "compiler/cli/human/reader/trees.js",
     "compiler/cli/human/reader/web.html",

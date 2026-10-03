@@ -9,17 +9,21 @@ import re
 import secrets
 import shutil
 import socket
+import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 from datetime import timezone
 from email.utils import parsedate_to_datetime
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import cmd_map, cmd_project, cmd_store, cmd_train, cmd_watch, decompiler, helpers
+from . import cmd_map, cmd_project, cmd_store, cmd_train, cmd_watch, decompiler, helpers, updater
 
 PKG = Path(__file__).parent
+READER = ("web.html", "trees.js", "shiki.js")
 
 IGNORE_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv",
                "build", "dist", ".idea", ".vscode"}
@@ -66,8 +70,6 @@ def cmd_init(a):
     root.mkdir(parents=True, exist_ok=True)
     h = root / "human"
     h.mkdir(exist_ok=True)
-    for name in ("web.html", "trees.js", "shiki.js"):
-        shutil.copy(PKG / "reader" / name, h / name)
     (h / "feed.html").unlink(missing_ok=True)
     map_path = h / "human.json"
     if map_path.exists():
@@ -324,6 +326,72 @@ def keep_drafts(root, changes):
     return 200, {"drafts": len(tidy_drafts(root, changes))}
 
 
+PROJECTS_LOCK = threading.Lock()
+SERVED = {}
+BUSY = [0]
+BUSY_LOCK = threading.Lock()
+
+
+def projects_path():
+    return updater.HOME / "projects.json"
+
+
+def read_projects():
+    try:
+        d = json.loads(projects_path().read_text())
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(d, dict):
+        return {}
+    return {k: Path(v) for k, v in d.items() if isinstance(k, str) and isinstance(v, str)}
+
+
+def add_project(root):
+    pid = cmd_store.project_id(root)
+    with PROJECTS_LOCK:
+        d = read_projects()
+        d[pid] = root
+        updater.HOME.mkdir(parents=True, exist_ok=True)
+        p = projects_path()
+        tmp = p.with_name(p.name + ".tmp")
+        tmp.write_text(json.dumps({k: str(v) for k, v in sorted(d.items())}, indent=2) + "\n")
+        tmp.replace(p)
+        SERVED.update(d)
+    return pid
+
+
+def project_root(pid):
+    root = SERVED.get(pid)
+    if root is None:
+        with PROJECTS_LOCK:
+            SERVED.update(read_projects())
+        root = SERVED.get(pid)
+    if root is None or not (root / "human" / "human.json").is_file():
+        return None
+    return root
+
+
+def deploy_reader():
+    updater.HOME.mkdir(parents=True, exist_ok=True)
+    for name in READER:
+        src, dst = PKG / "reader" / name, updater.HOME / name
+        body = src.read_bytes()
+        if not dst.is_file() or dst.read_bytes() != body:
+            tmp = dst.with_name(name + ".tmp")
+            tmp.write_bytes(body)
+            tmp.replace(dst)
+
+
+def idle():
+    with BUSY_LOCK:
+        if BUSY[0]:
+            return False
+    for root in list(SERVED.values()):
+        if (root / "human" / "human.json").is_file() and cmd_watch.pending(root)["pending"]:
+            return False
+    return True
+
+
 class FreshHandler(SimpleHTTPRequestHandler):
     verbose = False
     protocol_version = "HTTP/1.1"
@@ -357,8 +425,7 @@ class FreshHandler(SimpleHTTPRequestHandler):
         etag = f'"{hashlib.sha1(body).hexdigest()[:16]}"' if versioned else None
         self.send_body(status, body, "application/json", etag)
 
-    def send_static(self):
-        p = Path(self.translate_path(self.path))
+    def send_static(self, p):
         ctype = self.guess_type(str(p))
         if not p.is_file() or not (ctype.startswith("text/") or ctype.endswith(("javascript", "json"))):
             return super().do_GET()
@@ -381,14 +448,41 @@ class FreshHandler(SimpleHTTPRequestHandler):
                 pass
         self.send_body(200, body, ctype, modified=self.date_time_string(st.st_mtime))
 
-    def do_GET(self):
+    def project(self):
         path = self.path.split("?")[0]
-        root = Path(self.directory)
+        m = re.fullmatch(r"/([^/]+)(/.*)?", path)
+        root = project_root(m.group(1)) if m else None
+        if root is None:
+            return None, None, path
+        self.directory = str(root)
+        return m.group(1), root, m.group(2) or "/"
+
+    def do_GET(self):
+        if self.path.split("?")[0] == "/human/hello":
+            self.send_json(200, {"human": updater.version()})
+            return
+        pid, root, path = self.project()
+        if root is None:
+            self.send_json(404, {"error": f"no project at {path}"})
+            return
+        if path == "/":
+            self.send_response(302)
+            self.send_header("Location", f"/{pid}/human/web.html")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        if path in {f"/human/{n}" for n in READER}:
+            self.send_static(updater.HOME / path.rsplit("/", 1)[1])
+            return
+        self.path = path
         if path == "/human/human.json":
             try:
                 self.send_json(200, fresh_map(root), versioned=True)
             except (OSError, ValueError):
-                self.send_static()
+                self.send_static(Path(self.translate_path(path)))
+            return
+        if path == "/human/server/update":
+            self.send_json(200, updater.status())
             return
         if path == "/human/maps":
             self.send_json(200, all_maps(root))
@@ -414,15 +508,45 @@ class FreshHandler(SimpleHTTPRequestHandler):
         if path == "/human/server/drafts":
             self.send_json(200, tidy_drafts(root, {}))
             return
-        self.send_static()
+        self.send_static(Path(self.translate_path(path)))
 
     def read_body(self):
         n = int(self.headers.get("Content-Length") or 0)
         return json.loads(self.rfile.read(n) or b"{}")
 
     def do_POST(self):
-        path = self.path.split("?")[0]
-        root = Path(self.directory)
+        if self.path.split("?")[0] == "/human/projects":
+            self.take_project()
+            return
+        pid, root, path = self.project()
+        if root is None:
+            self.send_json(404, {"error": f"no project at {path}"})
+            return
+        if path == "/human/server/update":
+            updater.restart_when(idle, self.server.server_close)
+            self.send_json(200, updater.status())
+            return
+        with BUSY_LOCK:
+            BUSY[0] += 1
+        try:
+            self.write(root, path)
+        finally:
+            with BUSY_LOCK:
+                BUSY[0] -= 1
+
+    def take_project(self):
+        if self.client_address[0] not in ("127.0.0.1", "::1"):
+            self.send_json(403, {"error": "a project is given from this machine only"})
+            return
+        try:
+            root = Path(self.read_body().get("root") or "")
+            pid = add_project(root.resolve())
+        except (ValueError, OSError, cmd_store.Refused) as e:
+            self.send_json(400, {"error": str(e)})
+            return
+        self.send_json(200, {"id": pid})
+
+    def write(self, root, path):
         m = re.fullmatch(r"/human/training/([^/]+)/(pick|close)", path)
         try:
             body = self.read_body()
@@ -470,20 +594,51 @@ def tailnet_ip():
     return None
 
 
-def cmd_serve(a):
-    root = decompiler.find_root(Path(a.folder).resolve())
-    FreshHandler.verbose = a.log
-    handler = partial(FreshHandler, directory=str(root))
-    srv = ThreadingHTTPServer(("0.0.0.0", a.port), handler)
-    print(f"serving {root}")
-    print(f"http://localhost:{a.port}/human/web.html")
+def hand_over(root, port):
+    ask = urllib.request.Request(f"http://127.0.0.1:{port}/human/projects", method="POST",
+                                 data=json.dumps({"root": str(root)}).encode(),
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(ask, timeout=5) as r:
+            return json.loads(r.read()).get("id")
+    except urllib.error.HTTPError as e:
+        try:
+            said = json.loads(e.read()).get("error")
+        except ValueError:
+            said = None
+        if e.code == 400 and said:
+            sys.exit(said)
+        return None
+    except (OSError, ValueError):
+        return None
+
+
+def print_links(pid, port):
+    print(f"Click http://localhost:{port}/{pid}/human/web.html to read your human code!", flush=True)
     tip = tailnet_ip()
     if tip:
-        print(f"http://{tip}:{a.port}/human/web.html")
-    print("an open training session shows as a layer over the reader")
-    print("a new file from the reader lands next to the others, empty, ready for its telling")
-    print("a new human file from the reader takes a bare name and opens with no file under it")
-    print("a writing in the reader lands in human/server/; read it with: human watch")
+        print(f"This is the tailnet http://{tip}:{port}/{pid}/human/web.html in case you need it : )", flush=True)
+
+
+def cmd_serve(a):
+    root = decompiler.find_root(Path(a.folder).resolve())
+    try:
+        pid = cmd_store.project_id(root)
+    except cmd_store.Refused as e:
+        sys.exit(e.message)
+    if hand_over(root, a.port):
+        print_links(pid, a.port)
+        return
+    add_project(root)
+    deploy_reader()
+    FreshHandler.verbose = a.log
+    handler = partial(FreshHandler, directory=str(root))
+    try:
+        srv = ThreadingHTTPServer(("0.0.0.0", a.port), handler)
+    except OSError as e:
+        sys.exit(f"port {a.port} is held by another program, or by a human server older than this one: {e.strerror}")
+    print_links(pid, a.port)
+    updater.start()
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
@@ -558,6 +713,8 @@ def main():
     g = sub.add_parser("login")
     g.add_argument("key")
     a = ap.parse_args()
+    if updater.from_pypi():
+        print(updater.MOVED, file=sys.stderr)
     if a.cmd in cmd_project.COMMANDS and helpers.no_code(a.code_file, decompiler.find_root(Path.cwd())):
         cmd_project.COMMANDS[a.cmd](a)
         return

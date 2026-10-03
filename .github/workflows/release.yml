@@ -1,0 +1,87 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - place: linux-x64
+            runner: ubuntu-22.04
+          - place: linux-arm64
+            runner: ubuntu-22.04-arm
+          - place: darwin-x64
+            runner: macos-15-intel
+          - place: darwin-arm64
+            runner: macos-15
+          - place: win32-x64
+            runner: windows-latest
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - shell: bash
+        run: |
+          version="$(grep -m1 '^version' compiler/cli/pyproject.toml | cut -d'"' -f2)"
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME is not the pyproject version $version"; exit 1; }
+          cp README.md LICENSE-APACHE LICENSE-MIT compiler/cli/
+          python -m pip install pyinstaller ./compiler/cli
+          echo "from human import main; main()" > entry.py
+      - if: matrix.place != 'win32-x64'
+        shell: bash
+        run: |
+          pyinstaller --noconfirm --name human --collect-data human --copy-metadata humanlang entry.py
+          tar -czf "human-${{ matrix.place }}.tar.gz" -C dist human
+          ./dist/human/human --help > /dev/null
+      - if: matrix.place == 'win32-x64'
+        shell: bash
+        run: |
+          pyinstaller --noconfirm --onefile --name human --collect-data human --copy-metadata humanlang entry.py
+          cp dist/human.exe "human-${{ matrix.place }}.exe"
+          ./dist/human.exe --help > /dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.place }}
+          path: human-${{ matrix.place }}.*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      R2: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+      BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          cd out
+          {
+            echo "{\"version\": \"$version\", \"platforms\": {"
+            first=1
+            for f in human-*; do
+              place="${f#human-}"; place="${place%.tar.gz}"; place="${place%.exe}"
+              [ $first = 1 ] || echo ","
+              first=0
+              printf '  "%s": {"file": "%s", "checksum": "%s"}' "$place" "$f" "$(sha256sum "$f" | cut -d' ' -f1)"
+            done
+            echo
+            echo "}}"
+          } > manifest.json
+          cat manifest.json
+          for f in human-* manifest.json; do
+            aws s3 cp "$f" "s3://$BUCKET/$version/$f" --endpoint-url "$R2"
+          done
+          printf '%s\n' "$version" > latest
+          aws s3 cp latest "s3://$BUCKET/latest" --endpoint-url "$R2" --cache-control "no-cache" --content-type "text/plain"

@@ -4,27 +4,26 @@ Human is the first open source AI programming language that makes it possible to
 
 ## Setup
 
-Requires [Claude Code](https://claude.com/claude-code) and [uv](https://docs.astral.sh/uv/).
+Requires [Claude Code](https://claude.com/claude-code).
 
 ```bash
-uv tool install humanlang
-human skills          # installs the /human skill into ~/.claude/skills
+curl -fsSL https://doashuman.com/install.sh | bash
 ```
 
-Upgrade to the latest version with:
+On Windows, in PowerShell:
 
-```bash
-uv tool upgrade humanlang
-human skills          # refresh the installed skills too
-human init            # run in each project to refresh its reader
+```powershell
+irm https://doashuman.com/install.ps1 | iex
 ```
+
+This installs human and the /human skill. A running `human serve` downloads each new version in the background and deploys the skills again; a click on the update button at the bottom right of the file tree restarts the server on it.
 
 ## Use
 
 In your project:
 
 ```bash
-human init            # creates the human/ folder: the maps and the reader live there
+human init            # creates the human/ folder: the maps live there
 ```
 
 Then in Claude Code:
@@ -38,7 +37,7 @@ Then in Claude Code:
 human serve
 ```
 
-Open `http://localhost:8010/human/web.html`. Every entry opens as a notepad, and "compile" hands your words to claude. A right click on the file tree gives "create file" and "create human"; "create file" makes an empty file, in a new folder too, under the folder you clicked; write its abstraction and claude writes the code under it.
+Open the link it prints, like `http://localhost:8010/<project id>/human/web.html`. One server reads every project of the machine: `human serve` in a second project gives it to the server that runs and prints its link. Every entry opens as a notepad, and "compile" hands your words to claude. A right click on the file tree gives "create file" and "create human"; "create file" makes an empty file, in a new folder too, under the folder you clicked; write its abstraction and claude writes the code under it.
 
 ## Train
 
@@ -47,6 +46,6 @@ human train --open    # start a session; claude now writes two or three versions
 human train --close   # map the versions you picked and finish the session
 ```
 
-Pick in the reader at `http://localhost:8010/human/web.html`: an open session shows as a layer over it, swipe sideways for the versions, down for the next file, and say why you picked if you want. A "close training" button applies the picks; a new abstraction you do not pick takes best, a sync you do not pick carries over. A write in the reader that asks claude for a telling opens a session by itself. The sessions live in the training store, one JSON per session under your user and per project, with a copy of the code and of the abstraction each row worked on; `human login <key>` once per machine names you, and `human init` gives the project its id.
+Pick in the reader: an open session shows as a layer over it, swipe sideways for the versions, down for the next file, and say why you picked if you want. A "close training" button applies the picks; a new abstraction you do not pick takes best, a sync you do not pick carries over. A write in the reader that asks claude for a telling opens a session by itself. The sessions live in the training store, one JSON per session under your user and per project, with a copy of the code and of the abstraction each row worked on; `human login <key>` once per machine names you, and `human init` gives the project its id.
 
 Everything the project writes lives in the `human/` folder — one `rm -rf human/` removes it completely.

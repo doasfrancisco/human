@@ -66,7 +66,8 @@ def pending(root):
 
 
 def run_cli(root, args, text):
-    r = subprocess.run([sys.executable, "-c", "from human import main; main()", *args],
+    me = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, "-c", "from human import main; main()"]
+    r = subprocess.run([*me, *args],
                        cwd=str(root), input=text, capture_output=True, text=True)
     return r.returncode, (r.stdout + r.stderr).strip()
 

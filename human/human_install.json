@@ -5,10 +5,100 @@
       "id": 1,
       "block": "install",
       "block_lines": [],
-      "text": "analyze \"curl -fsSL https://claude.ai/install.sh | bash\", \"curl -fsSL https://t3.codes/install.sh | sh\"\n\ncreate a script using domain doashuman.com \n\nscript:\n    installs human same as uv tool install humanlang, but also installs the human skill\n    updates how do they work? do releases are what update human for the user? claude code updates automatically i like that but how? can you check?\n \n\nasume the user can't control which version to install. always forced to be in latest version \n(but what happens for opened readers or turned on servers? i know t3code shows update button, then it opens again?, the update bottom should be on the bottom right of the file tree section))\n\n\n\nand for windows.\n\nirm\nscoop\nwinget \n\ncommands",
-      "anchors": [],
+      "text": "if hadn't yet, analyze \"curl -fsSL https://claude.ai/install.sh | bash\", \"curl -fsSL https://t3.codes/install.sh | sh\"\n\n\n[install.sh](.install/install.sh):\n    if checksum ok, install human and human skill\n    human is a one ready-built program for:\n        linux x64 and arm64, \n        windows x64,\n        macos x64 and arm64\n    curl -fsSL https://doashuman.com/install.sh | bash\n    [irm https://doashuman.com/install.ps1 | iex](.install/install.ps1) for windows\n\n[server checks](compiler/cli/human/updater.py:check) https://downloads.doashuman.com/latest\nif updates:\n    if checksum ok, [install update on background](compiler/cli/human/updater.py:download) \n    [skills deploy again](compiler/cli/human/updater.py:check)\n    if [click button on web](compiler/cli/human/reader/web.html:pollUpdate), [the server restarts on the new version](compiler/cli/human/updater.py:restart_when), after, page loads again\n    [waits until no compile or event is open in any project](compiler/cli/human/__init__.py:idle)\n\nif first time creating, \n    ai harness shows step by step how:\n        to add domain to cloudflare\n        to replace `ns37/ns38.domaincontrol.com` to the two Cloudflare name servers\n        to create cloudflare r2 to store releases\n\n    create a folder .install/, with `install.sh`, `install.ps1`, connect to Cloudflare Pages, configure to deploy at each push.\n    [create github workflow at each tag](.github/workflows/release.yml):\n        uses PyInstaller to build human for Linux, macOS and Windows.\n        write checksum\n        puts the programs and checksum in r2\n        writes the new version into r2\n\n    if pypi, [last pypi version prints](compiler/cli/human/updater.py:from_pypi): \"human moved: curl -fsSL https://doashuman.com/install.sh | bash\"",
+      "anchors": [
+        {
+          "words": "install.sh",
+          "file": ".install/install.sh"
+        },
+        {
+          "words": "irm https://doashuman.com/install.ps1 | iex",
+          "file": ".install/install.ps1"
+        },
+        {
+          "words": "server checks",
+          "file": "compiler/cli/human/updater.py",
+          "block": "check",
+          "lines": [
+            [
+              111,
+              120
+            ]
+          ]
+        },
+        {
+          "words": "install update on background",
+          "file": "compiler/cli/human/updater.py",
+          "block": "download",
+          "lines": [
+            [
+              72,
+              91
+            ]
+          ]
+        },
+        {
+          "words": "skills deploy again",
+          "file": "compiler/cli/human/updater.py",
+          "block": "check",
+          "lines": [
+            [
+              111,
+              120
+            ]
+          ]
+        },
+        {
+          "words": "click button on web",
+          "file": "compiler/cli/human/reader/web.html",
+          "block": "pollUpdate",
+          "lines": [
+            [
+              1197,
+              1207
+            ]
+          ]
+        },
+        {
+          "words": "the server restarts on the new version",
+          "file": "compiler/cli/human/updater.py",
+          "block": "restart_when",
+          "lines": [
+            [
+              142,
+              159
+            ]
+          ]
+        },
+        {
+          "words": "waits until no compile or event is open in any project",
+          "file": "compiler/cli/human/__init__.py",
+          "block": "idle",
+          "lines": [
+            [
+              385,
+              392
+            ]
+          ]
+        },
+        {
+          "words": "create github workflow at each tag",
+          "file": ".github/workflows/release.yml"
+        },
+        {
+          "words": "last pypi version prints",
+          "file": "compiler/cli/human/updater.py",
+          "block": "from_pypi",
+          "lines": [
+            [
+              36,
+              42
+            ]
+          ]
+        }
+      ],
       "verbatim": {
-        "origin": "analyze \"curl -fsSL https://claude.ai/install.sh | bash\", \"curl -fsSL https://t3.codes/install.sh | sh\"\n\ncreate a script using domain doashuman.com \n\nscript:\n    installs human same as uv tool install humanlang, but also installs the human skill\n    updates how do they work? do releases are what update human for the user? claude code updates automatically i like that but how? can you check?\n \n\nasume the user can't control which version to install. always forced to be in latest version \n(but what happens for opened readers or turned on servers? i know t3code shows update button, then it opens again?, the update bottom should be on the bottom right of the file tree section))\n\n\n\nand for windows.\n\nirm\nscoop\nwinget \n\ncommands"
+        "origin": "if hadn't yet, analyze \"curl -fsSL https://claude.ai/install.sh | bash\", \"curl -fsSL https://t3.codes/install.sh | sh\"\n\n\ninstall.sh:\n    if checksum ok, install human and human skill\n    human is a one ready-built program for:\n        linux x64 and arm64, \n        windows x64,\n        macos x64 and arm64\n    curl -fsSL https://doashuman.com/install.sh | bash\n    irm https://doashuman.com/install.ps1 | iex for windows\n\nserver checks https://downloads.doashuman.com/latest\nif updates:\n    if checksum ok, install update on background \n    skills deploy again\n    if click button on web, the server restarts on the new version, after, page loads again\n    waits until no compile or event is open in any project\n\nif first time creating, \n    ai harness shows step by step how:\n        to add domain to cloudflare\n        to replace `ns37/ns38.domaincontrol.com` to the two Cloudflare name servers\n        to create cloudflare r2 to store releases\n\n    create a folder .install/, with `install.sh`, `install.ps1`, connect to Cloudflare Pages, configure to deploy at each push.\n    create github workflow at each tag:\n        uses PyInstaller to build human for Linux, macOS and Windows.\n        write checksum\n        puts the programs and checksum in r2\n        writes the new version into r2\n\n    if pypi, last pypi version prints: \"human moved: curl -fsSL https://doashuman.com/install.sh | bash\""
       }
     }
   ],

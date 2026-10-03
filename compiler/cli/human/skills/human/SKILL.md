@@ -5,13 +5,13 @@ description: Compile a human abstraction — free text — into code, then map t
 
 # human
 
-The user writes the telling first — free text, with pins only into things that already exist — and claude writes the code under it. When the user asks how code that is already there works, claude writes its telling instead, in the shape the catalog gives the file (Explain, below). The state is one `human/` folder at the project root: `human/human.json` holds the project's top entry and the file list, `human/project.json` holds the tellings of the whole — the user's abstraction among them —, each code file gets one `explanation_<path>.json` with the `/` of the path written as `__`, and each human file the user makes gets one `human_<name>.json`. A human file is a map with no code under it, like the project map, but over the files the user chooses: it answers to its bare name — `payments` — everywhere a file path goes. The `human` CLI owns the `human/` folder — never edit a map by hand. The reader is `human/web.html`, served with `human serve`.
+The user writes the telling first — free text, with pins only into things that already exist — and claude writes the code under it. When the user asks how code that is already there works, claude writes its telling instead, in the shape the catalog gives the file (Explain, below). The state is one `human/` folder at the project root: `human/human.json` holds the project's top entry and the file list, `human/project.json` holds the tellings of the whole — the user's abstraction among them —, each code file gets one `explanation_<path>.json` with the `/` of the path written as `__`, and each human file the user makes gets one `human_<name>.json`. A human file is a map with no code under it, like the project map, but over the files the user chooses: it answers to its bare name — `payments` — everywhere a file path goes. The `human` CLI owns the `human/` folder — never edit a map by hand. The reader comes inside the human program, served with `human serve`.
 
 ## The run
 
 An abstraction comes in as free text: "an http server using python that returns hello world". One run turns it into a project, end to end. The user corrects afterwards, in the reader and with `retext` / `undo` / `sync`.
 
-1. **Register the project.** `human init` at the project root: it makes the `human/` folder, the empty project map, and the reader. Run it again after a file is added or removed, so the file list follows.
+1. **Register the project.** `human init` at the project root: it makes the `human/` folder and the empty project map, and gives the project its id. Run it again after a file is added or removed, so the file list follows.
 
 2. **Keep the user's words.** Before any code, hand the abstraction to the tool — no spelling fixed, no word trimmed:
 
@@ -41,7 +41,7 @@ The user's words and the code are the whole result. Write no telling of a file a
 
 6. **A human file, when the user asks for one.** When the telling is about one part of the project and not the whole, it goes in a human file: `human map <bare name>` makes `human/human_<name>.json` on the first run and takes the same pins as the project telling. The user makes one from the reader too, with the "new human file" line. A human file may stand on another human file; the chain never turns back on itself, and the CLI refuses a circle over the whole graph of maps.
 
-7. **Report.** `human show <code_file>` per file and `human show project`: the entries, the coverage, the warnings. Start `human serve` when no server runs, give the user the reader address, `http://localhost:8010/human/web.html`, and arm the watch (below) so a writing in the reader reaches you.
+7. **Report.** `human show <code_file>` per file and `human show project`: the entries, the coverage, the warnings. Run `human serve`: it starts the one human server of the machine, or gives the project to the one that runs, and prints the reader address, like `http://localhost:8010/<project id>/human/web.html`. Give the user that address and arm the watch (below) so a writing in the reader reaches you.
 
 ## The reader writes
 
