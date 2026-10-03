@@ -155,3 +155,17 @@ A pin points at a thing: a file, a block, or an anchor. Some words tell an actio
 ## 14. The install design is simpler for vibecoders
 
 One `curl` line installs human and its skills, with no uv, no Python and no `human skills`. Updates come by themselves, like Claude Code. A vibecoder never sees a version, a package tool or a skill folder.
+
+## 15. Anchor words must be unique in one text
+
+A compile is refused when two pins in one text have the same words. Words can repeat in a human text. The same name, a path or a command, often comes back in a second place.
+
+Example, 2026-10-02. A compile on `install.human` answered `entry 1: [ANCHOR-WORDS] the anchor 'install.sh' appears twice; anchor words are unique in one text`. The text held `[install.sh](.install/install.sh)` two times.
+
+The words are the key today: a pin from another entry reaches an anchor by its words, `[w](e1:install.sh)`. Two anchors with the same words make that key point at two places.
+
+What the change implies: each anchor gets an id that the words do not carry.
+
+- **An id per anchor.** The map keeps each anchor with a short id, `a1`, `a2`, given in order when the text goes in. A pin from another entry can name it: `[w](e1#a3)`.
+- **The words stay the easy road.** `[w](e1:install.sh)` still works when the words are unique. When they repeat, the tool refuses only that pin, and names the ids to choose from: `install.sh is a2 and a7`.
+- **An id stays with its anchor.** On a retext or a sync, an anchor keeps its id when its words and its target stay the same, so a pin from another entry does not break when the text moves around it.

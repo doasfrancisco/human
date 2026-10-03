@@ -38,7 +38,7 @@ line="$(curl -fsSL "$DOWNLOADS/$version/manifest.json" | grep "\"$place\"")" || 
 file="$(printf '%s' "$line" | sed -E 's/.*"file": *"([^"]+)".*/\1/')"
 checksum="$(printf '%s' "$line" | sed -E 's/.*"checksum": *"([0-9a-f]{64})".*/\1/')"
 
-tmp="$(mktemp -d)"
+tmp="$(mktemp -d "$HOME/human-install.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 echo "downloading human $version for $place"
 curl -fSL --progress-bar -o "$tmp/$file" "$DOWNLOADS/$version/$file"

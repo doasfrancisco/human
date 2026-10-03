@@ -343,9 +343,21 @@ def cmd_tip(a):
         e = next((x for x in d.get("explanations", []) if x.get("id") == a.entry), None)
         if e is None:
             sys.exit(f"{a.code_file} has no entry {a.entry}")
-        if not a.words or not any(a.words in line for line in e["text"].split("\n")):
-            sys.exit(f"--words must be found inside one line of entry {a.entry}, as it is written in the map")
-        tip = {"file": file, "kind": "line", "entry": a.entry, "words": a.words, "say": a.say}
+        lines = e["text"].split("\n")
+        if a.add is not None:
+            if not a.add.strip():
+                sys.exit("--add takes the new line, with its spaces in front")
+            at = next((i for i, line in enumerate(lines) if a.after and a.after in line), None)
+            if at is None:
+                sys.exit(f"--after must be found inside one line of entry {a.entry}, as it is written in the map")
+            lines.insert(at + 1, a.add.rstrip())
+            top = json.loads((root / "human" / "human.json").read_text()).get("code_file") or root.name
+            tidy_drafts(root, {f"human-draft:{top}/{file}/{a.entry}": "\n".join(lines)})
+            tip = {"file": file, "kind": "line", "entry": a.entry, "words": a.add.strip(), "say": a.say, "compile": True}
+        else:
+            if not a.words or not any(a.words in line for line in lines):
+                sys.exit(f"--words must be found inside one line of entry {a.entry}, as it is written in the map")
+            tip = {"file": file, "kind": "line", "entry": a.entry, "words": a.words, "say": a.say}
     out = tip_path(root)
     out.write_text(json.dumps(tip, indent=1) + "\n")
     print(f"tip kept in {out}; the reader shows it on its next open")
@@ -432,7 +444,7 @@ def add_project(root):
         d[pid] = root
         updater.HOME.mkdir(parents=True, exist_ok=True)
         p = projects_path()
-        tmp = p.with_name(p.name + ".tmp")
+        tmp = p.with_name(f"{p.name}.{os.getpid()}.tmp")
         tmp.write_text(json.dumps({k: str(v) for k, v in sorted(d.items())}, indent=2) + "\n")
         tmp.replace(p)
         SERVED.update(d)
@@ -456,7 +468,7 @@ def deploy_reader():
         src, dst = PKG / "reader" / name, updater.HOME / name
         body = src.read_bytes()
         if not dst.is_file() or dst.read_bytes() != body:
-            tmp = dst.with_name(name + ".tmp")
+            tmp = dst.with_name(f"{name}.{os.getpid()}.tmp")
             tmp.write_bytes(body)
             tmp.replace(dst)
 
@@ -804,6 +816,8 @@ def main():
     n.add_argument("code_file", nargs="?")
     n.add_argument("--entry", type=int, default=1)
     n.add_argument("--words")
+    n.add_argument("--add")
+    n.add_argument("--after")
     n.add_argument("--draft")
     n.add_argument("--say")
     n.add_argument("--clear", action="store_true")

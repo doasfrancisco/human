@@ -12,10 +12,10 @@ The user writes the telling first — free text, with pins only into things that
 The first time the user asks you for code in a project with no `human/` folder, start them on human before anything else. The user never types `human init`; you run it.
 
 1. **Register the project.** `human init` at the root: it makes the `human/` folder, gives the project its id, and starts the reader (step 1 of the run).
-2. **A project with code.** Read the shape in `~/.human/shapes/example.md` and write the first global flow of the whole project with `human map project`: very short, one numbered line per step, with pins. Then pick one line of it that the user would likely want to change, and leave a tip on it — the reader opens on that line, lights it, and shows the tip under it:
+2. **A project with code.** Read the shape in `~/.human/shapes/example.md` and write the first global flow of the whole project with `human map project`: very short, one numbered line per step, with pins. Then write one new line for it: a small change the user would likely want, that breaks nothing. Leave it as a tip — the tool puts the line in a draft of the flow, under the line you name; the reader opens on it, lights it, shows the tip under it, and lights the green compile button:
 
 ```bash
-human tip project --entry 1 --words "<words of that line, as the map holds them>" --say "<one sentence: the change you suggest, and that a click on the text opens it>"
+human tip project --entry 1 --after "<words of the line above it, as the map holds them>" --add "<the new line, with its spaces in front>" --say "<one sentence: what the new line asks for, and that the green button compiles it>"
 ```
 
 3. **A project with no code.** Leave the first abstraction for the user to compile:
@@ -78,7 +78,7 @@ The user can write in the reader instead of the terminal. Every entry is a notep
 
 A refusal comes back to the browser in the CLI's words and nothing is queued. A success appends one event to `human/server/events.jsonl` — the kind, the absolute paths of the map and the file, the entry id, the old and the new text, and for a code write the pins that reach the file — and the reader shows the entry as compiling until claude is done.
 
-**Listening.** Once per session, arm one persistent Monitor on `human watch` from the project root. It prints every event claude has not finished — one JSON line each — then follows. An event printed in an earlier session comes back with `"replay": true`: check `human show` before you sync anything, the run may be half done. When the event's run is complete, `human ack <seq>`; the queue advances and the reader drops the mark. Take the events in order, one at a time.
+**Listening.** Once per session, arm one persistent Monitor on `human watch` from the project root, with no pipe after it: a filter such as `grep` can hold back the last event until the next one comes. It prints every event claude has not finished — one JSON line each — then follows. An event printed in an earlier session comes back with `"replay": true`: check `human show` before you sync anything, the run may be half done. When the event's run is complete, `human ack <seq>`; the queue advances and the reader drops the mark. Take the events in order, one at a time.
 
 **The run per event.**
 
