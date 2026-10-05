@@ -150,7 +150,8 @@ def check():
     download(latest)
     if os.name != "nt":
         activate(latest)
-    subprocess.run([str(program(latest)), "skills"], capture_output=True)
+    subprocess.run([str(program(latest)), "skills"], capture_output=True,
+                   creationflags=0x08000000 if os.name == "nt" else 0)
     with LOCK:
         STATE["ready"] = latest
         STATE["error"] = None
@@ -187,7 +188,7 @@ def restart_when(idle, close):
         close()
         if os.name == "nt":
             switch(STATE["ready"])
-            subprocess.Popen([str(CURRENT / "human.exe"), *sys.argv[1:]])
+            subprocess.Popen([str(CURRENT / "human.exe"), *sys.argv[1:]], creationflags=0x08000000)
             os._exit(0)
         new = str(program(STATE["ready"]))
         os.execv(new, [new, *sys.argv[1:]])
