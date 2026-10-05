@@ -10,12 +10,14 @@ import tempfile
 import threading
 import time
 import urllib.request
+import zipfile
 from importlib import metadata
 from pathlib import Path
 
 DOWNLOADS = os.environ.get("HUMAN_DOWNLOADS", "https://downloads.doashuman.com").rstrip("/")
 HOME = Path(os.environ.get("HUMAN_HOME") or Path.home() / ".human")
 BIN = Path.home() / ".local" / "bin"
+CURRENT = HOME / "current"
 EVERY = int(os.environ.get("HUMAN_UPDATE_EVERY") or 3600)
 MOVED = "human moved: curl -fsSL https://doashuman.com/install.sh | bash"
 STATE = {"ready": None, "restart": False, "error": None}
@@ -64,9 +66,7 @@ def fetch(url, timeout=30):
 
 
 def program(v):
-    if place() == "win32-x64":
-        return HOME / "versions" / v / "human.exe"
-    return HOME / "versions" / v / "human" / "human"
+    return HOME / "versions" / v / "human" / ("human.exe" if os.name == "nt" else "human")
 
 
 def download(v):
@@ -79,28 +79,21 @@ def download(v):
     tmp = dest.with_name(v + ".tmp")
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
-    if item["file"].endswith(".tar.gz"):
-        with tempfile.TemporaryFile() as f:
-            f.write(body)
-            f.seek(0)
+    with tempfile.TemporaryFile() as f:
+        f.write(body)
+        f.seek(0)
+        if item["file"].endswith(".zip"):
+            with zipfile.ZipFile(f) as z:
+                z.extractall(tmp)
+        else:
             with tarfile.open(fileobj=f, mode="r:gz") as t:
                 t.extractall(tmp, filter="data")
-    else:
-        (tmp / "human.exe").write_bytes(body)
     shutil.rmtree(dest, ignore_errors=True)
     tmp.rename(dest)
 
 
 def activate(v):
     BIN.mkdir(parents=True, exist_ok=True)
-    if place() == "win32-x64":
-        link = BIN / "human.exe"
-        old = BIN / "human.exe.old"
-        old.unlink(missing_ok=True)
-        if link.exists():
-            link.rename(old)
-        shutil.copy2(program(v), link)
-        return
     link = BIN / "human"
     tmp = BIN / ".human.new"
     tmp.unlink(missing_ok=True)
@@ -108,12 +101,55 @@ def activate(v):
     os.replace(tmp, link)
 
 
+def sweep():
+    for d in (HOME / "old").glob("*"):
+        try:
+            (d / "human.exe").unlink(missing_ok=True)
+        except OSError:
+            continue
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def switch(v):
+    sweep()
+    away = HOME / "old" / str(time.time_ns())
+    if CURRENT.exists():
+        for f in [f for f in CURRENT.rglob("*") if f.is_file()]:
+            to = away / f.relative_to(CURRENT)
+            to.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(f, to)
+        shutil.rmtree(CURRENT, ignore_errors=True)
+    shutil.copytree(program(v).parent, CURRENT, dirs_exist_ok=True)
+
+
+def remove():
+    if os.name == "nt":
+        import winreg
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0,
+                                winreg.KEY_READ | winreg.KEY_WRITE) as k:
+                path, kind = winreg.QueryValueEx(k, "Path")
+                keep = [d for d in path.split(";") if d and Path(d) != CURRENT]
+                winreg.SetValueEx(k, "Path", 0, kind, ";".join(keep))
+        except OSError:
+            pass
+        subprocess.Popen(f'cmd /c ping 127.0.0.1 -n 3 > nul & rmdir /s /q "{HOME}"',
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         creationflags=0x00000008 | 0x00000200)
+        return
+    link = BIN / "human"
+    if link.is_symlink():
+        link.unlink()
+    shutil.rmtree(HOME, ignore_errors=True)
+
+
 def check():
     latest = fetch(f"{DOWNLOADS}/latest", timeout=10).decode().strip()
     if not newer(latest, STATE["ready"] or version()):
         return
     download(latest)
-    activate(latest)
+    if os.name != "nt":
+        activate(latest)
     subprocess.run([str(program(latest)), "skills"], capture_output=True)
     with LOCK:
         STATE["ready"] = latest
@@ -149,11 +185,11 @@ def restart_when(idle, close):
         while not idle():
             time.sleep(1)
         close()
-        new = str(program(STATE["ready"]))
-        args = [new, *sys.argv[1:]]
         if os.name == "nt":
-            subprocess.Popen(args)
+            switch(STATE["ready"])
+            subprocess.Popen([str(CURRENT / "human.exe"), *sys.argv[1:]])
             os._exit(0)
-        os.execv(new, args)
+        new = str(program(STATE["ready"]))
+        os.execv(new, [new, *sys.argv[1:]])
 
     threading.Thread(target=wait, daemon=True).start()

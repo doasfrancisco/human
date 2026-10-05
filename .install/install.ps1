@@ -3,7 +3,7 @@ $ProgressPreference = "SilentlyContinue"
 
 $Downloads = if ($env:HUMAN_DOWNLOADS) { $env:HUMAN_DOWNLOADS } else { "https://downloads.doashuman.com" }
 $HumanHome = if ($env:HUMAN_HOME) { $env:HUMAN_HOME } else { Join-Path $env:USERPROFILE ".human" }
-$Bin = Join-Path $env:USERPROFILE ".local\bin"
+$Current = Join-Path $HumanHome "current"
 
 if (-not [Environment]::Is64BitOperatingSystem) { throw "human: 32-bit windows is not supported" }
 $Place = "win32-x64"
@@ -22,16 +22,20 @@ try {
     $Actual = (Get-FileHash $File -Algorithm SHA256).Hash.ToLower()
     if ($Actual -ne $Item.checksum) { throw "human: the checksum of $($Item.file) does not match; nothing was installed" }
 
-    $Dest = Join-Path $HumanHome "versions\$Version"
-    New-Item -ItemType Directory -Force -Path $Dest | Out-Null
-    Copy-Item $File (Join-Path $Dest "human.exe") -Force
+    $Unzip = Join-Path $Tmp "unzip"
+    Expand-Archive $File -DestinationPath $Unzip
 
-    New-Item -ItemType Directory -Force -Path $Bin | Out-Null
-    $Exe = Join-Path $Bin "human.exe"
-    $Old = Join-Path $Bin "human.exe.old"
-    if (Test-Path $Old) { Remove-Item $Old -Force }
-    if (Test-Path $Exe) { Rename-Item $Exe "human.exe.old" }
-    Copy-Item (Join-Path $Dest "human.exe") $Exe
+    if (Test-Path $Current) {
+        $Away = Join-Path $HumanHome ("old\" + [guid]::NewGuid())
+        Get-ChildItem $Current -Recurse -File | ForEach-Object {
+            $To = Join-Path $Away $_.FullName.Substring($Current.Length + 1)
+            New-Item -ItemType Directory -Force -Path (Split-Path $To) | Out-Null
+            Move-Item $_.FullName $To
+        }
+    }
+    New-Item -ItemType Directory -Force -Path $Current | Out-Null
+    Copy-Item (Join-Path $Unzip "human\*") $Current -Recurse -Force
+    $Exe = Join-Path $Current "human.exe"
 } finally {
     Remove-Item $Tmp -Recurse -Force -ErrorAction SilentlyContinue
 }
@@ -39,9 +43,9 @@ try {
 & $Exe skills
 
 $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if (($UserPath -split ";") -notcontains $Bin) {
-    [Environment]::SetEnvironmentVariable("Path", "$Bin;$UserPath", "User")
-    $env:Path = "$Bin;$env:Path"
-    Write-Host "added $Bin to your PATH; open a new terminal to use human"
+if (($UserPath -split ";") -notcontains $Current) {
+    [Environment]::SetEnvironmentVariable("Path", "$Current;$UserPath", "User")
+    $env:Path = "$Current;$env:Path"
+    Write-Host "added $Current to your PATH; open a new terminal to use human"
 }
 Write-Host "human $Version installed at $Exe"

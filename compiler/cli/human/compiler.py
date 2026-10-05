@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import cmd_map, cmd_project, helpers
+from . import cmd_map, cmd_human, helpers
 from .helpers import find_root, map_path_of, name_to_map, rel_name
 
 ANCHOR_RE = re.compile(r"\[([^\[\]]+)\]\(([^()]+)\)")
@@ -594,7 +594,7 @@ def cmd_retext(a):
         sys.exit(f"no entry {a.id} in {map_path.name}")
     text = read_text_arg(a)
     code_name = rel_name(code_path, root)
-    need = needed_words(data, a.id) | cmd_project.pins_into(root, code_name, a.id)
+    need = needed_words(data, a.id) | cmd_human.pins_into(root, code_name, a.id)
     try:
         anchors = build_anchors(text, data, spans, a.id, folder)
         gone = need - {x["words"] for x in anchors}
@@ -617,7 +617,7 @@ def cmd_retext(a):
     if kids:
         print(f"entries {', '.join(map(str, kids))} depend on entry {a.id} and are marked stale; "
               f"repair each with human sync {code_name} --stale <id>")
-    report_project_stale(cmd_project.mark_stale(root, code_name, a.id, old_text) if changed else [])
+    report_project_stale(cmd_human.mark_stale(root, code_name, a.id, old_text) if changed else [])
     if stale_notes(entry):
         print(f"entry {a.id} stays stale; repair it with human sync {code_name} --stale {a.id}")
     print(f"wrote {map_path}")
@@ -626,7 +626,7 @@ def cmd_retext(a):
 def undo_target(data, eid):
     if eid is None:
         return data["explanations"][-1]
-    entry = cmd_project.entry_of(data, eid)
+    entry = cmd_human.entry_of(data, eid)
     if entry is None:
         sys.exit(f"no entry {eid} in the map")
     return entry
@@ -636,7 +636,7 @@ def undo_gate(root, data, name, entry):
     kids = [e["id"] for e in children_of(data, entry["id"])]
     if kids:
         sys.exit(f"entries {kids} point at entry {entry['id']} through anchors; undo them first")
-    held = cmd_project.maps_into(root, name, entry["id"])
+    held = cmd_human.maps_into(root, name, entry["id"])
     if held:
         sys.exit(f"the map of {held[0]} points at entry {entry['id']} through anchors; retext it first")
 
@@ -843,7 +843,7 @@ def rebuild_all(trial, code_name, spans, n, folder, texts, blocks, cand):
             anchors = build_anchors(e["text"], trial, spans, e["id"], folder)
         except AssertionError as err:
             raise AssertionError(f"in the text of entry {e['id']}: {err}") from None
-        need = needed_words(trial, e["id"]) | cmd_project.pins_into(folder, code_name, e["id"])
+        need = needed_words(trial, e["id"]) | cmd_human.pins_into(folder, code_name, e["id"])
         gone = need - {x["words"] for x in anchors}
         assert not gone, f"[SYNC-ANCHORS] other entries point at the anchors {sorted(gone)} of " \
                          f"entry {e['id']}; the new text must keep them"
@@ -873,7 +873,7 @@ def repair_stale(a, code_path, root, map_path, data, lines, spans):
         parents.append(parent_note(parent["id"], f"[words](e{parent['id']}:anchor words)",
                                    st["old_text"], parent["text"]))
     code_name = rel_name(code_path, root)
-    need = needed_words(data, entry["id"]) | cmd_project.pins_into(root, code_name, entry["id"])
+    need = needed_words(data, entry["id"]) | cmd_human.pins_into(root, code_name, entry["id"])
     prompt = (STALE_PROMPT.replace("<parents>", "\n\n".join(parents))
               .replace("<child>", entry["text"])
               .replace("<needed>", ", ".join(sorted(need)) or "none")
@@ -917,7 +917,7 @@ def repair_stale(a, code_path, root, map_path, data, lines, spans):
     kids = mark_children(data, entry["id"], old_text) if changed else []
     if kids:
         print(f"entries {', '.join(map(str, kids))} depend on entry {entry['id']} and are marked stale")
-    report_project_stale(cmd_project.mark_stale(root, code_name, entry["id"], old_text) if changed else [])
+    report_project_stale(cmd_human.mark_stale(root, code_name, entry["id"], old_text) if changed else [])
     missing, blank = recompute(data, lines)
     map_path.write_text(json.dumps(data, indent=2) + "\n")
     print_coverage(missing, blank, lines)
@@ -1016,7 +1016,7 @@ def cmd_sync(a):
             report_text_diff(e["id"], before["text"], e["text"])
             if strip_pins(e["text"]) != strip_pins(before["text"]):
                 stale_kids.update(mark_children(trial, e["id"], before["text"]))
-                project_kids += cmd_project.mark_stale(root, code_name, e["id"], before["text"])
+                project_kids += cmd_human.mark_stale(root, code_name, e["id"], before["text"])
         elif e["id"] in cand:
             fresh = expand(e["block_lines"]) & inserted
             if fresh:

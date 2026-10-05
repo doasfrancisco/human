@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from . import cmd_project, decompiler, helpers
+from . import cmd_human, compiler, helpers
 
 FOLDER = "server"
 KINDS = ("retext", "map", "code", "decompile", "expand", "create", "delete")
@@ -113,7 +113,7 @@ def compile_writing(root, name, kind, eid, text, words=None):
     event = {"kind": kind, "name": name, "map": str(map_p), "entry": eid,
              "file": None if no_code else str(file_path)}
     if kind == "retext":
-        entry = cmd_project.entry_of(data, eid) if data else None
+        entry = cmd_human.entry_of(data, eid) if data else None
         if entry is None:
             return 400, f"no entry {eid} in the map of {name}"
         code, out = run_cli(root, ["retext", name, str(eid), "--verbatim"], text)
@@ -139,13 +139,13 @@ def compile_writing(root, name, kind, eid, text, words=None):
         event.update({"entry": None, "old_text": None, "new_text": None,
                       "output": f"decompile of {name} waits for claude"})
     elif kind == "create":
-        entry = cmd_project.entry_of(data, eid) if data else None
+        entry = cmd_human.entry_of(data, eid) if data else None
         if entry is None:
             return 400, f"no entry {eid} in the map of {name}"
         event.update({"target": eid, "old_text": None, "new_text": None,
                       "output": f"a top abstraction over entry {eid} of {name} waits for claude"})
     elif kind == "delete":
-        entry = cmd_project.entry_of(data, eid) if data else None
+        entry = cmd_human.entry_of(data, eid) if data else None
         if entry is None:
             return 400, f"no entry {eid} in the map of {name}"
         code, out = run_cli(root, ["undo", name, "--entry", str(eid)], None)
@@ -154,7 +154,7 @@ def compile_writing(root, name, kind, eid, text, words=None):
         said = [l for l in out.splitlines() if not l.startswith("wrote ")]
         return 200, {"seq": None, "output": "  ·  ".join(said)}
     elif kind == "expand":
-        entry = cmd_project.entry_of(data, eid) if data else None
+        entry = cmd_human.entry_of(data, eid) if data else None
         if entry is None:
             return 400, f"no entry {eid} in the map of {name}"
         if not words or not words.strip():
@@ -187,7 +187,7 @@ def compile_writing(root, name, kind, eid, text, words=None):
 
 
 def cmd_watch(a):
-    root = decompiler.find_root(Path.cwd())
+    root = compiler.find_root(Path.cwd())
     printed = 0
     while True:
         c = read_cursor(root)
@@ -206,7 +206,7 @@ def cmd_watch(a):
 
 
 def cmd_ack(a):
-    root = decompiler.find_root(Path.cwd())
+    root = compiler.find_root(Path.cwd())
     c = read_cursor(root)
     last = max((e["seq"] for e in read_events(root)), default=0)
     if a.seq <= c["done"] or a.seq > last:

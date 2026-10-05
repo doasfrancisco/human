@@ -21,7 +21,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import cmd_map, cmd_project, cmd_watch, decompiler, helpers, updater
+from . import cmd_map, cmd_human, cmd_watch, compiler, helpers, updater
 
 PKG = Path(__file__).parent
 READER = ("web.html", "trees.js", "shiki.js")
@@ -315,7 +315,7 @@ def reader_file(root, name):
 
 
 def cmd_tip(a):
-    root = decompiler.find_root(Path.cwd())
+    root = compiler.find_root(Path.cwd())
     if a.clear:
         tip_path(root).unlink(missing_ok=True)
         print("tip cleared")
@@ -389,11 +389,13 @@ def spent_draft(root, k, v):
             return v == p.read_text()
         except (OSError, ValueError):
             return False
-    if not tail.isdigit():
+    if tail != "map" and not tail.isdigit():
         return False
     d = read_map(p if rel.startswith("human/") else helpers.map_path_of(p, root))
     if d is None:
         return False
+    if tail == "map":
+        return bool(d.get("explanations"))
     texts = {e.get("id"): e.get("text") for e in d.get("explanations", [])}
     return texts.get(int(tail), v) == v
 
@@ -698,12 +700,12 @@ def hand_over(root, port):
 def print_links(pid, port):
     print(f"Click http://localhost:{port}/{pid}/human/web.html to read your human code!", flush=True)
     tip = tailnet_ip()
-    if tip:
+    if tip and os.name != "nt":
         print(f"This is the tailnet http://{tip}:{port}/{pid}/human/web.html in case you need it : )", flush=True)
 
 
 def cmd_serve(a):
-    root = decompiler.find_root(Path(a.folder).resolve())
+    root = compiler.find_root(Path(a.folder).resolve())
     try:
         pid = helpers.project_id(root)
     except ValueError as e:
@@ -716,7 +718,7 @@ def cmd_serve(a):
     FreshHandler.verbose = a.log
     handler = partial(FreshHandler, directory=str(root))
     try:
-        srv = ThreadingHTTPServer(("0.0.0.0", a.port), handler)
+        srv = ThreadingHTTPServer(("127.0.0.1" if os.name == "nt" else "0.0.0.0", a.port), handler)
     except OSError as e:
         sys.exit(f"port {a.port} is held by another program, or by a human server older than this one: {e.strerror}")
     print_links(pid, a.port)
@@ -738,10 +740,35 @@ def cmd_skills(a):
             if dst.exists():
                 shutil.rmtree(dst)
             shutil.copytree(PKG / "skills" / name, dst)
-            shutil.copytree(PKG / "shapes", dst / "shapes", dirs_exist_ok=True)
             print(f"installed {name} -> {dst}")
-    shutil.copytree(PKG / "shapes", updater.HOME / "shapes", dirs_exist_ok=True)
-    print(f"installed shapes -> {updater.HOME / 'shapes'}")
+
+
+def cmd_update(a):
+    if not updater.frozen() or not updater.place():
+        sys.exit("human update works only on the built human program")
+    try:
+        updater.check()
+    except (OSError, ValueError) as e:
+        sys.exit(f"human update failed: {e}")
+    v = updater.STATE["ready"]
+    if not v:
+        print(f"human {updater.version()} is the newest")
+        return
+    if os.name == "nt":
+        updater.switch(v)
+    print(f"human {v} installed")
+
+
+def cmd_uninstall(a):
+    if not updater.frozen():
+        sys.exit("human uninstall works only on the built human program")
+    for base in DESTINATIONS.values():
+        for name in sorted(p.name for p in (PKG / "skills").iterdir() if p.is_dir()):
+            if (base / name).exists():
+                shutil.rmtree(base / name, ignore_errors=True)
+                print(f"deleted {base / name}")
+    updater.remove()
+    print(f"deleted {updater.HOME}; human is uninstalled")
 
 
 def main():
@@ -756,6 +783,8 @@ def main():
     v.add_argument("--log", action="store_true")
     k = sub.add_parser("skills")
     k.add_argument("--dest", choices=list(DESTINATIONS) + ["all"], default="claude")
+    sub.add_parser("update")
+    sub.add_parser("uninstall")
     m = sub.add_parser("map")
     m.add_argument("code_file")
     m.add_argument("--block")
@@ -797,13 +826,14 @@ def main():
     a = ap.parse_args()
     if a.cmd in ("map", "retext", "undo", "show", "lines", "sync") and Path(a.code_file).is_dir():
         sys.exit(f"{a.code_file} is a folder; a folder has no map, name a file or a human file")
-    if a.cmd in cmd_project.COMMANDS and helpers.no_code(a.code_file, decompiler.find_root(Path.cwd())):
-        cmd_project.COMMANDS[a.cmd](a)
+    if a.cmd in cmd_human.COMMANDS and helpers.no_code(a.code_file, compiler.find_root(Path.cwd())):
+        cmd_human.COMMANDS[a.cmd](a)
         return
-    {"init": cmd_init, "serve": cmd_serve, "skills": cmd_skills, "map": cmd_map.cmd_map,
-     "retext": decompiler.cmd_retext, "undo": decompiler.cmd_undo,
-     "show": decompiler.cmd_show, "lines": decompiler.cmd_lines,
-     "sync": decompiler.cmd_sync,
+    {"init": cmd_init, "serve": cmd_serve, "skills": cmd_skills,
+     "update": cmd_update, "uninstall": cmd_uninstall, "map": cmd_map.cmd_map,
+     "retext": compiler.cmd_retext, "undo": compiler.cmd_undo,
+     "show": compiler.cmd_show, "lines": compiler.cmd_lines,
+     "sync": compiler.cmd_sync,
      "watch": cmd_watch.cmd_watch, "ack": cmd_watch.cmd_ack, "tip": cmd_tip}[a.cmd](a)
 
 

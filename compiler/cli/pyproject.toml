@@ -1,6 +1,6 @@
 [project]
 name = "humanlang"
-version = "0.0.116"
+version = "0.0.121"
 description = "The human programming language: compile a free-text abstraction into code, or decompile code into a telling, with every word tied to real lines"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
@@ -23,4 +23,4 @@ build-backend = "setuptools.build_meta"
 packages = ["human"]
 
 [tool.setuptools.package-data]
-human = ["reader/*", "shapes/*", "skills/*/SKILL.md"]
+human = ["reader/*", "skills/*/SKILL.md"]

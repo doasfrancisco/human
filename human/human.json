@@ -9,27 +9,19 @@
     "README.md",
     "THINGS_TRIED.md",
     "report_licenses.md",
-    "todo.md",
     "compiler/cli/README.md",
     "compiler/cli/install_local.sh",
     "compiler/cli/pyproject.toml",
     "compiler/cli/human/__init__.py",
+    "compiler/cli/human/cmd_human.py",
     "compiler/cli/human/cmd_map.py",
-    "compiler/cli/human/cmd_project.py",
     "compiler/cli/human/cmd_watch.py",
-    "compiler/cli/human/decompiler.py",
+    "compiler/cli/human/compiler.py",
     "compiler/cli/human/helpers.py",
     "compiler/cli/human/updater.py",
     "compiler/cli/human/reader/shiki.js",
     "compiler/cli/human/reader/trees.js",
     "compiler/cli/human/reader/web.html",
-    "compiler/cli/human/shapes/README.md",
-    "compiler/cli/human/shapes/desk.md",
-    "compiler/cli/human/shapes/dialogue.md",
-    "compiler/cli/human/shapes/example.md",
-    "compiler/cli/human/shapes/rail.md",
-    "compiler/cli/human/shapes/sections.md",
-    "compiler/cli/human/shapes/skeleton.md",
     "compiler/cli/human/skills/human/SKILL.md",
     "feedback/FEEDBACK.md",
     "feedback/FEEDBACK_MATIAS.md",
@@ -51,18 +43,18 @@
     },
     {
       "name": "decompile",
-      "place": "compiler/cli"
+      "place": ""
     },
     {
       "name": "install",
       "place": ""
     },
     {
-      "name": "skills",
-      "place": "compiler/cli"
+      "name": "top_human",
+      "place": ""
     },
     {
-      "name": "top_human",
+      "name": "web",
       "place": ""
     }
   ]

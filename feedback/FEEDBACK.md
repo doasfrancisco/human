@@ -13,13 +13,7 @@ Example, 2026-09-07. Both `compiler/cli/human/decompiler.py` and `compiler/cli/h
 
 The sentences under the heads differ — one tells the file repair, the other the project repair. The check warned twice. False alarm: same words, different meaning.
 
-## 2. Ctrl+S could save into the map, not only into the browser
 
-Today the reader keeps a written text in the browser until the user presses compile, and the compile is what writes to disk. The other road, not built:
-
-Saved in the map. Ctrl+S writes the words into the map on disk, as a retext, with no claude call. The compile then only sends the code road. This needs one new call in the server, and a Ctrl+S with a pin that fails would be refused on the spot.
-
-Decided 2026-09-08: the browser save. The map changes only on compile.
 
 ## 3. A stale repair cuts what the parent never named
 
@@ -40,6 +34,8 @@ Example, 2026-09-24. The human file went into the code, and the project telling 
 
 Every cut sentence was true of the code. The repair was undone by hand. Two entries disagree until the user names the feature in the parent as well, and until then every `--stale` run tries to cut it out again.
 
+
+
 ## 4. The tool has no rename, and a path is a key in five places
 
 Nothing in the CLI moves a file. `mv` alone breaks the project, because a path is not only where a file lives:
@@ -56,6 +52,8 @@ Example, 2026-09-24. The user asked to rename a file, a human file too, from the
 
 What the change implies: a rename is the first act that writes many maps at once. It must move the file, move the map, write the new `code_file`, change every pin in every other map, change the file list, and refuse — not half-do — while a training row stands on the file. It is nearer to `undo` than to `map`: one refusal, or one whole move.
 
+
+
 ## 5. Nothing says the running server is older than the page
 
 `human init` writes the reader page out of the installed tool at every run (`cmd_init` in `compiler/cli/human/__init__.py`), but a `human serve` that already runs keeps the old code in memory. An upgrade and an init give the browser a new page while the door behind it stays old, and nothing on either side says so.
@@ -63,6 +61,8 @@ What the change implies: a rename is the first act that writes many maps at once
 Example, 2026-09-25. The user made two human files from a folder in the tree. The new page sent the folder with the name; the server, started before the upgrade, ran the old `new_human`, which takes a name alone. Both records landed with no place and the two maps showed at the root. The refusal never came, because the old door does not know the word.
 
 The change: give the tool one hand that reads its own version, write that version into `human/human.json` at init, put the running version in the answer of `fresh_map`, and let the reader compare the two on the refresh it already runs every five seconds. A difference shows one line: the server runs 0.0.34, the page is 0.0.43, stop it and serve again. It only makes the tool tell you when the server is behind the page, instead of you finding it by a lost folder.
+
+
 
 ## 6. The reader asks for the map of every file before it draws anything
 
@@ -89,6 +89,8 @@ Roads, from the smallest:
 - **Draw the tree first.** `buildTree` needs the names alone, not the maps. Draw it, open the first file, and let the other maps land after, so nothing waits on a full set.
 - **One answer for all the maps.** A road like `/human/maps` that hands out every map in one block: one round trip instead of 127, at the price of a bigger answer.
 
+
+
 ## 7. An expansion stands below its target until claude finishes
 
 A written expansion is mapped at once — `human map <name> --verbatim` in the `expand` road of `cmd_watch.py` — but nothing ties it to the entry it expands. The reader places an entry above another only by the pins between them: `sorted` in `compiler/cli/human/reader/web.html` gives an entry a higher layer when a pin of the target points into it. That pin — `[the words](e<entry>:anchor words)` in the target — is the last step of the `expand` event, written by claude. Until that step lands, the new entry is a plain entry, drawn after the target, as if it were a second telling of the same thing.
@@ -103,6 +105,8 @@ What the change implies: the place of an expansion is known at the click — the
 
 A highlight that holds pins cannot be pinned whole; the reader could refuse such a highlight at the click, or the event could name the one plain line claude will pin, so the user is not surprised at the end.
 
+
+
 ## 8. The answer of a compile lists every file with no telling
 
 A map with no code under it answers every write with its coverage: `covered: 12 of 400 files`, then `not covered:` and the name of each file no pin reaches (`print_coverage` in `compiler/cli/human/cmd_project.py`, line `print("not covered: " + ...)`). The server hands that answer to the reader whole, and the reader shows it on top of the file.
@@ -115,6 +119,8 @@ What the change implies: the answer should be as short as `covered: 12 of 400 fi
 - **Name only a few.** When the list is short, five files or fewer, name them; past that, give the count and point to `human show <name>`.
 - **Cut in the reader.** The reader could show the first line of the answer and fold the rest behind a click, so a long answer never covers the words.
 
+
+
 ## 9. The server walks the whole project to answer "did a file change?"
 
 The reader asks for `human/human.json` every 5 seconds (`refreshFiles` in `compiler/cli/human/reader/web.html`), and the server answers with a full `os.walk` of the project each time (`fresh_map` and `scan_files` in `compiler/cli/human/__init__.py`). On `mina`, 402 files, the walk runs twelve times a minute, almost always to find that nothing changed. The planned version code (a hash of the list, sent back as "no change") saves the answer, but not the walk; the folder time stamps save most of the walk, but still look at every folder.
@@ -123,9 +129,13 @@ What the change implies: the file list could cost nothing between changes.
 
 - **A signal from the system.** The server asks the system to tell it when a file is made, removed or renamed — inotify on Linux, FSEvents on macOS, ReadDirectoryChangesW on Windows, or the `watchdog` library over all three — and changes the list and its version code only then. The cost is one more library and a different behaviour on each system, so it waits until the time stamps are not enough.
 
+
+
 ## 10. A pin could point at a collection of pins
 
 A pin points at one place: a file, a block, or an anchor. The logic of one thought of the abstraction can be in many files. Maybe a pin could point at a collection of pins, one for each place, so the words stay whole and still reach all of them.
+
+
 
 ## 11. A refusal for a kept anchor does not say who points at it
 
@@ -138,6 +148,8 @@ What the change implies:
 - **Name the pointers.** The refusal names each map and entry that points at the anchor, with the pin line: `project e1: [its body read as JSON](…:e1:the body)`.
 - **Fix the pin in one step.** The reader offers to move that pin to an anchor of the new text, or to the block, and then compiles the words.
 
+
+
 ## 12. A sync rewords a top abstraction that is still true
 
 When a lower abstraction changes, the sync or the stale repair of the top abstraction rewords it to agree with the new details. The top abstraction should change only when the lower change makes it untrue, so that it must add or remove a fact. When the top abstraction still tells the lower one correctly, it keeps its words.
@@ -148,13 +160,19 @@ Example, 2026-10-01. A change in the design of the reader came in through the wo
 - "a play triangle for compile" in place of "a spark for compile"
 - a new line: "the caret is yellow, the colour of the dot in the tree."
 
+
+
 ## 13. A pin could point at an action
 
 A pin points at a thing: a file, a block, or an anchor. Some words tell an action, not a thing. For example, a line of code that the compiler wrote is an action of the compiler. Maybe a pin could point at that action, so the words reach what was done and not only where it is.
 
+
+
 ## 14. The install design is simpler for vibecoders
 
 One `curl` line installs human and its skills, with no uv, no Python and no `human skills`. Updates come by themselves, like Claude Code. A vibecoder never sees a version, a package tool or a skill folder.
+
+
 
 ## 15. Anchor words must be unique in one text
 
@@ -169,3 +187,17 @@ What the change implies: each anchor gets an id that the words do not carry.
 - **An id per anchor.** The map keeps each anchor with a short id, `a1`, `a2`, given in order when the text goes in. A pin from another entry can name it: `[w](e1#a3)`.
 - **The words stay the easy road.** `[w](e1:install.sh)` still works when the words are unique. When they repeat, the tool refuses only that pin, and names the ids to choose from: `install.sh is a2 and a7`.
 - **An id stays with its anchor.** On a retext or a sync, an anchor keeps its id when its words and its target stay the same, so a pin from another entry does not break when the text moves around it.
+
+
+
+## 16. Maybe build a Bun for Python
+
+Claude Code is one file made by Bun `--compile`. The program is inside the `.exe`, and the `.exe` reads it from itself when it runs, so nothing is unpacked to a temporary folder. PyInstaller `--onefile` must unpack Python to `%TEMP%\_MEI...` on each start. On Windows, a second human that the first one started used that folder, and the folder was deleted under it (2026-10-05). The fix today is a folder build in `~/.human/current`.
+
+The idea: a small Python runner that does what Bun does.
+
+- **One static program.** Python and its standard library are linked into one `.exe`, with no `python312.dll` beside it.
+- **The code goes inside.** The human code is added to the end of the `.exe` as a zip, and Python imports it from there in memory (`zipimport` can already do this for plain Python).
+- **The hard part is native modules.** Windows loads a `.pyd` or a `.dll` only from a file on disk. Each native module must be linked in, or loaded from memory. PyOxidizer tried this (`oxidized_importer`), but it is not kept up to date now.
+
+What this gives: one file to download, one fixed path, no temporary folder, and a fast start.

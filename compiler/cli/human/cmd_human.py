@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import cmd_map, decompiler, helpers
+from . import cmd_map, compiler, helpers
 
 CROSS_RE = re.compile(r"^(.+?):e(\d+):(.+)$")
 
@@ -48,7 +48,7 @@ Return one JSON object and nothing else:
 
 
 def root_of():
-    return decompiler.find_root(Path.cwd())
+    return compiler.find_root(Path.cwd())
 
 
 def name_of(a):
@@ -98,7 +98,7 @@ def cross_anchor(words, fname, eid, aw, root):
 def build_anchors(text, data, self_id, root):
     seen = set()
     out = []
-    for m in decompiler.ANCHOR_RE.finditer(text):
+    for m in compiler.ANCHOR_RE.finditer(text):
         words = m.group(1).strip()
         assert words, "[ANCHOR-WORDS] an anchor needs words inside the brackets"
         assert words not in seen, \
@@ -108,7 +108,7 @@ def build_anchors(text, data, self_id, root):
         if c:
             out.append(cross_anchor(words, c.group(1).strip(), int(c.group(2)), c.group(3).strip(), root))
         else:
-            out += decompiler.build_anchors(m.group(0), data, {}, self_id, root)
+            out += compiler.build_anchors(m.group(0), data, {}, self_id, root)
     return out
 
 
@@ -137,7 +137,7 @@ def mark_stale(root, code_name, eid, old_text):
         hit = []
         for e in data["explanations"]:
             if points_at(e, code_name, eid):
-                decompiler.add_note(e, {"parent": eid, "file": code_name, "old_text": old_text})
+                compiler.add_note(e, {"parent": eid, "file": code_name, "old_text": old_text})
                 hit.append(e["id"])
         if hit:
             save(root, data, name)
@@ -167,12 +167,12 @@ def cmd_map_project(a):
         sys.exit(f"the map of {name} has no blocks of its own; drop --block")
     root = root_of()
     data = load(root, name)
-    text = decompiler.read_text_arg(a)
+    text = compiler.read_text_arg(a)
     extra = cmd_map.verbatim_record(a, text)
     eid = cmd_map.next_id(data)
     try:
         anchors = build_anchors(text, data, eid, root)
-        decompiler.check_cycle(data, eid, anchors, root, name)
+        compiler.check_cycle(data, eid, anchors, root, name)
     except AssertionError as e:
         sys.exit(str(e))
     record = {"id": eid, "block": name, "block_lines": [], "text": text, "anchors": anchors}
@@ -191,22 +191,22 @@ def cmd_retext(a):
     entry = entry_of(data, a.id)
     if entry is None:
         sys.exit(f"no entry {a.id} in {map_path(root, name).name}")
-    text = decompiler.read_text_arg(a)
-    need = decompiler.needed_words(data, a.id) | pins_into(root, name, a.id)
+    text = compiler.read_text_arg(a)
+    need = compiler.needed_words(data, a.id) | pins_into(root, name, a.id)
     try:
         anchors = build_anchors(text, data, a.id, root)
         gone = need - {x["words"] for x in anchors}
         assert not gone, f"[RETEXT-ANCHORS] other entries point at the anchors {sorted(gone)}; " \
                          "the new text must keep them"
-        decompiler.check_cycle(data, a.id, anchors, root, name)
+        compiler.check_cycle(data, a.id, anchors, root, name)
     except AssertionError as e:
         sys.exit(str(e))
-    decompiler.verbatim_gate(entry, text, getattr(a, "verbatim", False))
+    compiler.verbatim_gate(entry, text, getattr(a, "verbatim", False))
     old_text = entry["text"]
     entry["text"] = text
     entry["anchors"] = anchors
-    changed = decompiler.strip_pins(text) != decompiler.strip_pins(old_text)
-    kids = decompiler.mark_children(data, a.id, old_text) if changed else []
+    changed = compiler.strip_pins(text) != compiler.strip_pins(old_text)
+    kids = compiler.mark_children(data, a.id, old_text) if changed else []
     save(root, data, name)
     print(f"entry {a.id} ({name}): text replaced, {counts(anchors)}")
     if not changed and text != old_text:
@@ -214,9 +214,9 @@ def cmd_retext(a):
     if kids:
         print(f"entries {', '.join(map(str, kids))} depend on entry {a.id} and are marked stale; "
               f"repair each with human sync {name} --stale <id>")
-    if decompiler.stale_notes(entry):
+    if compiler.stale_notes(entry):
         print(f"entry {a.id} stays stale; repair it with human sync {name} --stale {a.id}")
-    decompiler.report_project_stale(mark_stale(root, name, a.id, old_text) if changed else [])
+    compiler.report_project_stale(mark_stale(root, name, a.id, old_text) if changed else [])
     print(f"wrote {map_path(root, name)}")
 
 
@@ -226,8 +226,8 @@ def cmd_undo(a):
     data = load(root, name)
     if not data["explanations"]:
         sys.exit("nothing to undo")
-    gone = decompiler.undo_target(data, a.entry)
-    decompiler.undo_gate(root, data, name, gone)
+    gone = compiler.undo_target(data, a.entry)
+    compiler.undo_gate(root, data, name, gone)
     data["explanations"].remove(gone)
     save(root, data, name)
     print(f"removed entry {gone['id']}: {name}")
@@ -255,10 +255,10 @@ def cmd_show(a):
     data = load(root, name)
     warnings = []
     for e in data["explanations"]:
-        tail = decompiler.stale_tail(e) + decompiler.verbatim_tail(e)
+        tail = compiler.stale_tail(e) + compiler.verbatim_tail(e)
         print(f"{e['id']:3}  {name:<24} {'-':<14} {len(e.get('anchors', []))} anchors{tail}")
-        warnings += decompiler.verbatim_hint(e, name)
-        derived = [m.group(1).strip() for m in decompiler.ANCHOR_RE.finditer(e["text"])]
+        warnings += compiler.verbatim_hint(e, name)
+        derived = [m.group(1).strip() for m in compiler.ANCHOR_RE.finditer(e["text"])]
         stored = [x["words"] for x in e.get("anchors", [])]
         if derived != stored:
             warnings.append(f"entry {e['id']}: the anchors in the text do not match the stored anchors; "
@@ -280,7 +280,7 @@ def cmd_show(a):
                     warnings.append(f"entry {e['id']}: the anchor {x['words']!r} names the file "
                                     f"{x['file']!r}, which is not in the folder")
                 elif "block" in x:
-                    fspans = decompiler.block_spans(fp, fp.read_text().splitlines())
+                    fspans = compiler.block_spans(fp, fp.read_text().splitlines())
                     if x["block"] not in fspans:
                         warnings.append(f"entry {e['id']}: the anchor {x['words']!r} names the block "
                                         f"{x['block']!r}, which is not in {x['file']}; run human sync {name}")
@@ -330,13 +330,13 @@ def reached_lines(root, rel, entries):
             if x.get("file") != rel:
                 continue
             if "lines" in x:
-                out |= decompiler.expand(x["lines"])
+                out |= compiler.expand(x["lines"])
             elif "entry" in x:
                 d = map_of(root, rel)
                 t = entry_of(d, x["entry"]) if d else None
                 for y in (t or {}).get("anchors", []):
                     if y["words"] == x["anchor"] and "lines" in y and "file" not in y:
-                        out |= decompiler.expand(y["lines"])
+                        out |= compiler.expand(y["lines"])
     return out
 
 
@@ -372,7 +372,7 @@ def project_diff(root, changed, entries):
 
 
 def re_resolve(data, root, name):
-    broken = decompiler.re_resolve(data, name, {}, 0, root)
+    broken = compiler.re_resolve(data, name, {}, 0, root)
     for e in data["explanations"]:
         for x in e.get("anchors", []):
             if "entry" in x and helpers.name_to_map(x["file"], root)[0].exists():
@@ -410,7 +410,7 @@ def rebuild(trial, texts, cand, root):
             anchors = build_anchors(e["text"], trial, e["id"], root)
         except AssertionError as err:
             raise AssertionError(f"in the text of entry {e['id']}: {err}") from None
-        need = decompiler.needed_words(trial, e["id"])
+        need = compiler.needed_words(trial, e["id"])
         gone = need - {x["words"] for x in anchors}
         assert not gone, f"[SYNC-ANCHORS] other entries point at the anchors {sorted(gone)} of " \
                          f"entry {e['id']}; the new text must keep them"
@@ -430,7 +430,7 @@ def ask(prompt, root, tries, check):
     suffix = ""
     for _ in range(tries):
         try:
-            m = decompiler.ask_claude(prompt + suffix, root)
+            m = compiler.ask_claude(prompt + suffix, root)
         except (ValueError, KeyError) as e:
             last = f"the answer was not one JSON object: {e}"
             suffix = "\n\nYour previous answer was not one JSON object. Return only the JSON."
@@ -448,7 +448,7 @@ def repair_stale(a, root, data, name):
     entry = entry_of(data, a.stale)
     if entry is None:
         sys.exit(f"no entry {a.stale} in {map_path(root, name).name}")
-    notes = decompiler.stale_notes(entry)
+    notes = compiler.stale_notes(entry)
     if not notes:
         sys.exit(f"entry {a.stale} is not stale")
     parents = []
@@ -462,12 +462,12 @@ def repair_stale(a, root, data, name):
             form = f"[words](e{st['parent']}:anchor words)"
         if parent is None:
             sys.exit(f"explanation {st['parent']} no longer exists; retext entry {a.stale} instead")
-        parents.append(decompiler.parent_note(parent["id"], form, st["old_text"], parent["text"]))
-    need = decompiler.needed_words(data, entry["id"]) | pins_into(root, name, entry["id"])
-    prompt = (decompiler.STALE_PROMPT.replace("<parents>", "\n\n".join(parents))
+        parents.append(compiler.parent_note(parent["id"], form, st["old_text"], parent["text"]))
+    need = compiler.needed_words(data, entry["id"]) | pins_into(root, name, entry["id"])
+    prompt = (compiler.STALE_PROMPT.replace("<parents>", "\n\n".join(parents))
               .replace("<child>", entry["text"])
               .replace("<needed>", ", ".join(sorted(need)) or "none")
-              .replace("<verbatim>\n", decompiler.verbatim_rule(entry)))
+              .replace("<verbatim>\n", compiler.verbatim_rule(entry)))
 
     def check(m):
         t = (m.get("text") or "").strip()
@@ -476,7 +476,7 @@ def repair_stale(a, root, data, name):
         gone = need - {x["words"] for x in anchors}
         assert not gone, f"[STALE-ANCHORS] other entries point at the anchors {sorted(gone)}; " \
                          "the text must keep them"
-        decompiler.check_cycle(data, entry["id"], anchors, root, name)
+        compiler.check_cycle(data, entry["id"], anchors, root, name)
         return t, anchors
 
     text, anchors = ask(prompt, root, a.tries, check)
@@ -484,16 +484,16 @@ def repair_stale(a, root, data, name):
     entry["text"] = text
     entry["anchors"] = anchors
     entry.pop("stale")
-    decompiler.warn_reworded(entry, old_text, text, "repair")
-    decompiler.report_text_diff(entry["id"], old_text, text)
+    compiler.warn_reworded(entry, old_text, text, "repair")
+    compiler.report_text_diff(entry["id"], old_text, text)
     if text == old_text:
         print(f"entry {entry['id']}: no word changed")
-    changed = decompiler.strip_pins(text) != decompiler.strip_pins(old_text)
-    kids = decompiler.mark_children(data, entry["id"], old_text) if changed else []
+    changed = compiler.strip_pins(text) != compiler.strip_pins(old_text)
+    kids = compiler.mark_children(data, entry["id"], old_text) if changed else []
     if kids:
         print(f"entries {', '.join(map(str, kids))} depend on entry {entry['id']} and are marked stale")
     save(root, data, name)
-    decompiler.report_project_stale(mark_stale(root, name, entry["id"], old_text) if changed else [])
+    compiler.report_project_stale(mark_stale(root, name, entry["id"], old_text) if changed else [])
     print_coverage(root, data)
     print(f"wrote {map_path(root, name)}")
 
@@ -506,7 +506,7 @@ def cmd_sync(a):
     if not map_path(root, name).exists():
         sys.exit(f"no map file at {map_path(root, name)}")
     data = load(root, name)
-    written = decompiler.written_for(a, data, map_path(root, name).name)
+    written = compiler.written_for(a, data, map_path(root, name).name)
     if a.stale is not None:
         repair_stale(a, root, data, name)
         return
@@ -515,7 +515,7 @@ def cmd_sync(a):
     broken_ids = {eid for eid, name in broken}
     cand = {e["id"] for e in data["explanations"]
             if any(x.get("file") in changed for x in e.get("anchors", []))} | broken_ids
-    decompiler.drop_written(cand, written, broken_ids)
+    compiler.drop_written(cand, written, broken_ids)
     print(f"changed files: {', '.join(changed) if changed else 'none'}")
     for eid, target in broken:
         print(f"entry {eid}: {target!r} is gone")
@@ -527,10 +527,10 @@ def cmd_sync(a):
     print(f"candidate entries: {', '.join(str(i) for i in sorted(cand))}")
     changed_note = "\n".join(
         f"{rel} — {root / rel}" + ("" if (root / rel).is_file() else " (gone)") for rel in changed) or "none"
-    cands = "\n\n".join(f"=== entry {e['id']}{decompiler.verbatim_mark(e)} ===\n{e['text']}"
+    cands = "\n\n".join(f"=== entry {e['id']}{compiler.verbatim_mark(e)} ===\n{e['text']}"
                         for e in data["explanations"] if e["id"] in cand)
-    needed = "\n".join(f"entry {i}: {', '.join(sorted(decompiler.needed_words(data, i)))}"
-                       for i in sorted(cand) if decompiler.needed_words(data, i)) or "none"
+    needed = "\n".join(f"entry {i}: {', '.join(sorted(compiler.needed_words(data, i)))}"
+                       for i in sorted(cand) if compiler.needed_words(data, i)) or "none"
     prompt = (SYNC_PROMPT.replace("<root>", str(root))
               .replace("<changed>", changed_note)
               .replace("<diff>", project_diff(root, changed, [e for e in data["explanations"] if e["id"] in cand]) or "none")
@@ -552,15 +552,15 @@ def cmd_sync(a):
     for e in trial["explanations"]:
         before = entry_of(data, e["id"])
         if e["text"] != before["text"]:
-            decompiler.warn_reworded(e, before["text"], e["text"], "sync")
-            decompiler.report_text_diff(e["id"], before["text"], e["text"])
-            if decompiler.strip_pins(e["text"]) != decompiler.strip_pins(before["text"]):
-                stale_kids.update(decompiler.mark_children(trial, e["id"], before["text"]))
+            compiler.warn_reworded(e, before["text"], e["text"], "sync")
+            compiler.report_text_diff(e["id"], before["text"], e["text"])
+            if compiler.strip_pins(e["text"]) != compiler.strip_pins(before["text"]):
+                stale_kids.update(compiler.mark_children(trial, e["id"], before["text"]))
                 marks += mark_stale(root, name, e["id"], before["text"])
     if stale_kids:
         print(f"entries {', '.join(map(str, sorted(stale_kids)))} depend on a changed entry and are "
               f"marked stale; repair each with human sync {name} --stale <id>")
-    decompiler.report_project_stale(marks)
+    compiler.report_project_stale(marks)
     save(root, trial, name)
     print_coverage(root, trial)
     print(f"wrote {map_path(root, name)}")

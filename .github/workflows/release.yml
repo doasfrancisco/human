@@ -41,9 +41,9 @@ jobs:
       - if: matrix.place == 'win32-x64'
         shell: bash
         run: |
-          pyinstaller --noconfirm --onefile --name human --collect-data human --copy-metadata humanlang entry.py
-          cp dist/human.exe "human-${{ matrix.place }}.exe"
-          ./dist/human.exe --help > /dev/null
+          pyinstaller --noconfirm --name human --collect-data human --copy-metadata humanlang entry.py
+          python -m zipfile -c "human-${{ matrix.place }}.zip" dist/human
+          ./dist/human/human.exe --help > /dev/null
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.place }}
@@ -71,7 +71,7 @@ jobs:
             echo "{\"version\": \"$version\", \"platforms\": {"
             first=1
             for f in human-*; do
-              place="${f#human-}"; place="${place%.tar.gz}"; place="${place%.exe}"
+              place="${f#human-}"; place="${place%.tar.gz}"; place="${place%.zip}"
               [ $first = 1 ] || echo ","
               first=0
               printf '  "%s": {"file": "%s", "checksum": "%s"}' "$place" "$f" "$(sha256sum "$f" | cut -d' ' -f1)"
