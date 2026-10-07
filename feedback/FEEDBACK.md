@@ -201,3 +201,29 @@ The idea: a small Python runner that does what Bun does.
 - **The hard part is native modules.** Windows loads a `.pyd` or a `.dll` only from a file on disk. Each native module must be linked in, or loaded from memory. PyOxidizer tried this (`oxidized_importer`), but it is not kept up to date now.
 
 What this gives: one file to download, one fixed path, no temporary folder, and a fast start.
+
+
+
+## 17. A Windows install fails while human runs
+
+On Windows, human lives in one folder, `~\.human\current`, and the PATH points at it. An install or an update moves each old file out of that folder, then copies the new files in. Windows does not let a program move a file that a running process holds open.
+
+Example, 2026-10-07. `irm https://doashuman.com/install.ps1 | iex` of 0.0.132 stopped with `Move-Item: The process cannot access the file because it is being used by another process.` A `human serve` and a `human watch` of 0.0.121 ran from `current` and held `_internal\base_library.zip`. The script had already moved `human.exe` and some DLLs to `~\.human\old\`, so `human` did not start from a new terminal until the processes stopped and the install ran again.
+
+The update from the reader has the same problem: the server that moves the files is one of the processes that hold them.
+
+On Linux this does not happen: each version has its own folder, `~/.human/versions/0.0.X`, and the `human` command is a link that the update points at the new folder. No file in use moves.
+
+Possible solutions:
+
+**Stop, then replace.** Keep `current`. The install stops each `human.exe` that runs from `current`, or a new `human stop` does it. Then it replaces the files. It is simple, but it stops your servers and watches, and the update from the reader still needs a separate process to do the move.
+
+**Version folders and a `human.cmd` file.** This is the option I explained before. The one disadvantage is the "Terminate batch job (Y/N)?" question after Ctrl+C.
+
+**Version folders and a small launcher program.** In place of the `.cmd` file, put a very small `human.exe` in `~\.human\bin`. It reads a file such as `~\.human\version` with "0.0.132" in it, and starts that version. It sends Ctrl+C and the exit code through, so there is no extra question. It changes almost never, and Windows lets you rename a running `.exe`, so the launcher itself is easy to replace. The disadvantage: it is one more program to build, in C, Go or Rust, and to sign.
+
+**Version folders, with the PATH pointing straight at the newest one.** Each update changes the user PATH to `~\.human\versions\0.0.X\human`. There is no file and no question after Ctrl+C. The disadvantage: a terminal that is already open keeps the old PATH. An AI harness that runs for a long time also keeps using the old version until it starts again.
+
+**Do not touch files in use, and tell the user.** The install finds the files that are in use, moves nothing, and prints "stop these human processes, then run the install again", with their process ids. There are no new parts. The disadvantage: the update from the reader cannot work this way on Windows, and you must do a manual step each time.
+
+The `human.cmd` option: each version goes into `~\.human\versions\0.0.X`, and a folder like `~\.human\bin` in the PATH holds one file, `human.cmd`, with one line such as `@"C:\Users\<you>\.human\versions\0.0.132\human\human.exe" %*`. An update installs the new version into a new folder and changes only that line, so old servers keep running on their folder and new commands start the new version.

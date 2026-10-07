@@ -15,7 +15,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from datetime import timezone
+from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -581,6 +581,7 @@ class FreshHandler(SimpleHTTPRequestHandler):
         self.send_json(200, {"id": pid})
 
     def write(self, root, path):
+        body = {}
         try:
             body = self.read_body()
             if path == "/human/save":
@@ -599,6 +600,10 @@ class FreshHandler(SimpleHTTPRequestHandler):
                 status, out = 404, "not found"
         except (ValueError, OSError) as e:
             status, out = 400, str(e)
+        if path == "/human/save" and status != 200:
+            when = datetime.now().astimezone().isoformat(timespec="seconds")
+            print(f"{when} save refused: {body.get('name')} {body.get('kind')} {body.get('id')}: {out}",
+                  file=sys.stderr, flush=True)
         self.send_json(status, out if status == 200 else {"error": out})
 
     def end_headers(self):

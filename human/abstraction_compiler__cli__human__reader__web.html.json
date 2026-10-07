@@ -7,7 +7,7 @@
       "block_lines": [
         [
           1,
-          1424
+          1468
         ]
       ],
       "text": "# HELPER FUNCTIONS\n\n[esc](compiler/cli/human/reader/web.html:esc)\nmakes text safe to show on a page                        \n\n[msg](compiler/cli/human/reader/web.html:msg)\nshows one line when there is nothing to read              \n        \n[drawer](compiler/cli/human/reader/web.html:drawer)\nopens and hides the tree on a narrow screen\n\n[loadMaps](compiler/cli/human/reader/web.html:loadMaps)\nreads the records of every file and human file in one ask, or gives empty ones\n\n[held](compiler/cli/human/reader/web.html:held)\ngives a record, or an empty one when it holds no abstractions\n\n[fromMaps](compiler/cli/human/reader/web.html:fromMaps)\ntakes the record of one file or human file out of maps\n\n[humanPath](compiler/cli/human/reader/web.html:humanPath)\nnames the record of a human file\n                \n[bareOf](compiler/cli/human/reader/web.html:bareOf)\ngives the bare name of a human path\n\n[shownPath](compiler/cli/human/reader/web.html:shownPath)\ngives the name a human file wears in the tree\n\n[recordPath](compiler/cli/human/reader/web.html:recordPath)\ngives the record behind a shown name\n\n     says a file has no code under it           ([noCodeFile](compiler/cli/human/reader/web.html:noCodeFile))\n     asks for human.json, or gives nothing when it did not change  ([loadList](compiler/cli/human/reader/web.html:loadList))\n     builds the file tree for one project         ([buildTree](compiler/cli/human/reader/web.html:buildTree))\n     names the record the server keeps for a file   ([mapName](compiler/cli/human/reader/web.html:mapName))\n     shuts the box for the name of a new file       ([newClose](compiler/cli/human/reader/web.html:newClose))\n             \n[treeLast](compiler/cli/human/reader/web.html:treeLast)\nfinds the row above the empty space you clicked \n\n[treeRoots](compiler/cli/human/reader/web.html:treeRoots)\nfinds the roots the tree draws in            \n\n[treeRows](compiler/cli/human/reader/web.html:treeRows)\ngives every row of the tree                   \n\n[newOpen](compiler/cli/human/reader/web.html:newOpen)\nopens that box under a row, empty, and keeps that row's folder for the enter\n\n     finds the tree row you right clicked            ([treeRow](compiler/cli/human/reader/web.html:treeRow))\n     gives the folder that row stands in             ([treeDir](compiler/cli/human/reader/web.html:treeDir))\n     asks for the file when you open it             ([loadCode](compiler/cli/human/reader/web.html:loadCode))\n     finds a file of the project by name                ([fileOf](compiler/cli/human/reader/web.html:fileOf))\n     says if a piece has an abstraction         ([crossEntry](compiler/cli/human/reader/web.html:crossEntry))\n     says if an abstraction has those words   ([crossAnchor](compiler/cli/human/reader/web.html:crossAnchor))\n     finds which abstraction a pin points at        ([targetOf](compiler/cli/human/reader/web.html:targetOf))\n     reads a pin the map does not hold    ([guessAnchor](compiler/cli/human/reader/web.html:guessAnchor))\n     finds the pin behind one bracket                     ([pinOf](compiler/cli/human/reader/web.html:pinOf))\n     says what a muted pin shows beside it          ([suffixOf](compiler/cli/human/reader/web.html:suffixOf))\n     turns the pins of one line into links          ([lineHtml](compiler/cli/human/reader/web.html:lineHtml))\n     says if the tip is for the open file            ([tipHere](compiler/cli/human/reader/web.html:tipHere))\n     says if a line holds the words the tip points at  ([tipLine](compiler/cli/human/reader/web.html:tipLine))\n     finds the first line of words the tip points at  ([tipFirst](compiler/cli/human/reader/web.html:tipFirst))\n     says the name the server knows a file by       ([nameOf](compiler/cli/human/reader/web.html:nameOf))\n     names where your typed words are held           ([key](compiler/cli/human/reader/web.html:key))\n     gives the text a box opens with            ([baseText](compiler/cli/human/reader/web.html:baseText))\n     says if a place for words is open here      ([expandHere](compiler/cli/human/reader/web.html:expandHere))\n     says if a delete is asked here              ([deleteHere](compiler/cli/human/reader/web.html:deleteHere))\n     gives the text now shown, typed or map   ([shownText](compiler/cli/human/reader/web.html:shownText))\n\n[changed](compiler/cli/human/reader/web.html:changed)\nsays if a text differs from the map          \n\n[baseFor](compiler/cli/human/reader/web.html:baseFor)\ngives the text the map of any file holds for one place\n\n[waiting](compiler/cli/human/reader/web.html:waiting)\nsays which files hold a writing not saved    \n\n[markSoon](compiler/cli/human/reader/web.html:markSoon)\nputs the dots as soon as the tree stands\n\n[markWaiting](compiler/cli/human/reader/web.html:markWaiting)\nputs a dot on those rows of the tree\n\n     lists every place the file takes writing         ([slots](compiler/cli/human/reader/web.html:slots))\n     marks what still waits for claude          ([queuedMark](compiler/cli/human/reader/web.html:queuedMark))\n     says which place holds the box           ([isEditing](compiler/cli/human/reader/web.html:isEditing))\n     draws the writing box                      ([editorHtml](compiler/cli/human/reader/web.html:editorHtml))\n     draws the telling of a whole file    ([mapSlotHtml](compiler/cli/human/reader/web.html:mapSlotHtml))\n     draws the place for your own words  ([expandSlotHtml](compiler/cli/human/reader/web.html:expandSlotHtml))\n     numbers the lines of the code      ([codeSlotHtml](compiler/cli/human/reader/web.html:codeSlotHtml))\n     \n[fit](compiler/cli/human/reader/web.html:fit)\nmakes the box as tall as its text and its sideways bar without moving the page\n\n     puts the caret in the new box without moving the page        ([focusEditor](compiler/cli/human/reader/web.html:focusEditor))\n     holds what you typed while the page redraws     ([keep](compiler/cli/human/reader/web.html:keep))\n     takes the words out of the open box          ([keepBox](compiler/cli/human/reader/web.html:keepBox))\n     finds the letter you clicked                 ([caretAt](compiler/cli/human/reader/web.html:caretAt))\n     finds that letter in the raw text        ([rawOffset](compiler/cli/human/reader/web.html:rawOffset))\n     finds it past the line numbers         ([codeOffset](compiler/cli/human/reader/web.html:codeOffset))\n     sends one ask to the server                        ([post](compiler/cli/human/reader/web.html:post))\n     shuts the little menu                      ([menuClose](compiler/cli/human/reader/web.html:menuClose))\n     finds a file by the name the server knows it by  ([fileNamed](compiler/cli/human/reader/web.html:fileNamed))\n     lights the words a pin points at         ([flashAnchor](compiler/cli/human/reader/web.html:flashAnchor))",
@@ -29,8 +29,8 @@
           "block": "msg",
           "lines": [
             [
-              192,
-              192
+              196,
+              196
             ]
           ]
         },
@@ -40,8 +40,8 @@
           "block": "drawer",
           "lines": [
             [
-              196,
-              196
+              200,
+              200
             ]
           ]
         },
@@ -51,8 +51,8 @@
           "block": "loadMaps",
           "lines": [
             [
-              200,
-              205
+              204,
+              209
             ]
           ]
         },
@@ -62,8 +62,8 @@
           "block": "held",
           "lines": [
             [
-              206,
-              208
+              210,
+              212
             ]
           ]
         },
@@ -73,8 +73,8 @@
           "block": "fromMaps",
           "lines": [
             [
-              209,
-              212
+              213,
+              216
             ]
           ]
         },
@@ -84,8 +84,8 @@
           "block": "humanPath",
           "lines": [
             [
-              215,
-              215
+              219,
+              219
             ]
           ]
         },
@@ -95,8 +95,8 @@
           "block": "bareOf",
           "lines": [
             [
-              216,
-              216
+              220,
+              220
             ]
           ]
         },
@@ -106,8 +106,8 @@
           "block": "shownPath",
           "lines": [
             [
-              218,
-              218
+              222,
+              222
             ]
           ]
         },
@@ -117,8 +117,8 @@
           "block": "recordPath",
           "lines": [
             [
-              219,
-              223
+              223,
+              227
             ]
           ]
         },
@@ -128,8 +128,8 @@
           "block": "noCodeFile",
           "lines": [
             [
-              232,
-              232
+              236,
+              236
             ]
           ]
         },
@@ -139,8 +139,8 @@
           "block": "loadList",
           "lines": [
             [
-              235,
-              241
+              239,
+              245
             ]
           ]
         },
@@ -150,8 +150,8 @@
           "block": "buildTree",
           "lines": [
             [
-              264,
-              285
+              270,
+              291
             ]
           ]
         },
@@ -161,8 +161,8 @@
           "block": "mapName",
           "lines": [
             [
-              319,
-              1422
+              325,
+              1466
             ]
           ]
         },
@@ -172,8 +172,8 @@
           "block": "newClose",
           "lines": [
             [
-              354,
-              354
+              360,
+              360
             ]
           ]
         },
@@ -183,8 +183,8 @@
           "block": "treeLast",
           "lines": [
             [
-              392,
-              396
+              398,
+              402
             ]
           ]
         },
@@ -194,8 +194,8 @@
           "block": "treeRoots",
           "lines": [
             [
-              643,
-              651
+              649,
+              657
             ]
           ]
         },
@@ -205,8 +205,8 @@
           "block": "treeRows",
           "lines": [
             [
-              653,
-              660
+              659,
+              666
             ]
           ]
         },
@@ -216,8 +216,8 @@
           "block": "newOpen",
           "lines": [
             [
-              355,
-              363
+              361,
+              369
             ]
           ]
         },
@@ -227,8 +227,8 @@
           "block": "treeRow",
           "lines": [
             [
-              376,
-              383
+              382,
+              389
             ]
           ]
         },
@@ -238,8 +238,8 @@
           "block": "treeDir",
           "lines": [
             [
-              384,
-              391
+              390,
+              397
             ]
           ]
         },
@@ -249,8 +249,8 @@
           "block": "loadCode",
           "lines": [
             [
-              429,
-              440
+              435,
+              446
             ]
           ]
         },
@@ -260,8 +260,8 @@
           "block": "fileOf",
           "lines": [
             [
-              442,
-              446
+              448,
+              452
             ]
           ]
         },
@@ -271,8 +271,8 @@
           "block": "crossEntry",
           "lines": [
             [
-              448,
-              452
+              454,
+              458
             ]
           ]
         },
@@ -282,8 +282,8 @@
           "block": "crossAnchor",
           "lines": [
             [
-              454,
-              460
+              460,
+              466
             ]
           ]
         },
@@ -293,8 +293,8 @@
           "block": "targetOf",
           "lines": [
             [
-              462,
-              467
+              468,
+              473
             ]
           ]
         },
@@ -304,8 +304,8 @@
           "block": "guessAnchor",
           "lines": [
             [
-              507,
-              517
+              513,
+              523
             ]
           ]
         },
@@ -315,8 +315,8 @@
           "block": "pinOf",
           "lines": [
             [
-              525,
-              525
+              531,
+              531
             ]
           ]
         },
@@ -326,8 +326,8 @@
           "block": "suffixOf",
           "lines": [
             [
-              527,
-              531
+              533,
+              537
             ]
           ]
         },
@@ -337,8 +337,8 @@
           "block": "lineHtml",
           "lines": [
             [
-              533,
-              566
+              539,
+              572
             ]
           ]
         },
@@ -348,8 +348,8 @@
           "block": "tipHere",
           "lines": [
             [
-              574,
-              574
+              580,
+              580
             ]
           ]
         },
@@ -359,8 +359,8 @@
           "block": "tipLine",
           "lines": [
             [
-              575,
-              575
+              581,
+              581
             ]
           ]
         },
@@ -370,8 +370,8 @@
           "block": "tipFirst",
           "lines": [
             [
-              576,
-              576
+              582,
+              582
             ]
           ]
         },
@@ -381,8 +381,8 @@
           "block": "nameOf",
           "lines": [
             [
-              593,
-              596
+              599,
+              602
             ]
           ]
         },
@@ -392,8 +392,8 @@
           "block": "key",
           "lines": [
             [
-              598,
-              598
+              604,
+              604
             ]
           ]
         },
@@ -403,8 +403,8 @@
           "block": "baseText",
           "lines": [
             [
-              600,
-              600
+              606,
+              606
             ]
           ]
         },
@@ -414,8 +414,8 @@
           "block": "expandHere",
           "lines": [
             [
-              602,
-              602
+              608,
+              608
             ]
           ]
         },
@@ -425,8 +425,8 @@
           "block": "deleteHere",
           "lines": [
             [
-              603,
-              603
+              609,
+              609
             ]
           ]
         },
@@ -436,8 +436,8 @@
           "block": "shownText",
           "lines": [
             [
-              605,
-              608
+              611,
+              614
             ]
           ]
         },
@@ -447,8 +447,8 @@
           "block": "changed",
           "lines": [
             [
-              610,
-              610
+              616,
+              616
             ]
           ]
         },
@@ -458,8 +458,8 @@
           "block": "baseFor",
           "lines": [
             [
-              612,
-              620
+              618,
+              626
             ]
           ]
         },
@@ -469,8 +469,8 @@
           "block": "waiting",
           "lines": [
             [
-              622,
-              636
+              628,
+              642
             ]
           ]
         },
@@ -480,8 +480,8 @@
           "block": "markSoon",
           "lines": [
             [
-              638,
-              641
+              644,
+              647
             ]
           ]
         },
@@ -491,8 +491,8 @@
           "block": "markWaiting",
           "lines": [
             [
-              662,
-              675
+              668,
+              695
             ]
           ]
         },
@@ -502,8 +502,8 @@
           "block": "slots",
           "lines": [
             [
-              677,
-              684
+              697,
+              704
             ]
           ]
         },
@@ -513,8 +513,8 @@
           "block": "queuedMark",
           "lines": [
             [
-              686,
-              689
+              706,
+              709
             ]
           ]
         },
@@ -524,8 +524,8 @@
           "block": "isEditing",
           "lines": [
             [
-              691,
-              691
+              711,
+              711
             ]
           ]
         },
@@ -535,8 +535,8 @@
           "block": "editorHtml",
           "lines": [
             [
-              693,
-              695
+              713,
+              715
             ]
           ]
         },
@@ -546,8 +546,8 @@
           "block": "mapSlotHtml",
           "lines": [
             [
-              697,
-              703
+              717,
+              723
             ]
           ]
         },
@@ -557,8 +557,8 @@
           "block": "expandSlotHtml",
           "lines": [
             [
-              705,
-              712
+              725,
+              732
             ]
           ]
         },
@@ -568,8 +568,8 @@
           "block": "codeSlotHtml",
           "lines": [
             [
-              737,
-              752
+              757,
+              772
             ]
           ]
         },
@@ -579,8 +579,8 @@
           "block": "fit",
           "lines": [
             [
-              824,
-              831
+              844,
+              851
             ]
           ]
         },
@@ -590,8 +590,8 @@
           "block": "focusEditor",
           "lines": [
             [
-              833,
-              841
+              853,
+              861
             ]
           ]
         },
@@ -601,8 +601,8 @@
           "block": "keep",
           "lines": [
             [
-              879,
-              882
+              899,
+              902
             ]
           ]
         },
@@ -612,8 +612,8 @@
           "block": "keepBox",
           "lines": [
             [
-              884,
-              889
+              904,
+              909
             ]
           ]
         },
@@ -623,8 +623,8 @@
           "block": "caretAt",
           "lines": [
             [
-              891,
-              904
+              911,
+              924
             ]
           ]
         },
@@ -634,8 +634,8 @@
           "block": "rawOffset",
           "lines": [
             [
-              906,
-              921
+              926,
+              941
             ]
           ]
         },
@@ -645,8 +645,8 @@
           "block": "codeOffset",
           "lines": [
             [
-              923,
-              931
+              943,
+              951
             ]
           ]
         },
@@ -656,8 +656,8 @@
           "block": "post",
           "lines": [
             [
-              980,
-              983
+              1002,
+              1005
             ]
           ]
         },
@@ -667,8 +667,8 @@
           "block": "menuClose",
           "lines": [
             [
-              1073,
-              1073
+              1095,
+              1095
             ]
           ]
         },
@@ -678,8 +678,8 @@
           "block": "fileNamed",
           "lines": [
             [
-              1122,
-              1125
+              1166,
+              1169
             ]
           ]
         },
@@ -689,8 +689,8 @@
           "block": "flashAnchor",
           "lines": [
             [
-              1219,
-              1228
+              1263,
+              1272
             ]
           ]
         }
@@ -704,108 +704,110 @@
     "code_lines": [],
     "blank_lines": [
       185,
-      191,
-      193,
-      199,
-      213,
-      233,
-      242,
-      263,
-      286,
-      318,
-      320,
-      332,
-      351,
-      375,
-      403,
-      428,
-      441,
+      195,
+      197,
+      203,
+      217,
+      237,
+      246,
+      269,
+      292,
+      324,
+      326,
+      338,
+      357,
+      381,
+      409,
+      434,
       447,
       453,
-      461,
-      468,
-      491,
-      500,
+      459,
+      467,
+      474,
+      497,
       506,
-      518,
-      520,
+      512,
       524,
       526,
+      530,
       532,
-      567,
-      592,
-      597,
-      599,
-      601,
-      604,
-      609,
-      611,
-      621,
-      637,
-      642,
-      652,
-      661,
-      676,
-      685,
-      690,
-      692,
+      538,
+      573,
+      598,
+      603,
+      605,
+      607,
+      610,
+      615,
+      617,
+      627,
+      643,
+      648,
+      658,
+      667,
       696,
-      704,
-      713,
-      715,
-      736,
-      753,
-      760,
-      769,
-      775,
-      823,
-      832,
-      842,
-      844,
-      850,
-      871,
-      878,
-      883,
-      890,
-      905,
-      922,
-      932,
-      939,
-      947,
-      979,
-      984,
-      999,
-      1008,
-      1017,
-      1029,
-      1033,
+      705,
+      710,
+      712,
+      716,
+      724,
+      733,
+      735,
+      756,
+      773,
+      780,
+      789,
+      795,
+      843,
+      852,
+      862,
+      864,
+      870,
+      891,
+      898,
+      903,
+      910,
+      925,
+      942,
+      952,
+      959,
+      967,
+      1001,
+      1006,
+      1021,
+      1030,
       1039,
-      1045,
-      1056,
-      1074,
-      1094,
-      1102,
-      1121,
-      1126,
-      1141,
+      1051,
+      1055,
+      1061,
+      1067,
+      1078,
+      1096,
+      1116,
+      1125,
+      1127,
+      1146,
+      1165,
       1170,
-      1173,
-      1177,
       1185,
-      1200,
-      1208,
-      1218,
+      1214,
+      1217,
+      1221,
       1229,
-      1265,
+      1244,
+      1252,
+      1262,
       1273,
-      1280,
-      1294,
-      1301,
-      1312,
-      1320,
-      1340,
-      1344,
-      1393
+      1309,
+      1317,
+      1324,
+      1338,
+      1345,
+      1356,
+      1364,
+      1384,
+      1388,
+      1437
     ]
   }
 }

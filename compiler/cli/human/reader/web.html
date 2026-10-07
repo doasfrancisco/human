@@ -186,12 +186,16 @@ import { FileTree } from "./trees.js";
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 var ANCH=/\[([^\[\]]+)\]\(([^()]+)\)/g;
 var projs=[], cur=null, byId={}, blockId={}, order=[], lines=[], ft=null, openSet={}, openMem={}, scrollMem={}, notice="", codeFlash=null;
-var editing=null, typed={}, pendingBy={}, savedBy={}, stamps=null, sending=false, bad=false, caretWanted=0, expanding=null, deleting=null;
+var TKEY="human:typed:"+location.pathname, SKEY="human:saved:"+location.pathname;
+function loadStore(k){try{var v=JSON.parse(localStorage.getItem(k)||"{}");return v&&typeof v==="object"?v:{};}catch(e){return {};}}
+function putStore(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+var editing=null, typed=loadStore(TKEY), savedText=loadStore(SKEY), pendingBy={}, savedBy={}, stamps=null, sending=false, bad=false, caretWanted=0, expanding=null, deleting=null;
+function storeTyped(){putStore(TKEY,typed);}
 var rows=document.getElementById("rows"), narrow=matchMedia("(max-width:720px)");
 
 function msg(t){var el=document.getElementById("msg");el.hidden=!t;el.textContent=t||"";}
 
-var TREE_CSS='[data-item-type="folder"],[data-item-section="icon"],[data-item-section="icon"]>[data-icon-token]{color:var(--grey)!important}';
+var TREE_CSS='[data-item-type="folder"]>[data-item-section="content"]{color:var(--grey)!important}';
 var side=document.getElementById("side"), shade=document.getElementById("shade");
 function drawer(on){side.classList.toggle("open",on);shade.classList.toggle("on",on);}
 document.getElementById("menu").addEventListener("click",function(){drawer(!side.classList.contains("open"));});
@@ -253,6 +257,8 @@ Promise.all([loadList(),loadMaps(),loadTip(),pollQueue()]).then(function(x){
   if(tip) p.files.forEach(function(f){if(f.file===tip.file)start=f;});
   buildTree(p,start.file);
   open(p,start);
+  p.files.forEach(keepSaved);
+  render();
   if(tipHere()&&tip.entry){
     openSet[tip.entry]=1;
     render();
@@ -662,9 +668,23 @@ function treeRows(){
 function markWaiting(){
   var roots=treeRoots();
   if(!roots.length||!roots[0].getElementById) return false;
-  var css=Object.keys(waiting()).sort().map(function(f){
-    return '[data-item-path="'+f.replace(/"/g,'\\"')+'"]::before{content:"";display:inline-block;'
-      +'flex:0 0 auto;align-self:center;width:6px;height:6px;margin-right:5px;border-radius:50%;background:var(--dot)}';
+  var yellow=waiting(), dots={};
+  Object.keys(savedBy).forEach(function(n){
+    var f=savedBy[n].length&&fileNamed(n);
+    if(f) dots[shownPath(f.file)]="#a855f7";
+  });
+  Object.keys(yellow).forEach(function(f){dots[f]="var(--dot)";});
+  Object.keys(dots).forEach(function(f){
+    var parts=f.split("/");
+    for(var i=1;i<parts.length;i++){
+      var d=parts.slice(0,i).join("/")+"/";
+      if(dots[d]!=="var(--dot)") dots[d]=dots[f];
+    }
+  });
+  var css=Object.keys(dots).sort().map(function(f){
+    var row='[data-item-path="'+f.replace(/"/g,'\\"')+'"]>[data-item-section="icon"]';
+    return row+'{position:relative}'+row+'::before{content:"";position:absolute;left:-8px;top:50%;'
+      +'width:6px;height:6px;margin-top:-3px;border-radius:50%;background:'+dots[f]+'}';
   }).join("\n");
   roots.forEach(function(r){
     var st=r.getElementById?r.getElementById("waitcss"):null;
@@ -878,7 +898,7 @@ rows.addEventListener("mouseup",caretLater);
 
 function keep(text){
   var k=key(editing.file,editing.kind,editing.id);
-  if(text!==shownText(editing.kind,editing.id)||k in typed) typed[k]=text;
+  if(text!==shownText(editing.kind,editing.id)||k in typed){typed[k]=text;storeTyped();}
 }
 
 function keepBox(){
@@ -962,7 +982,9 @@ function save(){
     return post("save",body).then(function(x){
       if(!x.ok){says.push(label+": "+(x.j.error||"refused"));failed=true;return;}
       var k=key(file,s.kind,s.id);
-      if(typed[k]===body.text) delete typed[k];
+      if(typed[k]===body.text){delete typed[k];storeTyped();}
+      var sk=s.kind==="retext"?k:s.kind==="map"&&x.j.entry!=null?key(file,"retext",x.j.entry):null;
+      if(sk){savedText[sk]=body.text;putStore(SKEY,savedText);}
       if(s.kind==="code") f.code=body.text;
     }).catch(function(){says.push(label+": the server did not answer — is human serve running?");failed=true;})
       .then(function(){return step(i+1);});
@@ -1009,7 +1031,7 @@ function expandOpen(entry,words,kind){
 function expandClose(){
   if(!expandHere()) return;
   var k=key(cur.file,"expand",null);
-  delete typed[k];
+  delete typed[k]; storeTyped();
   if(isEditing("expand",null)) editing=null;
   expanding=null;
   render();
@@ -1022,7 +1044,7 @@ function expandSend(){
   if(!text.trim()) return;
   if(isEditing("expand",null)) editing=null;
   ask({name:nameOf(cur.file),kind:x.kind,id:x.entry,text:text,words:x.words},function(){
-    delete typed[key(x.file,"expand",null)];
+    delete typed[key(x.file,"expand",null)]; storeTyped();
     if(expanding===x) expanding=null;
   });
 }
@@ -1049,7 +1071,7 @@ function deleteSend(){
   if(isEditing("retext",x.entry)) editing=null;
   ask({name:nameOf(cur.file),kind:"delete",id:x.entry,text:""},function(){
     var k=key(x.file,"retext",x.entry);
-    delete typed[k]; delete openSet[x.entry];
+    delete typed[k]; delete openSet[x.entry]; storeTyped();
     if(deleting===x) deleting=null;
   });
 }
@@ -1096,8 +1118,30 @@ function reloadMap(f){
   return fetch(mapName(f.file),{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;})
     .then(function(d){
       if(d&&Array.isArray(d.explanations)) f.d=d;
+      keepSaved(f);
       if(cur&&cur.file===f.file) open(cur.proj,f);
     });
+}
+
+function words(t){return t.replace(ANCH,"$1");}
+
+function keepSaved(f){
+  var pre=key(f.file,"retext",""), name=nameOf(f.file), hit=false;
+  Object.keys(savedText).forEach(function(k){
+    if(k.indexOf(pre)!==0) return;
+    var id=+k.slice(pre.length), e=null;
+    f.d.explanations.forEach(function(x){if(x.id===id)e=x;});
+    if(!e){delete savedText[k];hit=true;return;}
+    if(words(e.text)===words(savedText[k])){
+      var marked=(pendingBy[name]||[]).concat(savedBy[name]||[]).some(function(x){return x.entry===id;});
+      if(!marked){delete savedText[k];hit=true;}
+      return;
+    }
+    if(editing&&editing.file===f.file&&editing.kind==="retext"&&editing.id===id) return;
+    if(!(k in typed)) typed[k]=savedText[k];
+    delete savedText[k]; hit=true;
+  });
+  if(hit){putStore(SKEY,savedText);storeTyped();}
 }
 
 function compile(){
@@ -1134,7 +1178,7 @@ function pollQueue(){
     pendingBy=by; savedBy=saved;
     if(same) return;
     gone.forEach(function(n){var f=fileNamed(n);if(f) reloadMap(f);});
-    if(cur&&!editing) render();
+    if(cur&&!editing) render(); else markWaiting();
   }).catch(function(){});
 }
 setInterval(pollQueue,3000);
