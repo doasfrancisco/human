@@ -197,7 +197,19 @@ def fresh_map(root):
     sweep = SWEEPS.setdefault(root, Sweep(root))
     data["files"] = [f for f in sweep.files() if not is_ignored(f, patterns)]
     data["humans"] = helpers.human_entries(root)
+    data["stamps"] = map_stamps(root)
     return data
+
+
+def map_stamps(root):
+    out = {}
+    for prefix in (helpers.MAP_PREFIX, helpers.HUMAN_PREFIX):
+        for p in (root / "human").glob(f"{prefix}*.json"):
+            try:
+                out[p.name] = p.stat().st_mtime_ns
+            except OSError:
+                pass
+    return out
 
 
 def read_map(p):
@@ -290,9 +302,6 @@ def new_human(root, name, place=""):
                  "output": f"{shown} made, empty; write its abstraction, with no file under it"}
 
 
-DRAFTS_LOCK = threading.Lock()
-
-
 def tip_path(root):
     return cmd_watch.folder(root) / "tip.json"
 
@@ -324,22 +333,21 @@ def cmd_tip(a):
     if not a.code_file or not a.say:
         sys.exit("a tip takes a name and --say <the words the reader shows>")
     p, file = reader_file(root, a.code_file)
-    if a.draft is not None:
-        if not p.exists():
-            if not helpers.no_code(a.code_file, root):
-                sys.exit(f"{a.code_file} has no map; a draft tip goes on a human file")
+    name = a.code_file if helpers.no_code(a.code_file, root) else file
+    d = read_map(p)
+    if a.add is not None and not (d and d.get("explanations")):
+        if not a.add.strip():
+            sys.exit("--add takes the new line, with its spaces in front")
+        if not p.exists() and helpers.no_code(a.code_file, root):
             status, out = new_human(root, a.code_file)
             if status != 200:
                 sys.exit(out)
             write_files(root)
-        d = read_map(p)
-        if d is None or d.get("explanations"):
-            sys.exit(f"{a.code_file} already holds an abstraction; a draft tip goes on an empty map")
-        top = json.loads((root / "human" / "human.json").read_text()).get("code_file") or root.name
-        tidy_drafts(root, {f"human-draft:{top}/{file}/map": a.draft})
-        tip = {"file": file, "kind": "compile", "say": a.say}
+        status, out = cmd_watch.save_writing(root, name, "map", None, a.add)
+        if status != 200:
+            sys.exit(out)
+        tip = {"file": file, "kind": "file", "entry": out["entry"], "say": a.say, "compile": True}
     else:
-        d = read_map(p)
         if d is None:
             sys.exit(f"{a.code_file} has no map")
         e = next((x for x in d.get("explanations", []) if x.get("id") == a.entry), None)
@@ -353,8 +361,9 @@ def cmd_tip(a):
             if at is None:
                 sys.exit(f"--after must be found inside one line of entry {a.entry}, as it is written in the map")
             lines.insert(at + 1, a.add.rstrip())
-            top = json.loads((root / "human" / "human.json").read_text()).get("code_file") or root.name
-            tidy_drafts(root, {f"human-draft:{top}/{file}/{a.entry}": "\n".join(lines)})
+            status, out = cmd_watch.save_writing(root, name, "retext", a.entry, "\n".join(lines))
+            if status != 200:
+                sys.exit(out)
             tip = {"file": file, "kind": "line", "entry": a.entry, "words": a.add.strip(), "say": a.say, "compile": True}
         else:
             if not a.words or not any(a.words in line for line in lines):
@@ -363,62 +372,6 @@ def cmd_tip(a):
     out = tip_path(root)
     out.write_text(json.dumps(tip, indent=1) + "\n")
     print(f"tip kept in {out}; the reader shows it on its next open")
-
-
-def drafts_path(root):
-    return cmd_watch.folder(root) / "drafts.json"
-
-
-def read_drafts(root):
-    try:
-        d = json.loads(drafts_path(root).read_text())
-    except (OSError, ValueError):
-        return {}
-    return d if isinstance(d, dict) else {}
-
-
-def spent_draft(root, k, v):
-    if not v:
-        return True
-    m = re.fullmatch(r"human-draft:[^/]*/(.+)/([^/]+)", k)
-    if not m:
-        return False
-    rel, tail = m.groups()
-    p = root / rel
-    if tail == "code":
-        try:
-            return v == p.read_text()
-        except (OSError, ValueError):
-            return False
-    if tail != "map" and not tail.isdigit():
-        return False
-    d = read_map(p if rel.startswith("human/") else helpers.map_path_of(p, root))
-    if d is None:
-        return False
-    if tail == "map":
-        return bool(d.get("explanations"))
-    texts = {e.get("id"): e.get("text") for e in d.get("explanations", [])}
-    return texts.get(int(tail), v) == v
-
-
-def tidy_drafts(root, changes):
-    with DRAFTS_LOCK:
-        d = read_drafts(root)
-        d.update(changes)
-        kept = {k: v for k, v in d.items() if not spent_draft(root, k, v)}
-        if changes or kept != d:
-            p = drafts_path(root)
-            tmp = p.with_name(p.name + ".tmp")
-            tmp.write_text(json.dumps(kept, indent=1) + "\n")
-            tmp.replace(p)
-    return kept
-
-
-def keep_drafts(root, changes):
-    if not isinstance(changes, dict) or not all(
-            isinstance(k, str) and (v is None or isinstance(v, str)) for k, v in changes.items()):
-        return 400, "a draft is a name and its text, or no text to remove it"
-    return 200, {"drafts": len(tidy_drafts(root, changes))}
 
 
 PROJECTS_LOCK = threading.Lock()
@@ -586,9 +539,6 @@ class FreshHandler(SimpleHTTPRequestHandler):
         if path == "/human/server/queue":
             self.send_json(200, cmd_watch.pending(root))
             return
-        if path == "/human/server/drafts":
-            self.send_json(200, tidy_drafts(root, {}))
-            return
         if path == "/human/server/tip":
             self.send_json(200, read_tip(root))
             return
@@ -633,15 +583,15 @@ class FreshHandler(SimpleHTTPRequestHandler):
     def write(self, root, path):
         try:
             body = self.read_body()
-            if path == "/human/compile":
-                status, out = cmd_watch.compile_writing(root, body.get("name"), body.get("kind"),
-                                                        body.get("id"), body.get("text"), body.get("words"))
+            if path == "/human/save":
+                status, out = cmd_watch.save_writing(root, body.get("name"), body.get("kind"),
+                                                     body.get("id"), body.get("text"), body.get("words"))
+            elif path == "/human/compile":
+                status, out = cmd_watch.compile_saved(root, body.get("name"))
             elif path == "/human/file":
                 status, out = new_file(root, body.get("name"))
             elif path == "/human/human":
                 status, out = new_human(root, body.get("name"), body.get("place"))
-            elif path == "/human/server/drafts":
-                status, out = keep_drafts(root, body.get("drafts"))
             elif path == "/human/server/tip":
                 tip_path(root).unlink(missing_ok=True)
                 status, out = 200, {}
@@ -834,7 +784,6 @@ def main():
     n.add_argument("--words")
     n.add_argument("--add")
     n.add_argument("--after")
-    n.add_argument("--draft")
     n.add_argument("--say")
     n.add_argument("--clear", action="store_true")
     if updater.from_pypi():

@@ -89,7 +89,6 @@
   #pill:not(:has(> :not([hidden]))){display:none;}
   #go{display:flex;align-items:center;justify-content:center;width:44px;height:42px;background:none;border:0;font-size:0;color:#fff;padding:0;cursor:pointer;}
   #go[hidden]{display:none;}
-  #go.busy{opacity:.5;cursor:default;}
   #go::before{content:"";width:22px;height:22px;background:currentColor;-webkit-mask:var(--icon) center/contain no-repeat;mask:var(--icon) center/contain no-repeat;}
   #go::before{width:18px;height:18px;}
   #go{color:#22c55e;}
@@ -187,7 +186,7 @@ import { FileTree } from "./trees.js";
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 var ANCH=/\[([^\[\]]+)\]\(([^()]+)\)/g;
 var projs=[], cur=null, byId={}, blockId={}, order=[], lines=[], ft=null, openSet={}, openMem={}, scrollMem={}, notice="", codeFlash=null;
-var editing=null, typed={}, drafts={}, pendingBy={}, sending=false, bad=false, caretWanted=0, expanding=null, deleting=null;
+var editing=null, typed={}, pendingBy={}, savedBy={}, stamps=null, sending=false, bad=false, caretWanted=0, expanding=null, deleting=null;
 var rows=document.getElementById("rows"), narrow=matchMedia("(max-width:720px)");
 
 function msg(t){var el=document.getElementById("msg");el.hidden=!t;el.textContent=t||"";}
@@ -241,8 +240,9 @@ function loadList(){
   });
 }
 
-Promise.all([loadList(),loadMaps(),loadDrafts(),loadTip()]).then(function(x){
+Promise.all([loadList(),loadMaps(),loadTip(),pollQueue()]).then(function(x){
   var h=x[0], m=x[1];
+  stamps=h.stamps||{};
   if(h.code_file) document.title="Human · "+h.code_file;
   var fs=keepPlaces(h.humans).map(humanPath).concat(h.files||[]).map(function(n){return fromMaps(m,n);});
   return fs.length?{name:h.code_file||"project",files:fs}:null;
@@ -253,10 +253,10 @@ Promise.all([loadList(),loadMaps(),loadDrafts(),loadTip()]).then(function(x){
   if(tip) p.files.forEach(function(f){if(f.file===tip.file)start=f;});
   buildTree(p,start.file);
   open(p,start);
-  if(tipHere()&&tip.kind==="line"){
+  if(tipHere()&&tip.entry){
     openSet[tip.entry]=1;
     render();
-    var el=rows.querySelector(".tipline");
+    var el=rows.querySelector(".tipline,.tipat");
     if(el) rows.scrollTop+=el.getBoundingClientRect().top-rows.getBoundingClientRect().top-rows.clientHeight/3;
   }
 }).catch(function(){msg("could not load — run human serve at the project root");});
@@ -291,6 +291,7 @@ function refreshFiles(){
   var p=cur.proj;
   refreshing=loadList().then(function(h){
     if(!h) return false;
+    redrawEdited(h.stamps||{});
     var want=keepPlaces(h.humans).map(humanPath).concat(h.files||[]), have={};
     p.files.forEach(function(f){have[f.file]=f;});
     var old=p.files.map(function(f){return f.file;});
@@ -314,6 +315,20 @@ function refreshFiles(){
   return refreshing;
 }
 setInterval(refreshFiles,5000);
+
+function mapName(file){return noCodeFile(file)?file.slice(6):"abstraction_"+file.replace(/\//g,"__")+".json";}
+
+function redrawEdited(now){
+  var was=stamps||{};
+  stamps={};
+  Object.keys(now).forEach(function(n){stamps[n]=now[n];});
+  cur.proj.files.forEach(function(f){
+    var n=mapName(f.file);
+    if(was[n]===now[n]) return;
+    if(editing&&editing.file===f.file){if(n in was) stamps[n]=was[n]; else delete stamps[n];listTag="";return;}
+    reloadMap(f);
+  });
+}
 
 function makeNamed(url,name,place){
   if(!cur||sending) return;
@@ -558,8 +573,9 @@ function loadTip(){
 }
 function tipHere(){return !!(tip&&cur&&cur.file===tip.file);}
 function tipLine(e,l){return tipHere()&&tip.kind==="line"&&e.id===tip.entry&&l.indexOf(tip.words)>=0;}
+function tipFirst(e){return tipHere()&&tip.kind==="file"&&e.id===tip.entry?e.text.split("\n").findIndex(function(l){return l.trim();}):-1;}
 function showTip(){
-  var on=tipHere()&&tip.kind==="compile";
+  var on=tipHere()&&tip.kind==="file";
   document.getElementById("tipbox").hidden=!on;
   document.getElementById("go").classList.toggle("tip",on||tipHere()&&!!tip.compile);
   if(on) document.getElementById("tipsay").textContent=tip.say;
@@ -579,48 +595,7 @@ function nameOf(file){
   return file;
 }
 
-function key(file,kind,id){return "human-draft:"+cur.name+"/"+file+"/"+(id===null?kind:id);}
-
-function draftOf(k){return k in drafts?drafts[k]:null;}
-
-function loadDrafts(){
-  return fetch("server/drafts",{cache:"no-store"}).then(function(r){return r.ok?r.json():{};})
-    .catch(function(){return {};}).then(function(d){
-      drafts=d&&typeof d==="object"?d:{};
-      var moved={}, i, k;
-      for(i=0;i<localStorage.length;i++){
-        k=localStorage.key(i);
-        if(k&&/^human-draft:/.test(k)&&!(k in drafts)) moved[k]=localStorage.getItem(k);
-      }
-      if(!Object.keys(moved).length) return;
-      keepDrafts(moved,false).then(function(ok){
-        if(ok) Object.keys(moved).forEach(function(x){localStorage.removeItem(x);});
-      });
-    });
-}
-
-function keepDrafts(ch,back){
-  var was={};
-  Object.keys(ch).forEach(function(k){
-    was[k]=draftOf(k);
-    if(ch[k]===null) delete drafts[k]; else drafts[k]=ch[k];
-  });
-  return fetch("server/drafts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({drafts:ch})})
-    .then(function(r){if(!r.ok) throw 0; return true;})
-    .catch(function(){
-      Object.keys(ch).forEach(function(k){
-        if(was[k]===null) delete drafts[k]; else drafts[k]=was[k];
-        if(back&&ch[k]!==null) typed[k]=ch[k];
-      });
-      if(back){notice="the draft did not reach the server — is human serve running?";bad=true;if(cur) render();}
-      return false;
-    });
-}
-
-function dropDraft(k){
-  if(!(k in drafts)) return;
-  var ch={}; ch[k]=null; keepDrafts(ch,false);
-}
+function key(file,kind,id){return "typed:"+cur.name+"/"+file+"/"+(id===null?kind:id);}
 
 function baseText(kind,id){return kind==="retext"?byId[id].text:kind==="code"?(cur.code||""):"";}
 
@@ -629,9 +604,7 @@ function deleteHere(){return !!deleting&&!!cur&&deleting.file===cur.file;}
 
 function shownText(kind,id){
   var k=key(cur.file,kind,id);
-  if(k in typed) return typed[k];
-  var s=draftOf(k);
-  return s!==null?s:baseText(kind,id);
+  return k in typed?typed[k]:baseText(kind,id);
 }
 
 function changed(kind,id){return shownText(kind,id)!==baseText(kind,id);}
@@ -649,18 +622,15 @@ function baseFor(f,kind,id){
 function waiting(){
   var out={};
   if(!cur) return out;
-  var pre="human-draft:"+cur.name+"/", keys={}, i, k;
-  Object.keys(drafts).forEach(function(x){if(x.indexOf(pre)===0)keys[x]=1;});
-  Object.keys(typed).forEach(function(x){if(x.indexOf(pre)===0)keys[x]=1;});
-  Object.keys(keys).forEach(function(x){
+  var pre="typed:"+cur.name+"/";
+  Object.keys(typed).forEach(function(x){
+    if(x.indexOf(pre)!==0) return;
     var rest=x.slice(pre.length), cut=rest.lastIndexOf("/");
     if(cut<0) return;
     var file=rest.slice(0,cut), tail=rest.slice(cut+1), f=fileOf(file);
     if(!f) return;
     var id=/^[0-9]+$/.test(tail)?+tail:null;
-    var now=(x in typed)?typed[x]:draftOf(x);
-    if(now===null) return;
-    if(now!==baseFor(f,id===null?tail:"retext",id)) out[shownPath(file)]=1;
+    if(typed[x]!==baseFor(f,id===null?tail:"retext",id)) out[shownPath(file)]=1;
   });
   return out;
 }
@@ -704,13 +674,6 @@ function markWaiting(){
   return true;
 }
 
-function unsaved(kind,id){
-  var k=key(cur.file,kind,id);
-  if(!(k in typed)) return false;
-  var s=draftOf(k);
-  return typed[k]!==(s!==null?s:baseText(kind,id));
-}
-
 function slots(){
   if(!cur.d.explanations.length){
     var s=[{kind:"map",id:null}];
@@ -736,8 +699,7 @@ function mapSlotHtml(name){
   if(!t&&!isEditing("map",null)) return '<div class="chunk blank" data-edit="map">new abstraction</div>';
   html+='<div class="bhead"><span class="label">new abstraction</span></div>';
   if(isEditing("map",null)) return html+editorHtml(t,"map",null);
-  var at=tipHere()&&tip.kind==="compile"?t.split("\n").findIndex(function(l){return l.trim();}):-1;
-  return html+'<div class="chunk plain" data-edit="map">'+t.split("\n").map(function(l,i){var h=lineHtml({id:null,anchors:[]},l);return i===at?'<span class="tipat">'+h+tipArrow("This is human code")+'</span>':h;}).join("\n")+'</div>';
+  return html+'<div class="chunk plain" data-edit="map">'+t.split("\n").map(function(l){return lineHtml({id:null,anchors:[]},l);}).join("\n")+'</div>';
 }
 
 function expandSlotHtml(name){
@@ -797,17 +759,18 @@ function litCode(){
 }
 
 function header(){
-  var any=false, dirty=false;
-  slots().forEach(function(s){
-    if(changed(s.kind,s.id)) any=true;
-    if(unsaved(s.kind,s.id)) dirty=true;
-  });
-  document.getElementById("state").textContent=dirty?"unsaved":"";
+  var dirty=slots().some(function(s){return changed(s.kind,s.id);});
+  document.getElementById("state").textContent=dirty?"save":"";
   var go=document.getElementById("go");
-  go.hidden=!any&&!sending;
-  go.classList.toggle("busy",sending);
+  go.hidden=!dirty&&!(savedBy[nameOf(cur.file)]||[]).length&&!sending;
   showTip();
   markWaiting();
+}
+
+var drawing=false;
+function draw(html){
+  drawing=true;
+  try{rows.innerHTML=html;}finally{drawing=false;}
 }
 
 function render(){
@@ -825,7 +788,7 @@ function render(){
       html+='<div class="chunk">'+esc(lines.map(function(l,i){return String(i+1).padStart(pad)+"  "+l;}).join("\n"))+'</div>';
     }
     var top0=rows.scrollTop;
-    rows.innerHTML=html;
+    draw(html);
     document.getElementById("head").innerHTML=esc(cur.name+"/"+shownPath(cur.file)+"  ·  "+word)+(name?queuedMark(name):"");
     header(); focusEditor();
     rows.scrollTop=top0;
@@ -844,14 +807,14 @@ function render(){
           +esc(e.block)+(spans?' · '+spans:"")+queuedMark(name,e.id)+'</span></div>')
       +'<div class="body">'+(isEditing("retext",e.id)?editorHtml(shownText("retext",e.id),"retext",e.id)
         :'<div class="chunk'+(name?' plain" data-edit="retext" data-id="'+e.id:'')+'">'
-          +shownText("retext",e.id).split("\n").map(function(l){var h=lineHtml(e,l);return tipLine(e,l)?'<span class="tipline'+(tip.compile?' new':'')+'">'+h+(tip.compile?tipArrow("This is a new change"):'')+'</span>':h;}).join("\n")+'</div>')
+          +shownText("retext",e.id).split("\n").map(function(l,i){var h=lineHtml(e,l);return i===tipFirst(e)?'<span class="tipat">'+h+tipArrow("This is human code")+'</span>':tipLine(e,l)?'<span class="tipline'+(tip.compile?' new':'')+'">'+h+(tip.compile?tipArrow("This is a new change"):'')+'</span>':h;}).join("\n")+'</div>')
       +(on&&tipHere()&&tip.kind==="line"&&tip.entry===e.id?'<div class="tipnote">'+esc(tip.say)+'<span class="tipok">got it</span></div>':'')
       +'</div></div>';
   });
   var bare=(cur.d.not_covered&&cur.d.not_covered.code_lines||[]).length;
   if(bare) html+='<div class="pill">▹ '+bare+' bare lines</div>';
   var top=rows.scrollTop;
-  rows.innerHTML=html;
+  draw(html);
   document.getElementById("head").textContent=
     cur.name+"/"+shownPath(cur.file)+"  ·  "+opened+"/"+cur.d.explanations.length+" open";
   header(); focusEditor();
@@ -922,6 +885,7 @@ function keepBox(){
   var ta=rows.querySelector(".chunk textarea");
   if(!editing||!ta||ta.getAttribute("data-slot")!==key(editing.file,editing.kind,editing.id)) return;
   keep(ta.value);
+  if(document.activeElement===ta) caretWanted=ta.selectionStart;
 }
 
 function caretAt(ev,el){
@@ -982,22 +946,39 @@ function leaveEdit(text){
 }
 
 function save(){
-  if(!cur) return;
+  if(!cur||sending) return Promise.resolve(false);
   keepBox();
-  var ch={}, any=false;
-  slots().forEach(function(s){
-    var k=key(cur.file,s.kind,s.id);
-    if(!(k in typed)) return;
-    if(typed[k]===baseText(s.kind,s.id)){if(k in drafts){ch[k]=null;any=true;}}
-    else{ch[k]=typed[k];any=true;}
-    delete typed[k];
+  var todo=slots().filter(function(s){return changed(s.kind,s.id);});
+  if(!todo.length) return Promise.resolve(true);
+  var f=fileOf(cur.file), name=nameOf(cur.file), file=cur.file;
+  var texts=todo.map(function(s){return shownText(s.kind,s.id);});
+  sending=true; bad=false; notice="";
+  render();
+  var says=[], failed=false;
+  var step=function(i){
+    if(i>=todo.length) return Promise.resolve();
+    var s=todo[i], body={name:name,kind:s.kind,id:s.id,text:texts[i]};
+    var label=shownPath(file)+" · "+(s.kind==="code"?"the code":s.kind==="map"?"the abstraction":"entry "+s.id);
+    return post("save",body).then(function(x){
+      if(!x.ok){says.push(label+": "+(x.j.error||"refused"));failed=true;return;}
+      var k=key(file,s.kind,s.id);
+      if(typed[k]===body.text) delete typed[k];
+      if(s.kind==="code") f.code=body.text;
+    }).catch(function(){says.push(label+": the server did not answer — is human serve running?");failed=true;})
+      .then(function(){return step(i+1);});
+  };
+  return step(0).then(function(){
+    sending=false;
+    return pollQueue().then(function(){return reloadMap(f);}).then(function(){
+      notice=says.join("\n");bad=failed;
+      if(cur&&cur.file===file) render();
+      return !failed;
+    });
   });
-  if(any) keepDrafts(ch,true).then(function(ok){if(!ok) header();});
-  header();
 }
 
-function post(body){
-  return fetch("compile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+function post(url,body){
+  return fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
     .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});});
 }
 
@@ -1006,7 +987,7 @@ function ask(body,after){
   var f=fileOf(cur.file), file=cur.file;
   sending=true; bad=false; notice="";
   render();
-  post(body).then(function(x){
+  post("save",body).then(function(x){
     sending=false;
     if(!x.ok){notice=x.j.error||"refused";bad=true;render();return;}
     if(after) after();
@@ -1068,7 +1049,7 @@ function deleteSend(){
   if(isEditing("retext",x.entry)) editing=null;
   ask({name:nameOf(cur.file),kind:"delete",id:x.entry,text:""},function(){
     var k=key(x.file,"retext",x.entry);
-    dropDraft(k); delete typed[k]; delete openSet[x.entry];
+    delete typed[k]; delete openSet[x.entry];
     if(deleting===x) deleting=null;
   });
 }
@@ -1112,8 +1093,7 @@ function selectedRaw(ev){
 }
 
 function reloadMap(f){
-  var url=noCodeFile(f.file)?f.file.slice(6):"abstraction_"+f.file.replace(/\//g,"__")+".json";
-  return fetch(url,{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;})
+  return fetch(mapName(f.file),{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;})
     .then(function(d){
       if(d&&Array.isArray(d.explanations)) f.d=d;
       if(cur&&cur.file===f.file) open(cur.proj,f);
@@ -1122,38 +1102,21 @@ function reloadMap(f){
 
 function compile(){
   if(!cur||sending) return;
+  var name=nameOf(cur.file), file=cur.file;
   keepBox();
-  var todo=slots().filter(function(s){return changed(s.kind,s.id);});
-  if(!todo.length) return;
-  var f=fileOf(cur.file), name=nameOf(cur.file), file=cur.file;
-  var texts=todo.map(function(s){return shownText(s.kind,s.id);});
-  sending=true; bad=false; notice=""; editing=null;
-  render();
-  var says=[], failed=false, codeOk=false;
-  var done=function(){
-    sending=false;
-    var show=function(){notice=says.join("\n");bad=failed;render();pollQueue();};
-    if(!cur||cur.file!==file){show();return;}
-    if(codeOk) open(cur.proj,f);
-    reloadMap(f).then(show);
-  };
-  var step=function(i){
-    if(i>=todo.length){done();return;}
-    var s=todo[i], body={name:name,kind:s.kind,id:s.id,text:texts[i]};
-    var label=shownPath(file)+" · "+(s.kind==="code"?"the code":s.kind==="map"?"the abstraction":"entry "+s.id);
-    fetch("compile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
-      .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
-      .then(function(x){
-        if(!x.ok){says.push(label+": "+(x.j.error||"refused"));failed=true;step(i+1);return;}
-        var k=key(file,s.kind,s.id);
-        dropDraft(k); delete typed[k];
-        if(tip&&tip.file===file) endTip();
-        if(s.kind==="code"){f.code=body.text;codeOk=true;}
-        step(i+1);
-      })
-      .catch(function(){says.push(label+": the server did not answer — is human serve running?");failed=true;step(i+1);});
-  };
-  step(0);
+  editing=null;
+  save().then(function(ok){
+    if(!ok||!(savedBy[name]||[]).length) return;
+    sending=true;
+    render();
+    post("compile",{name:name}).then(function(x){
+      sending=false;
+      if(!x.ok){notice=x.j.error||"refused";bad=true;}
+      else if(tip&&tip.file===file) endTip();
+      return pollQueue();
+    }).catch(function(){sending=false;notice="the server did not answer — is human serve running?";bad=true;})
+      .then(function(){if(cur) render();});
+  });
 }
 
 function fileNamed(name){
@@ -1162,12 +1125,13 @@ function fileNamed(name){
 }
 
 function pollQueue(){
-  fetch("server/queue",{cache:"no-store"}).then(function(r){return r.json();}).then(function(q){
-    var by={};
+  return fetch("server/queue",{cache:"no-store"}).then(function(r){return r.json();}).then(function(q){
+    var by={}, saved={};
     q.pending.forEach(function(x){(by[x.name]=by[x.name]||[]).push(x);});
-    var same=JSON.stringify(by)===JSON.stringify(pendingBy);
+    (q.not_compiled||[]).forEach(function(x){if(!x.seq)(saved[x.name]=saved[x.name]||[]).push(x);});
+    var same=JSON.stringify(by)===JSON.stringify(pendingBy)&&JSON.stringify(saved)===JSON.stringify(savedBy);
     var gone=Object.keys(pendingBy).filter(function(n){return !by[n];});
-    pendingBy=by;
+    pendingBy=by; savedBy=saved;
     if(same) return;
     gone.forEach(function(n){var f=fileNamed(n);if(f) reloadMap(f);});
     if(cur&&!editing) render();
@@ -1308,7 +1272,7 @@ rows.addEventListener("input",function(ev){
 });
 
 rows.addEventListener("focusout",function(ev){
-  if(!editing||!ev.target.isConnected||!ev.target.matches(".chunk textarea")) return;
+  if(drawing||!editing||!ev.target.isConnected||!ev.target.matches(".chunk textarea")) return;
   ["caret","caretw"].forEach(function(id){var c=document.getElementById(id); if(c) c.remove();});
   if(ev.target.getAttribute("data-slot")!==key(editing.file,editing.kind,editing.id)) return;
   leaveEdit(ev.target.value);

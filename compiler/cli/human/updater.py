@@ -61,7 +61,8 @@ def newer(a, b):
 
 
 def fetch(url, timeout=30):
-    with urllib.request.urlopen(url, timeout=timeout) as r:
+    req = urllib.request.Request(url, headers={"User-Agent": f"human/{version()}"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
 
 

@@ -7,10 +7,10 @@
       "block_lines": [
         [
           1,
-          205
+          287
         ]
       ],
-      "text": "import json, the system, the pattern matcher, the shell, a lock, the clock, and two neighbours:\n[the tool](compiler/cli/human/compiler.py) \u2014 the project folder, the map of a file \u2014\nand [the project hand](compiler/cli/human/cmd_human.py), which knows the word project and its map\n\nFOLDER = server \u2014 the folder under human/ where a writing from the reader waits\nKINDS  = the six kinds of writing: retext, map, code, expand, create, delete\nWRITTEN = the five kinds that carry words of your own: retext, map, code, expand, create\nENTRY_RE = the look of the line \"entry 3: \u2026\" the map command prints, so the new number can be read back\n\n\n[compile_writing](compile_writing)(root, name, kind, eid, text, words)\n    root is the project folder; \n    name of the abstraction. which goes as input to [name_to_map()](compiler/cli/human/helpers.py:name_to_map); \n    kind is one of the six the\n    reader may send; eid is\n    the entry the words replace, or the entry an ask stands on, or\n    nothing; text is what you typed in the reader and sent with the\n    compile button, and it may be empty on a delete; words are the words\n    you highlighted in an entry for an expand.\n\n    \u25cf  the tool checks the ask\n    \u2502     An unknown kind stops here. An empty text stops the five kinds\n    \u2502     that carry your words; only a delete may come with no text\n    \u2502     at all. \n    |     A name of the sort type file must be a real file under the project root, and not under human/\n    \u2502     A name of the sort type project or human file has no file, so those two checks do not run.\n    \u2502     The map .json of the name is read; it may not exist yet. A map\n    \u2502     that holds no entries counts as no map in the checks below.\n    \u2502\n    \u25cf  the tool runs the same command you would have typed          ([the command run](run_cli))\n    \u2502     A rewrite of an entry runs human retext <name> <id> --verbatim:\n    \u2502     your words go in as your own, the origin is reset, and the\n    \u2502     entries that stood on the old words are marked stale. A first\n    \u2502     telling runs human map <name> --verbatim: plain words, a pin in\n    \u2502     them refused; on a file that has a map already the run stops \u2014\n    \u2502     write on its entries instead. Code on a file with no map is\n    \u2502     written to the file as it is; on a file with a map the run stops,\n    \u2502     because the words come first there.\n    \u2502\n    \u25cf  an expand or a create writes your words as a new entry\n    \u2502     A create writes a top abstraction over an entry. An expand\n    \u2502     writes more words under the words you highlighted, and stops\n    \u2502     when no words came with it. A create and an expand stop when\n    \u2502     the map holds no such entry. Both run human map <name>\n    \u2502     --verbatim, so your words go in at once and the event\n    \u2502     carries the new entry with it.\n    \u2502\n    \u25cf  a delete takes the entry out at once and queues nothing\n    \u2502     It stops when the map holds no such entry. Otherwise it runs\n    \u2502     human undo <name> --entry <id>: the entry leaves the map, and the\n    \u2502     run stops when another entry, or the project map, points at it\n    \u2502     through an anchor. The reader gets what the command said, joined\n    \u2502     in one line, without the line that names the written map.\n    \u2502\n    \u25cf  a refusal goes back to the reader in the command's own words\n    \u2502     The gates are the same as on the command line. Nothing is queued\n    \u2502     when a gate speaks.\n    \u2502\n    \n  the tool looks for the abstractions that stand on a code write        ([the pins that reach a file](pins_reaching))\n  every map is read for a pin that names the file: the map of each file, the project map and every human file.\n  if no pin the file is just saved because no abstraction depends on it. \n  if pins, they go into the event, so the ai harness knows which abstractions the change may have made wrong.\n    \n    \u2502\n    \u25cf  one event joins the queue                                        ([the queue](append_event))\n          The kind, the name, the absolute paths of the map and the file,\n          the entry number \u2014 read from the output for a first telling, an expand or a create \u2014,\n          the old text and the new, the pins, and what the command printed.\n          An expand or a create adds the entry it stands on as its target, an expand adds\n          the highlighted words, and the output says which entry it\n          expands or stands over.\n          The reader gets the number of the event and the printed lines.\n\n[cmd_watch](cmd_watch)(a)\n    a is what you typed: human watch, or human watch --once.\n\n    \u25cf  claude arms it once per session, from the project root\n    \u2502     Every event not yet done is printed, one JSON line each, in the\n    \u2502     order it came. An event printed in an earlier session comes with\n    \u2502     maybe_started true, so claude checks the maps before it syncs anything.\n    \u2502\n    \u25cf  the tool follows\n          Every second it reads the queue again ([the events](read_events)) and prints\n          what is new. The cursor's seen mark moves to the last printed\n          event ([the cursor](read_cursor)). With --once it prints and stops.\n\n[cmd_ack](cmd_ack)(a)\n    a holds the number of the event claude finished: human ack 3.\n\n    \u25cf  the tool moves the done mark\n          The number must be above the last done and not beyond the last\n          event; otherwise the tool says what is done and what is last.\n          Then it says how many events still wait. The reader drops the\n          compiling mark of the entry when the queue tells it the event is done.\n\n[pending](pending)(root)\n    \u25cf  the reader asks what still waits\n          The done and seen marks, and one line per event above done: its\n          number, kind, name, and entry. The reader polls this to mark an\n          entry as compiling.\n\n\n\n# HELPER FUNCTIONS\n\n[folder](folder)(root)                        \n human/server/ under the root, made on first use\n\n[events_path](events_path)(root)              \n the queue file, events.jsonl\n\n[cursor_path](cursor_path)(root)              \n the cursor file, cursor.json\n\n[read_events](read_events)(root)              \n every event of the queue, oldest first\n\n[read_cursor](read_cursor)(root)              \n the done and seen marks; zero and zero when none\n\n[write_cursor](write_cursor)(root, c)         \n writes the marks back\n\n[append_event](append_event)(root, event)     \n numbers the event one above the last, stamps the moment, adds it\n\n[run_cli](run_cli)(root, args, text)          \n runs the human command in the project folder with the text on its stdin; gives back whether it passed and what it printed. When human is one built program, it runs that program itself; otherwise it runs human through python. On windows the command runs with no console window, so no black window opens on each compile\n\n[pins_reaching](pins_reaching)(root, name)\n every pin of every map that names the file: the map, the entry, the words, and the block or anchor it points at",
+      "text": "import json, the system, the pattern matcher, the shell, a lock, the clock, and two neighbours:\n[the tool](compiler/cli/human/compiler.py) \u2014 the project folder, the map of a file \u2014\nand [the project hand](compiler/cli/human/cmd_human.py), which knows the word project and its map\n\nFOLDER = server \u2014 the folder under human/ where a writing from the reader waits\nKINDS  = the six kinds of writing: retext, map, code, expand, create, delete\nWRITTEN = the five kinds that carry words of your own: retext, map, code, expand, create\nENTRY_RE = the look of the line \"entry 3: \u2026\" the map command prints, so the new number can be read back\n\n\n[save_writing](save_writing)(root, name, kind, eid, text, words)\n    root is the project folder; \n    name of the abstraction. which goes as input to [name_to_map()](compiler/cli/human/helpers.py:name_to_map); \n    kind is one of the six the\n    reader may send; eid is\n    the entry the words replace, or the entry an ask stands on, or\n    nothing; text is what you typed in the reader and sent with the\n    save button, and it may be empty on a delete; words are the words\n    you highlighted in an entry for an expand.\n\n    \u25cf  the tool checks the ask\n    \u2502     An unknown kind stops here. An empty text stops the five kinds\n    \u2502     that carry your words; only a delete may come with no text\n    \u2502     at all. \n    |     A name of the sort type file must be a real file under the project root, and not under human/\n    \u2502     A name of the sort type project or human file has no file, so those two checks do not run.\n    \u2502     The map .json of the name is read; it may not exist yet. A map\n    \u2502     that holds no entries counts as no map in the checks below.\n    \u2502\n    \u25cf  the tool runs the same command you would have typed          ([the command run](run_cli))\n    \u2502     A rewrite of an entry runs human retext <name> <id> --verbatim:\n    \u2502     your words go in as your own, the origin is reset, and the\n    \u2502     entries that stood on the old words are marked stale. A first\n    \u2502     telling runs human map <name> --verbatim: plain words, a pin in\n    \u2502     them refused; on a file that has a map already the run stops \u2014\n    \u2502     write on its entries instead. Code on a file with no map is\n    \u2502     written to the file as it is; on a file with a map the run stops,\n    \u2502     because the words come first there.\n    \u2502\n    \u25cf  an expand or a create writes your words as a new entry\n    \u2502     A create writes a top abstraction over an entry. An expand\n    \u2502     writes more words under the words you highlighted, and stops\n    \u2502     when no words came with it. A create and an expand stop when\n    \u2502     the map holds no such entry. Both run human map <name>\n    \u2502     --verbatim, so your words go in at once and the mark\n    \u2502     carries the new entry with it.\n    \u2502\n    \u25cf  a delete takes the entry out at once and queues nothing\n    \u2502     It stops when the map holds no such entry. Otherwise it runs\n    \u2502     human undo <name> --entry <id>: the entry leaves the map, and the\n    \u2502     run stops when another entry, or the project map, points at it\n    \u2502     through an anchor. A not-compiled mark that waits on the entry is\n    \u2502     dropped too. The reader gets what the command said, joined\n    \u2502     in one line, without the line that names the written map.\n    \u2502\n    \u25cf  a refusal goes back to the reader in the command's own words\n    \u2502     The gates are the same as on the command line. Nothing is marked\n    \u2502     when a gate speaks.\n    \u2502\n    \n  the tool looks for the abstractions that stand on a code write        ([the pins that reach a file](pins_reaching))\n  every map is read for a pin that names the file: the map of each file, the project map and every human file.\n  if no pin the file is just saved and gets no mark because no abstraction depends on it. \n  if pins, the write is marked; at compile the pins go into the event, so the ai harness knows which abstractions the change may have made wrong.\n    \n    \u2502\n    \u25cf  the writing is marked as not compiled                          ([the mark](mark))\n          The kind, the name, the entry number \u2014 read from the output for a first telling, an expand or a create \u2014,\n          and the old text go into human/server/not_compiled.json.\n          An expand or a create adds the entry it stands on as its target, an expand adds\n          the highlighted words, and the output says which entry it\n          expands or stands over.\n          A second save on the same entry, or on the same code, while the first mark\n          still waits adds no new mark, so the first old text holds.\n          The reader gets the entry number and the printed lines. Nothing joins the\n          queue until you push the compile button.\n\n[compile_saved](compile_saved)(root, name)\n    name is the abstraction whose compile button you pushed.\n\n    \u25cf  the tool makes one event from each waiting mark of the name    ([the event of a mark](event_of))\n    \u2502     The kind, the name, the absolute paths of the map and the file,\n    \u2502     the entry number, the old text, and the new text as it is now in the map or the file.\n    \u2502     A code write carries the pins that reach the file; an expand or a create carries its\n    \u2502     target, and an expand its highlighted words.\n    \u2502     A mark gives no event and is dropped when its entry is gone or its text is the old text\n    \u2502     again, or when no pin reaches the code now or the file is gone.\n    \u2502\n    \u25cf  each event joins the queue                                     ([the queue](append_event))\n          The mark keeps the number of its event, so the reader knows it is compiling.\n          The reader gets the event numbers and how many went to the ai harness,\n          or that nothing saved waits for a compile.\n\n[cmd_watch](cmd_watch)(a)\n    a is what you typed: human watch, or human watch --once.\n\n    \u25cf  claude arms it once per session, from the project root\n    \u2502     Every event not yet done is printed, one JSON line each, in the\n    \u2502     order it came. An event printed in an earlier session comes with\n    \u2502     maybe_started true, so claude checks the maps before it syncs anything.\n    \u2502\n    \u25cf  the tool follows\n          Every second it reads the queue again ([the events](read_events)) and prints\n          what is new. The cursor's seen mark moves to the last printed\n          event ([the cursor](read_cursor)). With --once it prints and stops.\n\n[cmd_ack](cmd_ack)(a)\n    a holds the number of the event claude finished: human ack 3.\n\n    \u25cf  the tool moves the done mark\n          The number must be above the last done and not beyond the last\n          event; otherwise the tool says what is done and what is last.\n          The not-compiled marks whose events are now done are dropped.\n          Then it says how many events still wait. The reader drops the\n          compiling mark of the entry when the queue tells it the event is done.\n\n[pending](pending)(root)\n    \u25cf  the reader asks what still waits\n          The done and seen marks, and one line per event above done: its\n          number, kind, name, and entry; and every not-compiled mark: its name,\n          kind, entry, and the number of its event once it is sent. The reader\n          polls this to mark an entry as not compiled or compiling.\n\n\n\n# HELPER FUNCTIONS\n\n[folder](folder)(root)                        \n human/server/ under the root, made on first use\n\n[events_path](events_path)(root)              \n the queue file, events.jsonl\n\n[cursor_path](cursor_path)(root)              \n the cursor file, cursor.json\n\n[read_events](read_events)(root)              \n every event of the queue, oldest first\n\n[read_cursor](read_cursor)(root)              \n the done and seen marks; zero and zero when none\n\n[write_cursor](write_cursor)(root, c)         \n writes the marks back\n\n[append_event](append_event)(root, event)     \n numbers the event one above the last, stamps the moment, adds it\n\n[run_cli](run_cli)(root, args, text)          \n runs the human command in the project folder with the text on its stdin; gives back whether it passed and what it printed. When human is one built program, it runs that program itself; otherwise it runs human through python. On windows the command runs with no console window, so no black window opens on each compile\n\n[pins_reaching](pins_reaching)(root, name)\n every pin of every map that names the file: the map, the entry, the words, and the block or anchor it points at\n\n[marks_path](marks_path)(root)\n the not-compiled file, not_compiled.json\n\n[read_marks](read_marks)(root)\n every not-compiled mark; none when the file is missing or broken\n\n[write_marks](write_marks)(root, marks)\n writes the marks back through a temporary file with the process id in its name\n\n[slot](slot)(m)\n what makes two marks the same: the name, code or not, and the entry\n\n[mark](mark)(root, m)\n adds a not-compiled mark, unless a mark in the same slot still waits\n\n[unmark](unmark)(root, name, eid)\n drops the waiting marks of one entry",
       "anchors": [
         {
           "words": "the tool",
@@ -21,12 +21,12 @@
           "file": "compiler/cli/human/cmd_human.py"
         },
         {
-          "words": "compile_writing",
-          "block": "compile_writing",
+          "words": "save_writing",
+          "block": "save_writing",
           "lines": [
             [
-              102,
-              172
+              144,
+              210
             ]
           ]
         },
@@ -46,8 +46,8 @@
           "block": "run_cli",
           "lines": [
             [
-              68,
-              73
+              70,
+              75
             ]
           ]
         },
@@ -56,8 +56,38 @@
           "block": "pins_reaching",
           "lines": [
             [
-              83,
-              99
+              85,
+              101
+            ]
+          ]
+        },
+        {
+          "words": "the mark",
+          "block": "mark",
+          "lines": [
+            [
+              127,
+              133
+            ]
+          ]
+        },
+        {
+          "words": "compile_saved",
+          "block": "compile_saved",
+          "lines": [
+            [
+              236,
+              250
+            ]
+          ]
+        },
+        {
+          "words": "the event of a mark",
+          "block": "event_of",
+          "lines": [
+            [
+              213,
+              233
             ]
           ]
         },
@@ -76,8 +106,8 @@
           "block": "cmd_watch",
           "lines": [
             [
-              175,
-              192
+              253,
+              270
             ]
           ]
         },
@@ -106,8 +136,8 @@
           "block": "cmd_ack",
           "lines": [
             [
-              195,
-              205
+              273,
+              287
             ]
           ]
         },
@@ -117,7 +147,7 @@
           "lines": [
             [
               61,
-              65
+              67
             ]
           ]
         },
@@ -196,8 +226,8 @@
           "block": "run_cli",
           "lines": [
             [
-              68,
-              73
+              70,
+              75
             ]
           ]
         },
@@ -206,8 +236,68 @@
           "block": "pins_reaching",
           "lines": [
             [
-              83,
-              99
+              85,
+              101
+            ]
+          ]
+        },
+        {
+          "words": "marks_path",
+          "block": "marks_path",
+          "lines": [
+            [
+              104,
+              105
+            ]
+          ]
+        },
+        {
+          "words": "read_marks",
+          "block": "read_marks",
+          "lines": [
+            [
+              108,
+              113
+            ]
+          ]
+        },
+        {
+          "words": "write_marks",
+          "block": "write_marks",
+          "lines": [
+            [
+              116,
+              120
+            ]
+          ]
+        },
+        {
+          "words": "slot",
+          "block": "slot",
+          "lines": [
+            [
+              123,
+              124
+            ]
+          ]
+        },
+        {
+          "words": "mark",
+          "block": "mark",
+          "lines": [
+            [
+              127,
+              133
+            ]
+          ]
+        },
+        {
+          "words": "unmark",
+          "block": "unmark",
+          "lines": [
+            [
+              136,
+              141
             ]
           ]
         }
@@ -238,18 +328,34 @@
       51,
       59,
       60,
-      66,
-      67,
-      74,
-      75,
-      81,
-      82,
-      100,
-      101,
-      173,
-      174,
-      193,
-      194
+      68,
+      69,
+      76,
+      77,
+      83,
+      84,
+      102,
+      103,
+      106,
+      107,
+      114,
+      115,
+      121,
+      122,
+      125,
+      126,
+      134,
+      135,
+      142,
+      143,
+      211,
+      212,
+      234,
+      235,
+      251,
+      252,
+      271,
+      272
     ]
   }
 }

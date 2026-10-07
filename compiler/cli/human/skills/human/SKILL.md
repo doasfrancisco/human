@@ -35,7 +35,7 @@ The user never types `human init`; you run it.
 Write the first global flow of the whole project with `human map <human_file>`:
     Very short, one numbered line per step, with pins. 
     Then write one new line for it: a small change the user would likely want, that breaks nothing. 
-    Leave it as a tip because the CLI puts the line in a draft of the flow, under the line you name; the reader opens on it, lights it, shows the tip under it, and lights the green compile button.
+    Leave it as a tip because the CLI saves the line into the flow, under the line you name, not compiled; the reader opens on it, lights it, shows the tip under it, and lights the green compile button.
 
 ```bash
 human tip <human_file> --entry 1 --after "<words of the line above it, as the map holds them>" --add "<the new line, with its spaces in front>" --say "<one sentence: what the new line asks for, and that the green button compiles it>"
@@ -46,10 +46,10 @@ human tip <human_file> --entry 1 --after "<words of the line above it, as the ma
 Leave the first abstraction for the user to compile.
 
 ```bash
-human tip <human_file> --draft "web with lots of animations that explain how human works" --say "Press the green button: claude writes the code for these words."
+human tip <human_file> --add "web with lots of animations that explain how human works" --say "Press the green button: claude writes the code for these words."
 ```
 
-`<human_file>` is the first human file that `human init` made and named in its line "made the first human file <human_file>.human". The tip keeps the words as a draft in it that is not compiled, and the reader opens on it with the green compile button lit.
+`<human_file>` is the first human file that `human init` made and named in its line "made the first human file <human_file>.human". On a map with no abstraction, `--add` saves the words as its first abstraction, not compiled, and the reader opens on it with the green compile button lit.
 
 
 4. **Give the address.**
@@ -158,19 +158,21 @@ Once a map has an abstraction the line is gone, and a new abstraction comes by t
         An expansion is a deeper abstraction under the highlighted words: the entry pins those words into it, and the reader shows it above the abstraction, as a zoom on a block stands above the whole-file abstraction. 
         A right-click on an abstarction head gives "create abstraction": a higher and shorter new abstraction of that abstraction; it opens the same write space on top, whose head "create on abstraction <id>" is the button, and it goes only with words. 
         The same menu gives "delete abstraction": the head turns into a "delete abstraction <id>" button with a cancel beside it, and a click on it runs `human undo <name> --entry <id>` at once, refused when another abstraction pins to it, with no event because nothing is left for AI harness to do. 
-Typing saves nothing; Ctrl+S keeps the draft in the browser
-The "compile" button at the top right shows while a text differs from the map, and the map changes only when it is pressed. 
-On "compile" the server runs the CLI with the user's abstraction text, one call per changed text:
+Typing changes nothing on disk; the browser keeps the text until a save.
+The save button shows while a text differs from the map; a click on it, or Ctrl+S, saves.
+On a save the server runs the CLI with the user's abstraction text, one call per changed text, and marks each saved abstraction as not compiled in `human/server/not_compiled.json`:
 
 - an abstraction rewritten → `human retext <name> <id> --verbatim`: the origin is reset, the dependents of the old text are marked stale;
 - a first abstraction → `human map <name> --verbatim`: a pin goes in when its target exists, a pin into nothing is refused;
 - code on a file with no map → the file is written; when no pin of any map reaches it, nothing more happens;
 - an expansion or a create → `human map <name> --verbatim` with the words first, so the map keeps them before AI harness works; the event carries the new abstraction, the target abstraction, and for an expansion the highlighted raw text with its pins.
 
-A refusal comes back to the browser in the CLI's words and nothing is queued. 
-A success appends one event to `human/server/events.jsonl: 
-    the kind, the absolute paths of the map and the file, the abstraction id, the old and the new text, and for a code write the pins that reach the file
+A refusal comes back to the browser in the CLI's words, the text stays in the box, and nothing is marked.
+The "compile" button at the top right shows while a text differs from the map or a saved abstraction is not compiled yet.
+On "compile" the reader saves first, then the server appends one event to `human/server/events.jsonl` for each abstraction of that file marked not compiled:
+    the kind, the absolute paths of the map and the file, the abstraction id, the old text before the first save and the new text in the map, and for a code write the pins that reach the file
     the reader shows the abstraction as compiling until claude is done.
+`human ack <seq>` removes the not-compiled mark of every event up to it.
 
 **Listening.** 
 Once per session, arm one persistent Monitor on `human watch` from the project root, with no pipe after it:  a filter such as `grep` can hold back the last event until the next one comes. 
