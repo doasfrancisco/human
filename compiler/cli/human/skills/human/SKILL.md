@@ -46,10 +46,10 @@ human tip <human_file> --entry 1 --after "<words of the line above it, as the ma
 Leave the first abstraction for the user to compile.
 
 ```bash
-human tip welcome --draft "web with lots of animations that explain how human works" --say "Press the green button: claude writes the code for these words."
+human tip <human_file> --draft "web with lots of animations that explain how human works" --say "Press the green button: claude writes the code for these words."
 ```
 
-It makes the human file `welcome.human`, keeps the words as a draft that is not compiled, and the reader opens on it with the green compile button lit.
+`<human_file>` is the first human file that `human init` made and named in its line "made the first human file <human_file>.human". The tip keeps the words as a draft in it that is not compiled, and the reader opens on it with the green compile button lit.
 
 
 4. **Give the address.**
@@ -152,13 +152,11 @@ A name box opens under the row that was clicked.
     if file finishes with <bare_name>.human, take the bare name one word, no folder, no suffix, whatever row the click landed on, and makes an empty map with no code under it, refused when another human file or a file at the root holds that name; it opens on its new abstraction with no code under it, and queues no event either
 Escape, or a second pick of the same option, closes the box or the list
 The tree follows the files on disk, so a file the AI harness writes shows without a reload. 
-Once a map has an abstraction the line is gone, and a new abstraction comes by three roads:
-    On a file with no map, the open "new abstraction" box carries a "Make AI harness write abstraction for <file>" button in place of the words: 
-        a click asks AI harness for the whole-file abstraction; on an empty file the server refuses it, because the abstraction text come first and the code later. 
+Once a map has an abstraction the line is gone, and a new abstraction comes by two roads, each with the user's words:
     On a mapped abstraction, the user highlights words and right-clicks: 
-        "expand abstraction" opens a write space on top, whose head "expand on abstraction <id>" is the button;  it goes with or without words. 
+        "expand abstraction" opens a write space on top, whose head "expand on abstraction <id>" is the button;  it goes only with words. 
         An expansion is a deeper abstraction under the highlighted words: the entry pins those words into it, and the reader shows it above the abstraction, as a zoom on a block stands above the whole-file abstraction. 
-        A right-click on an abstarction head gives "create abstraction": a higher and shorter new abstraction of that abstraction, nothing to write. 
+        A right-click on an abstarction head gives "create abstraction": a higher and shorter new abstraction of that abstraction; it opens the same write space on top, whose head "create on abstraction <id>" is the button, and it goes only with words. 
         The same menu gives "delete abstraction": the head turns into a "delete abstraction <id>" button with a cancel beside it, and a click on it runs `human undo <name> --entry <id>` at once, refused when another abstraction pins to it, with no event because nothing is left for AI harness to do. 
 Typing saves nothing; Ctrl+S keeps the draft in the browser
 The "compile" button at the top right shows while a text differs from the map, and the map changes only when it is pressed. 
@@ -167,8 +165,7 @@ On "compile" the server runs the CLI with the user's abstraction text, one call 
 - an abstraction rewritten → `human retext <name> <id> --verbatim`: the origin is reset, the dependents of the old text are marked stale;
 - a first abstraction → `human map <name> --verbatim`: a pin goes in when its target exists, a pin into nothing is refused;
 - code on a file with no map → the file is written; when no pin of any map reaches it, nothing more happens;
-- an expansion with abstraction text → `human map <name> --verbatim` with the words first, so the map keeps them before AI harness works; the event carries the new abstraction, the target abstraction and the highlighted raw text with its pins;
-- an expansion without abstraction text, a decompile, a create → nothing is mapped at the click; the event alone is queued. 
+- an expansion or a create → `human map <name> --verbatim` with the words first, so the map keeps them before AI harness works; the event carries the new abstraction, the target abstraction, and for an expansion the highlighted raw text with its pins.
 
 A refusal comes back to the browser in the CLI's words and nothing is queued. 
 A success appends one event to `human/server/events.jsonl: 
@@ -178,7 +175,7 @@ A success appends one event to `human/server/events.jsonl:
 **Listening.** 
 Once per session, arm one persistent Monitor on `human watch` from the project root, with no pipe after it:  a filter such as `grep` can hold back the last event until the next one comes. 
 It prints every event AI harness has not finished — one JSON line each — then follows. 
-An event printed in an earlier session comes back with `"replay": true`: check `human show` before you sync anything, the run may be half done. 
+An event printed in an earlier session comes back with `"maybe_started": true`: check `human show` before you sync anything, the run may be half done. 
 When the event's run is complete, `human ack <seq>`; the queue advances and the reader drops the mark. Take the events in order, one at a time.
 
 **The run per event.**
@@ -206,26 +203,21 @@ When the event's run is complete, `human ack <seq>`; the queue advances and the 
     `human sync <bare name>` reresolves pins in a human file; 
     `human sync <other file>` re-resolves a cross-file pin from another map. Mend an abstraction that the change made wrong.
 
-- `expand` with `new_text`: 
+- `expand`: 
     the user's abstractions are in with id, `entry`, flagged; 
     `target` is the abstraction id they expand and `words` the highlighted raw text. 
     Write or change the code under the words, `human sync` the maps that pin the file — `--for <entry>` on the map of `name` —, then a retext of `entry` that pins it into the code — never into `target`. 
     Last, a retext of `target` that pins the highlighted words into an anchor of `entry` (`[the words](e<entry>:anchor words)`), so the target points down at the expansion.
 
-- `expand` without `new_text`: 
-    write the expansion abstraction of the highlighted part of `target` yourself
-    pinned into the code and the file human code, never into `target`. 
-    Without one, `human map <name>` it, then the same retext of `target`: 
-        the highlighted words pinned into an anchor of the abstraction. A pin from the expansion into `target` would make it a top over `target` and close the circle for that last step.
-
 - `create`: 
-    write a shorter abstraction over `target`, its heads pinned with `e<target>:` into the anchors of `target`. 
+    the user's shorter abstraction over `target` is in with id `entry`, flagged; 
+    a retext of `entry` pins its heads with `e<target>:` into the anchors of `target`. 
     It stands below `target` in the reader.
 
 
 
 **A new file.** 
-On `map`, `retext`, and `expand` with `new_text`, the abstraction text may ask for a thing no file of the project holds. 
+On `map`, `retext`, and `expand`, the abstraction text may ask for a thing no file of the project holds. 
 Make the file then, no comments, anywhere under the root except `human/`
 Give it the pins from the user's abstracion code into it
 The file list follows by itself.
@@ -265,7 +257,7 @@ The rules:
 
 ## Explain
 
-When the user asks how a file or a block works, or a `decompile` event comes in, read the file and write its abstraction. 
+When the user asks how a file or a block works, read the file and write its abstraction. 
 The first abstraction of a code file covers the whole file.
 A shorter higher layer abstraction pins its heads with `e<id>:` into the anchors of the abstraction below it.
 
@@ -280,7 +272,6 @@ EOF
 
 Leave `--block` out for a whole-file abstraction. 
 `human map <bare name>` map the a human file. 
-A `decompile` event from the reader maps at once, because the click was the confirmation. 
 The run makes no compiler call: the tool checks every pin, refuses duplicates, dead names and circles, and appends one entry.
 
 

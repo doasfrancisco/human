@@ -11,8 +11,8 @@ from pathlib import Path
 from . import cmd_human, compiler, helpers
 
 FOLDER = "server"
-KINDS = ("retext", "map", "code", "decompile", "expand", "create", "delete")
-WRITTEN = ("retext", "map", "code")
+KINDS = ("retext", "map", "code", "expand", "create", "delete")
+WRITTEN = ("retext", "map", "code", "expand", "create")
 LOCK = threading.Lock()
 ENTRY_RE = re.compile(r"^entry (\d+)", re.M)
 
@@ -131,21 +131,21 @@ def compile_writing(root, name, kind, eid, text, words=None):
         m = ENTRY_RE.search(out)
         event.update({"entry": int(m.group(1)) if m else None, "old_text": None,
                       "new_text": text, "output": out})
-    elif kind == "decompile":
-        if no_code:
-            return 400, f"{name} has no code under it"
-        if held:
-            return 400, f"{name} has a map; expand or create on its entries"
-        if not file_path.read_text(errors="replace").strip():
-            return 400, f"{name} is empty; write its telling, and claude writes the code under it"
-        event.update({"entry": None, "old_text": None, "new_text": None,
-                      "output": f"decompile of {name} waits for claude"})
-    elif kind == "create":
+    elif kind in ("expand", "create"):
         entry = cmd_human.entry_of(data, eid) if data else None
         if entry is None:
             return 400, f"no entry {eid} in the map of {name}"
-        event.update({"target": eid, "old_text": None, "new_text": None,
-                      "output": f"a top abstraction over entry {eid} of {name} waits for claude"})
+        if kind == "expand" and (not words or not words.strip()):
+            return 400, "no highlighted words to expand"
+        code, out = run_cli(root, ["map", name, "--verbatim"], text)
+        if code != 0:
+            return 400, out
+        m = ENTRY_RE.search(out)
+        said = f"expands entry {eid}" if kind == "expand" else f"stands over entry {eid}"
+        event.update({"target": eid, "entry": int(m.group(1)) if m else None, "old_text": None,
+                      "new_text": text, "output": out + f"  ·  {said}"})
+        if kind == "expand":
+            event["words"] = words
     elif kind == "delete":
         entry = cmd_human.entry_of(data, eid) if data else None
         if entry is None:
@@ -155,22 +155,6 @@ def compile_writing(root, name, kind, eid, text, words=None):
             return 400, out
         said = [l for l in out.splitlines() if not l.startswith("wrote ")]
         return 200, {"seq": None, "output": "  ·  ".join(said)}
-    elif kind == "expand":
-        entry = cmd_human.entry_of(data, eid) if data else None
-        if entry is None:
-            return 400, f"no entry {eid} in the map of {name}"
-        if not words or not words.strip():
-            return 400, "no highlighted words to expand"
-        event.update({"target": eid, "words": words, "old_text": None, "new_text": None})
-        if text and text.strip():
-            code, out = run_cli(root, ["map", name, "--verbatim"], text)
-            if code != 0:
-                return 400, out
-            m = ENTRY_RE.search(out)
-            event.update({"entry": int(m.group(1)) if m else None, "new_text": text,
-                          "output": out + f"  ·  expands entry {eid}"})
-        else:
-            event["output"] = f"an expansion of entry {eid} of {name} waits for claude"
     else:
         if no_code:
             return 400, f"{name} has no code under it"
@@ -191,11 +175,12 @@ def compile_writing(root, name, kind, eid, text, words=None):
 def cmd_watch(a):
     root = compiler.find_root(Path.cwd())
     printed = 0
+    print("read human watch with no pipe after it: a filter can hold back the last event", file=sys.stderr, flush=True)
     while True:
         c = read_cursor(root)
         events = [e for e in read_events(root) if e["seq"] > max(c["done"], printed)]
         for e in events:
-            e["replay"] = e["seq"] <= c["seen"]
+            e["maybe_started"] = e["seq"] <= c["seen"]
             print(json.dumps(e), flush=True)
             printed = e["seq"]
         if events:

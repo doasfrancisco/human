@@ -7,7 +7,7 @@
       "block_lines": [
         [
           1,
-          841
+          857
         ]
       ],
       "text": "# FLAGS\nmap and retext: --verbatim; \nundo: --entry; \nsync: --for;\nwatch: --once, \nack: the number of the writing\ntip: --add <new line> --after <words of a line in the entry>, puts the new line in a draft of the entry under that line and the tip asks to compile it;\n\n\n# COMMANDS\n\n[human init](cmd_init):\n    creates the human folder in the project.\n    create human/human.json with the list of the project's files.\n    \n    if none yet, human/human.json gets a short random name as an id\n    prints the id and the count of files.\n    \n    [sweep](scan_files) the project folder and its code files\n    drop hidden files, \n    build folders, \n    if folders with a map of their own then pass through [the sieve](is_ignored)\n    fill the ignore list of human.json\n    add human files to human.json, each with the folder it shows in\n    \n    a map with the old name explanation_ gets the new name abstraction_, and an old human/project.json with words becomes a human file named after the project folder.\n    if the project has no human file yet, make the first human file, named after the project folder, and print its name.\n    for each file that is not on disk: delete the its map in human/\n    \n    if a file at the top of the folder answers to the bare name of a human file:\n        show warning that the file needs a new path to be told apart.\n\n    [runs human serve](serve_away)\n\n    \n\n[human serve](cmd_serve):\n    finds the top of the project\n    if server already runs, [give the server the project](hand_over), [print the reader's link](print_links), stop\n    else: \n        start a server in port 8010 unless you say --port <number>\n        if new project, create .human in /human/ with project id, [create project id in ~/.human/projects.json](add_project)\n    \n    [read the list of projects](read_projects) in ~/.human/projects.json. \n    [find project](project_root) by: /<project id>/ \n    \n    print:\n        \"Click <localhost address> to read your human code!\"\n        if machine has tailnet and is not Windows, print \"This is the tailnet <[tailnet address](tailnet_ip)> in case you need it : )\", \n    \n    [the server running on port <number>](FreshHandler), serves:\n        /<project>/..., a file of that project as it is on disk\n        /<project>/human/web.html [from ~/.human/web.html](deploy_reader)\n        /human/human.json, [rebuilt](fresh_map) on every request\n        /human/server/queue, the updates that are not worked yet by the ai harness.\n        /human/server/drafts, drafts kept for the project, from human/server/drafts.json.\n    \n    the server takes [as JSON](read_body):\n        1. a writing from the reader             \u2014 your own words on an entry, a first\n                                              telling for a file with no map, or the\n                                              code of that file; the desk hands it to\n                                              [the queue](compiler/cli/human/cmd_watch.py:compile_writing),\n                                              which runs the command you would have\n                                              typed and keeps the writing for claude.\n                                              When the writing grows a few words of an\n                                              entry, the desk passes those marked words\n                                              along with it, so the queue knows which\n                                              part to grow\n        2. a new file from the reader            ([the new file](new_file)) \u2014 you name a\n                                              path from the top of the project; the\n                                              desk makes the file there, empty, and\n                                              puts it in the list of the book, so it\n                                              waits for its telling. A path that leaves\n                                              the project, goes into the human folder,\n                                              a hidden or build folder, or a project of\n                                              its own, a name with a dot in front, a\n                                              suffix the list does not know, a path the\n                                              ignore list drops, or a file that is\n                                              already there is refused, with the reason\n\n        3. if a new human file from the reader:\n            one bare word, no folder and no suffix,\n            [the folder](human_place) you made it in, which the map keeps as its place; \n            the desk opens an empty map under that name, for words that stand on no code. \n            a name with a folder, a suffix or a dot in front, \n            a name another human file holds, or a name a file at the root holds is refused, with the reason. \n            a folder is dropped if it leaves the project to go to:\n            the human folder, \n            a hidden or build folder, \n            or not on disk\n            the map stands at the top\n\n        4. if web draft:\n            file path and abstraction\n            server writes human/server/drafts.json\n            if draft is empy or same draft as the map, remove\n\n        5. Any other writing gets \"not found\". Every answer\n            carries \"do not keep me\" ([the note](end_headers)), so a\n            reload never shows an old copy, and the desk stays quiet\n            unless you add --log ([the mute](log_message)).\n\n[human map file --verbatim](compiler/cli/human/cmd_map.py)\n  an abstraction the user sends.\n  if --verbatim yes, mark as verbatim.\n  the name is a file or a human file by its bare name.\n  a folder is refused: a folder has no map.\n  the desk hands the whole line to the map run\n  [the guard](compiler/cli/human/cmd_map.py) there keeps the words as you wrote them \u2014 they go in plain. \n  a pin in the abstraction is refused.\n\nhuman retext, undo, show, lines, sync <file>       ([the engine](compiler/cli/human/compiler.py))\n    All the work on a map that exists. The desk only points\n    the way. retext takes --verbatim too, to put words of your\n    own in the place of the ones already mapped. undo takes\n    --entry, the number of the entry to drop; without it the\n    last entry written goes. sync takes --for, the number of\n    the entry the code change was written for: that entry keeps\n    its words and only its spans and pins follow. A stale\n    repair takes no --for.\n    A folder in the place of the file is refused.\n\nhuman retext, undo, show, lines, sync <human file> ([the project hand](compiler/cli/human/cmd_human.py))\n    The same commands with the bare name of a human file where\n    the file goes: the desk sends them to the hand that works on\n    the maps of human files, before the engine sees them.\n\n[human watch / human ack <number>](compiler/cli/human/cmd_watch.py)\n    print every abstraction event ai harness has not compiled, one line each\n    each event stays at a queue for the next print; \n    if --once, print and returns.\n    if ack <number>, \n        mark the abstraction as compiled and says\n        show many abstraction still wait for compilation\n\n[human skills](cmd_skills)\n    copy the skill folders, \n    save to ai harnesses skill folders\n\n[human update](cmd_update)\n    works only on the built human program, else stop\n    read the newest version, download it and put the skills of that version in place\n    if no newer version, print that this human is the newest\n    else print the new version is installed\n\n[human uninstall](cmd_uninstall)\n    works only on the built human program, else stop\n    delete the human skill folders from the ai harnesses skill folders\n    delete ~/.human and the human command, then print that human is uninstalled",
@@ -48,7 +48,7 @@
           "lines": [
             [
               108,
-              123
+              124
             ]
           ]
         },
@@ -57,8 +57,8 @@
           "block": "cmd_serve",
           "lines": [
             [
-              707,
-              729
+              719,
+              745
             ]
           ]
         },
@@ -67,8 +67,8 @@
           "block": "hand_over",
           "lines": [
             [
-              681,
-              697
+              678,
+              694
             ]
           ]
         },
@@ -77,8 +77,8 @@
           "block": "print_links",
           "lines": [
             [
-              700,
-              704
+              697,
+              701
             ]
           ]
         },
@@ -108,7 +108,7 @@
           "lines": [
             [
               459,
-              470
+              467
             ]
           ]
         },
@@ -117,8 +117,8 @@
           "block": "tailnet_ip",
           "lines": [
             [
-              666,
-              678
+              663,
+              675
             ]
           ]
         },
@@ -127,8 +127,8 @@
           "block": "FreshHandler",
           "lines": [
             [
-              494,
-              663
+              491,
+              660
             ]
           ]
         },
@@ -137,8 +137,8 @@
           "block": "deploy_reader",
           "lines": [
             [
-              473,
-              481
+              470,
+              478
             ]
           ]
         },
@@ -147,8 +147,8 @@
           "block": "fresh_map",
           "lines": [
             [
-              193,
-              199
+              194,
+              200
             ]
           ]
         },
@@ -157,8 +157,8 @@
           "block": "read_body",
           "lines": [
             [
-              600,
-              602
+              597,
+              599
             ]
           ]
         },
@@ -168,8 +168,8 @@
           "block": "compile_writing",
           "lines": [
             [
-              100,
-              186
+              102,
+              188
             ]
           ]
         },
@@ -178,8 +178,8 @@
           "block": "new_file",
           "lines": [
             [
-              225,
-              254
+              226,
+              255
             ]
           ]
         },
@@ -188,8 +188,8 @@
           "block": "human_place",
           "lines": [
             [
-              257,
-              267
+              258,
+              268
             ]
           ]
         },
@@ -198,8 +198,8 @@
           "block": "end_headers",
           "lines": [
             [
-              657,
-              659
+              654,
+              656
             ]
           ]
         },
@@ -208,8 +208,8 @@
           "block": "log_message",
           "lines": [
             [
-              661,
-              663
+              658,
+              660
             ]
           ]
         },
@@ -238,8 +238,8 @@
           "block": "cmd_skills",
           "lines": [
             [
-              732,
-              743
+              748,
+              759
             ]
           ]
         },
@@ -248,8 +248,8 @@
           "block": "cmd_update",
           "lines": [
             [
-              746,
-              759
+              762,
+              775
             ]
           ]
         },
@@ -258,8 +258,8 @@
           "block": "cmd_uninstall",
           "lines": [
             [
-              762,
-              771
+              778,
+              787
             ]
           ]
         }
@@ -273,19 +273,19 @@
       "block": "cmd_serve",
       "block_lines": [
         [
-          707,
-          729
+          719,
+          745
         ]
       ],
-      "text": "\u25cf  you open the door                                    ([the shelf](cmd_serve))\n  \u2502     You type: human serve.\n  \u2502     The tool climbs to the top of the project \u2014 the folder\n  \u2502     that holds human/ \u2014 so the command works from any\n  \u2502     folder inside the project.\n  \u2502     It reads the id of the project in human/human.json. A\n  \u2502     project with no id stops here, with the reason.\n  \u2502     Then it knocks on door 8010 of your machine. When a\n  \u2502     human server already stands there, the tool gives it\n  \u2502     this project, prints the addresses, and ends: one\n  \u2502     server reads all your projects. When that server\n  \u2502     refuses the project, the tool stops with its reason.\n  \u2502     When no server answers, the tool writes the project\n  \u2502     into the list of projects in its own folder, ~/.human,\n  \u2502     copies the reader there when the copy is old or not\n  \u2502     there, takes door 8010 and stands there. On Windows the\n  \u2502     door opens only to this machine; on other machines it\n  \u2502     opens to other machines too, such as your tailnet.\n  \u2502     When another program, or a human server older than\n  \u2502     this one, holds the door, the tool stops and tells you\n  \u2502     so.\n  \u2502     It prints the addresses to read at; each address\n  \u2502     carries the id of the project.\n  \u2502     While it stands, it looks for a newer human once each\n  \u2502     hour and gets it ready, when it runs as a downloaded\n  \u2502     program.\n  \u2502\n  \u25cf  the browser knocks                             ([the fresh copy](FreshHandler))\n  \u2502     You open http://localhost:8010/<id>/human/web.html.\n  \u2502     Each thing on the page \u2014 the reader, the maps, the code \u2014\n  \u2502     is one knock: \"give me this file\".\n  \u2502     The knocks of one page go on one line that the tool keeps\n  \u2502     open, and it closes a line that stays quiet for 30\n  \u2502     seconds.\n  \u2502     The [first part of each knock](project) names the\n  \u2502     project by its id. The tool finds the project in its\n  \u2502     list; a knock for an id it does not know, or for a\n  \u2502     project with no human/human.json, gets \"no project\".\n  \u2502     When the tool takes a project, and on the first knock\n  \u2502     for it, the tool brings its old maps up to date: a map\n  \u2502     with the old name explanation_ gets the new name\n  \u2502     abstraction_, and an old project map with words becomes\n  \u2502     a human file named after the project folder.\n  \u2502     A knock for the bare id goes on to the reader.\n  \u2502     The reader itself comes from the tool's own folder, the\n  \u2502     same for every project.\n  \u2502     The tool hands out only files under the top of the\n  \u2502     project, never anything above it.\n  \u2502     The page can also ask for all the maps in one knock: the\n  \u2502     map of each file that is still on disk and each human\n  \u2502     file. A map that is not good JSON is left out.\n  \u2502     A knock for /human/hello, with no project, gets the\n  \u2502     version of the tool, so a new serve knows a human\n  \u2502     server stands at the door.\n  \u2502\n  \u25cf  the reader sends a writing back\n  \u2502     In the reader you can write yourself: new words for an\n  \u2502     entry, a first telling for a file with no map, or the\n  \u2502     code of that file. The writing comes back as its own\n  \u2502     knock and the tool puts it in the queue in human/server/,\n  \u2502     where the agent takes it with human watch. When you mark\n  \u2502     a few words of an entry to grow them, those words go with\n  \u2502     the writing, so the agent knows which part to grow.\n  \u2502     The page can also ask for that queue and see what still\n  \u2502     waits.\n  \u2502\n  \u25cf  the reader asks for a new file                  ([the new file](new_file))\n  \u2502     In the reader you can name a path from the top of the\n  \u2502     project. The tool makes the file there, empty, and puts\n  \u2502     it in the list of files in human/human.json, so it waits\n  \u2502     for its telling. It refuses, with the reason, a path that\n  \u2502     leaves the project, goes into the human folder, a hidden\n  \u2502     or build folder, or a project of its own, a name with a\n  \u2502     dot in front, a suffix the file tree does not know, a\n  \u2502     path the ignore list drops, or a file that is already\n  \u2502     there.\n  \u2502\n  \u25cf  the reader asks for a new human file            ([the human file](new_human))\n  \u2502     In the reader you can also ask for words that stand on\n  \u2502     no code. You give one bare word \u2014 no folder, no suffix \u2014\n  \u2502     and the tool opens an empty map under that name, ready\n  \u2502     for its abstraction, with no file under it. It refuses,\n  \u2502     with the reason, a name that carries a folder, a suffix\n  \u2502     or a dot in front, a name another human file already\n  \u2502     holds, or a name a file at the root holds.\n  \u2502     With the name you can send [a folder](human_place) of the\n  \u2502     project to keep the map beside. The tool writes that\n  \u2502     folder into the map, so the reader shows the map there\n  \u2502     and the word back names it as that folder over the name.\n  \u2502     A folder that leaves the project, one in the human folder\n  \u2502     or in a hidden or build folder, and one that is not on\n  \u2502     disk, is dropped: the map stands at the top instead.\n  \u2502     A knock that is not a writing, a new file, or a new\n  \u2502     human file gets \"not found\".\n  \u2502\n  \u25cf  every answer says: do not keep me                    ([the note](end_headers))\n  \u2502     The tool marks each file it hands out, so the browser\n  \u2502     asks fresh next time instead of showing an old copy.\n  \u2502     This is why a changed map shows up on a plain reload.\n  \u2502     The tool also writes on each text file the time it last\n  \u2502     changed. When the file did not change since the copy the\n  \u2502     browser holds, the tool answers \"not changed\" and sends\n  \u2502     no file, so the browser shows its own copy at once.\n  \u2502\n  \u25cf  the tool stands at the door until you stop it\n        Ask after ask, it answers. Ctrl-c closes the door.\n        Only a writing, a new file, or a new human file changes the project; every\n        other knock reads and leaves it as it is.\n        The page can ask if a newer human is ready. When you\n        tell it to update, the tool [waits](idle) until no\n        knock is writing and no writing waits in the queue of\n        any project, then closes the door and starts again as\n        the newer human.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  when the answer is not a file                         ([the answer](send_json))\n     The fresh map, all the maps in one, the queue of waiting\n     writings, and the word back from a writing, a new file,\n     or a new human file are not files on disk. The tool\n     writes them out as one block of JSON with its length in\n     front.\n     An answer longer than 1024 bytes goes packed small when\n     the browser can unpack it.\n     The fresh map also carries a mark made from its words.\n     When the browser shows the same mark, the map did not\n     change: the tool answers \"not changed\" and sends no map.\n     To list the files of the fresh map, the tool keeps what\n     it found in each folder and looks again only in a folder\n     that changed, so a reload stays quick in a big project.\n\n  when you want to see the asks                           ([the mute](log_message))\n     human serve --log writes one line per knock.\n     Without it the tool stays silent, because one page load\n     is many knocks and they would flood your screen.\n\n  when a second project wants a door\n     The first serve holds door 8010. Type human serve in the\n     second project too: it [gives the project](hand_over) to\n     the first server and prints its own address, with its own\n     id. A project is given only from this machine; a knock\n     from another machine that gives a project is refused.\n     You can still give a project its own door: human serve\n     --port 8011, and read it at\n     http://localhost:8011/<id>/human/web.html.",
+      "text": "\u25cf  you open the door                                    ([the shelf](cmd_serve))\n  \u2502     You type: human serve.\n  \u2502     The tool climbs to the top of the project \u2014 the folder\n  \u2502     that holds human/ \u2014 so the command works from any\n  \u2502     folder inside the project.\n  \u2502     It reads the id of the project in human/human.json. A\n  \u2502     project with no id stops here, with the reason.\n  \u2502     Then it knocks on door 8010 of your machine. When a\n  \u2502     human server already stands there, the tool gives it\n  \u2502     this project, prints the addresses, and ends: one\n  \u2502     server reads all your projects. When that server\n  \u2502     refuses the project, the tool stops with its reason.\n  \u2502     When no server answers, all that the tool prints from\n  \u2502     now on goes to your screen and also into\n  \u2502     human/server/serve.log, so you can read it later. When\n  \u2502     human init started the server, the print already goes\n  \u2502     to that log, and the tool does not write it two times.\n  \u2502     When no server answers, the tool writes the project\n  \u2502     into the list of projects in its own folder, ~/.human,\n  \u2502     brings the old maps of this project up to date,\n  \u2502     copies the reader there when the copy is old or not\n  \u2502     there, takes door 8010 and stands there. On Windows the\n  \u2502     door opens only to this machine; on other machines it\n  \u2502     opens to other machines too, such as your tailnet.\n  \u2502     When another program, or a human server older than\n  \u2502     this one, holds the door, the tool stops and tells you\n  \u2502     so.\n  \u2502     It prints the addresses to read at; each address\n  \u2502     carries the id of the project.\n  \u2502     While it stands, it looks for a newer human once each\n  \u2502     hour and gets it ready, when it runs as a downloaded\n  \u2502     program.\n  \u2502\n  \u25cf  the browser knocks                             ([the fresh copy](FreshHandler))\n  \u2502     You open http://localhost:8010/<id>/human/web.html.\n  \u2502     Each thing on the page \u2014 the reader, the maps, the code \u2014\n  \u2502     is one knock: \"give me this file\".\n  \u2502     The knocks of one page go on one line that the tool keeps\n  \u2502     open, and it closes a line that stays quiet for 30\n  \u2502     seconds.\n  \u2502     The [first part of each knock](project) names the\n  \u2502     project by its id. The tool finds the project in its\n  \u2502     list; a knock for an id it does not know, or for a\n  \u2502     project with no human/human.json, gets \"no project\".\n  \u2502     When the tool takes a project, and when it starts with\n  \u2502     a project, the tool brings the old maps of that project\n  \u2502     up to date: a map\n  \u2502     with the old name explanation_ gets the new name\n  \u2502     abstraction_, and an old project map with words becomes\n  \u2502     a human file named after the project folder.\n  \u2502     A knock for the bare id goes on to the reader.\n  \u2502     The reader itself comes from the tool's own folder, the\n  \u2502     same for every project.\n  \u2502     The tool hands out only files under the top of the\n  \u2502     project, never anything above it.\n  \u2502     The page can also ask for all the maps in one knock: the\n  \u2502     map of each file that is still on disk and each human\n  \u2502     file. A map that is not good JSON is left out.\n  \u2502     A knock for /human/hello, with no project, gets the\n  \u2502     version of the tool, so a new serve knows a human\n  \u2502     server stands at the door.\n  \u2502\n  \u25cf  the reader sends a writing back\n  \u2502     In the reader you can write yourself: new words for an\n  \u2502     entry, a first telling for a file with no map, or the\n  \u2502     code of that file. The writing comes back as its own\n  \u2502     knock and the tool puts it in the queue in human/server/,\n  \u2502     where the agent takes it with human watch. When you mark\n  \u2502     a few words of an entry to grow them, those words go with\n  \u2502     the writing, so the agent knows which part to grow.\n  \u2502     The page can also ask for that queue and see what still\n  \u2502     waits.\n  \u2502\n  \u25cf  the reader asks for a new file                  ([the new file](new_file))\n  \u2502     In the reader you can name a path from the top of the\n  \u2502     project. The tool makes the file there, empty, and puts\n  \u2502     it in the list of files in human/human.json, so it waits\n  \u2502     for its telling. It refuses, with the reason, a path that\n  \u2502     leaves the project, goes into the human folder, a hidden\n  \u2502     or build folder, or a project of its own, a name with a\n  \u2502     dot in front, a suffix the file tree does not know, a\n  \u2502     path the ignore list drops, or a file that is already\n  \u2502     there.\n  \u2502\n  \u25cf  the reader asks for a new human file            ([the human file](new_human))\n  \u2502     In the reader you can also ask for words that stand on\n  \u2502     no code. You give one bare word \u2014 no folder, no suffix \u2014\n  \u2502     and the tool opens an empty map under that name, ready\n  \u2502     for its abstraction, with no file under it. It refuses,\n  \u2502     with the reason, a name that carries a folder, a suffix\n  \u2502     or a dot in front, a name another human file already\n  \u2502     holds, or a name a file at the root holds.\n  \u2502     With the name you can send [a folder](human_place) of the\n  \u2502     project to keep the map beside. The tool writes that\n  \u2502     folder into the map, so the reader shows the map there\n  \u2502     and the word back names it as that folder over the name.\n  \u2502     A folder that leaves the project, one in the human folder\n  \u2502     or in a hidden or build folder, and one that is not on\n  \u2502     disk, is dropped: the map stands at the top instead.\n  \u2502     A knock that is not a writing, a new file, or a new\n  \u2502     human file gets \"not found\".\n  \u2502\n  \u25cf  every answer says: do not keep me                    ([the note](end_headers))\n  \u2502     The tool marks each file it hands out, so the browser\n  \u2502     asks fresh next time instead of showing an old copy.\n  \u2502     This is why a changed map shows up on a plain reload.\n  \u2502     The tool also writes on each text file the time it last\n  \u2502     changed. When the file did not change since the copy the\n  \u2502     browser holds, the tool answers \"not changed\" and sends\n  \u2502     no file, so the browser shows its own copy at once.\n  \u2502\n  \u25cf  the tool stands at the door until you stop it\n        Ask after ask, it answers. Ctrl-c closes the door.\n        Only a writing, a new file, or a new human file changes the project; every\n        other knock reads and leaves it as it is.\n        The page can ask if a newer human is ready. When you\n        tell it to update, the tool [waits](idle) until no\n        knock is writing and no writing waits in the queue of\n        any project, then closes the door and starts again as\n        the newer human.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  when the answer is not a file                         ([the answer](send_json))\n     The fresh map, all the maps in one, the queue of waiting\n     writings, and the word back from a writing, a new file,\n     or a new human file are not files on disk. The tool\n     writes them out as one block of JSON with its length in\n     front.\n     An answer longer than 1024 bytes goes packed small when\n     the browser can unpack it.\n     The fresh map also carries a mark made from its words.\n     When the browser shows the same mark, the map did not\n     change: the tool answers \"not changed\" and sends no map.\n     To list the files of the fresh map, the tool keeps what\n     it found in each folder and looks again only in a folder\n     that changed, so a reload stays quick in a big project.\n\n  when you want to see the asks                           ([the mute](log_message))\n     human serve --log writes one line per knock.\n     Without it the tool stays silent, because one page load\n     is many knocks and they would flood your screen.\n\n  when a second project wants a door\n     The first serve holds door 8010. Type human serve in the\n     second project too: it [gives the project](hand_over) to\n     the first server and prints its own address, with its own\n     id. A project is given only from this machine; a knock\n     from another machine that gives a project is refused.\n     You can still give a project its own door: human serve\n     --port 8011, and read it at\n     http://localhost:8011/<id>/human/web.html.",
       "anchors": [
         {
           "words": "the shelf",
           "block": "cmd_serve",
           "lines": [
             [
-              707,
-              729
+              719,
+              745
             ]
           ]
         },
@@ -294,8 +294,8 @@
           "block": "FreshHandler",
           "lines": [
             [
-              494,
-              663
+              491,
+              660
             ]
           ]
         },
@@ -304,8 +304,8 @@
           "block": "project",
           "lines": [
             [
-              550,
-              557
+              547,
+              554
             ]
           ]
         },
@@ -314,8 +314,8 @@
           "block": "new_file",
           "lines": [
             [
-              225,
-              254
+              226,
+              255
             ]
           ]
         },
@@ -324,8 +324,8 @@
           "block": "new_human",
           "lines": [
             [
-              270,
-              289
+              271,
+              290
             ]
           ]
         },
@@ -334,8 +334,8 @@
           "block": "human_place",
           "lines": [
             [
-              257,
-              267
+              258,
+              268
             ]
           ]
         },
@@ -344,8 +344,8 @@
           "block": "end_headers",
           "lines": [
             [
-              657,
-              659
+              654,
+              656
             ]
           ]
         },
@@ -354,8 +354,8 @@
           "block": "idle",
           "lines": [
             [
-              484,
-              491
+              481,
+              488
             ]
           ]
         },
@@ -364,8 +364,8 @@
           "block": "send_json",
           "lines": [
             [
-              522,
-              525
+              519,
+              522
             ]
           ]
         },
@@ -374,8 +374,8 @@
           "block": "log_message",
           "lines": [
             [
-              661,
-              663
+              658,
+              660
             ]
           ]
         },
@@ -384,8 +384,8 @@
           "block": "hand_over",
           "lines": [
             [
-              681,
-              697
+              678,
+              694
             ]
           ]
         }
@@ -407,49 +407,49 @@
       68,
       106,
       107,
-      124,
       125,
-      138,
+      126,
       139,
-      145,
-      153,
-      169,
-      188,
+      140,
+      146,
+      154,
+      170,
       189,
-      191,
+      190,
       192,
-      200,
+      193,
       201,
-      208,
+      202,
       209,
-      223,
+      210,
       224,
-      255,
+      225,
       256,
-      268,
+      257,
       269,
-      290,
+      270,
       291,
-      293,
+      292,
       294,
-      297,
+      295,
       298,
-      305,
+      299,
       306,
-      315,
+      307,
       316,
-      365,
+      317,
       366,
-      369,
+      367,
       370,
-      377,
+      371,
       378,
-      401,
+      379,
       402,
-      414,
+      403,
       415,
-      421,
+      416,
       422,
+      423,
       428,
       429,
       432,
@@ -458,41 +458,45 @@
       443,
       457,
       458,
-      471,
-      472,
-      482,
-      483,
-      492,
-      493,
-      498,
-      521,
-      526,
-      549,
-      558,
-      599,
-      603,
-      623,
-      635,
-      656,
-      660,
-      664,
-      665,
-      679,
-      680,
-      698,
-      699,
-      705,
-      706,
-      730,
-      731,
-      744,
-      745,
+      468,
+      469,
+      479,
+      480,
+      489,
+      490,
+      495,
+      518,
+      523,
+      546,
+      555,
+      596,
+      600,
+      620,
+      632,
+      653,
+      657,
+      661,
+      662,
+      676,
+      677,
+      695,
+      696,
+      702,
+      703,
+      707,
+      713,
+      717,
+      718,
+      746,
+      747,
       760,
       761,
-      772,
-      773,
-      838,
-      839
+      776,
+      777,
+      788,
+      789,
+      854,
+      855
     ]
   }
 }

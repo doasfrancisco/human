@@ -9,7 +9,7 @@ from . import cmd_map, compiler, helpers
 
 CROSS_RE = re.compile(r"^(.+?):e(\d+):(.+)$")
 
-SYNC_PROMPT = """The project changed. Explanation texts were written for the old state of the project. Mend the words the change made wrong, and add a sentence for each behaviour the change added.
+SYNC_PROMPT = """The project changed. Explanation texts were written for the old state of the project. Mend the words the change made wrong.
 
 The project is at <root>. These files of the project changed — read each one before you answer; the diff below shows only the changed lines, not the blocks around them:
 

@@ -335,11 +335,11 @@ function makeNamed(url,name,place){
 }
 
 var newBox=document.getElementById("newbox"), newName=document.getElementById("newname");
-var newMode="file", newDir="";
+var newDir="";
 function newClose(){newBox.hidden=true;newName.value="";}
-function newOpen(mode,dir,at){
-  newMode=mode; newDir=dir;
-  newName.placeholder=(newDir?newDir+"/":"")+(mode==="file"?"app.py":"payments");
+function newOpen(dir,at){
+  newDir=dir;
+  newName.placeholder=(newDir?newDir+"/":"")+"app.py";
   newName.value=""; newBox.hidden=false;
   newBox.style.width=at.width?at.width+"px":"";
   newBox.style.left=Math.min(at.left,window.innerWidth-newBox.offsetWidth-6)+"px";
@@ -352,7 +352,9 @@ newName.addEventListener("keydown",function(ev){
     ev.preventDefault();
     var n=newName.value.trim(), root=n.charAt(0)==="/";
     if(root) n=n.slice(1).trim();
-    if(n) makeNamed(newMode,!root&&newMode==="file"&&newDir?newDir+"/"+n:n,root?"":newDir);
+    var human=/\.human$/.test(n);
+    if(human) n=n.slice(0,-6).trim();
+    if(n) makeNamed(human?"human":"file",!root&&!human&&newDir?newDir+"/"+n:n,root?"":newDir);
   }
 });
 
@@ -381,8 +383,7 @@ document.getElementById("treewrap").addEventListener("contextmenu",function(ev){
   if(!cur||sending) return;
   var row=treeRow(ev)||treeLast(ev.clientY), dir=treeDir(row);
   var at=row?row.getBoundingClientRect():{left:ev.clientX,bottom:ev.clientY};
-  menuAt(ev,[{label:"create file",act:function(){newOpen("file",dir,at);}},
-             {label:"create human",act:function(){newOpen("human",dir,at);}}]);
+  menuAt(ev,[{label:"create file",act:function(){newOpen(dir,at);}}]);
 });
 
 function open(p,f){
@@ -407,7 +408,7 @@ function open(p,f){
   rows.scrollTop=scrollMem[seen]||0;
   var el=top&&rows.querySelector('[data-entry="'+top.id+'"]');
   if(el) rows.scrollTop+=el.getBoundingClientRect().top-rows.getBoundingClientRect().top-parseFloat(getComputedStyle(rows).paddingTop||0);
-  if(f.code===null&&!f.d.explanations.length) loadCode(p,f);
+  if(f.code===null&&!f.d.explanations.length&&!noCodeFile(f.file)) loadCode(p,f);
 }
 
 function loadCode(p,f){
@@ -733,8 +734,7 @@ function editorHtml(text,kind,id){
 function mapSlotHtml(name){
   var t=shownText("map",null), html="";
   if(!t&&!isEditing("map",null)) return '<div class="chunk blank" data-edit="map">new abstraction</div>';
-  html+='<div class="bhead">'+(noCodeFile(cur.file)||!(cur.code||"").trim()?'<span class="label">new abstraction</span>'
-    :'<span class="label act" data-act="decompile">decompile '+esc(cur.file)+'</span>')+'</div>';
+  html+='<div class="bhead"><span class="label">new abstraction</span></div>';
   if(isEditing("map",null)) return html+editorHtml(t,"map",null);
   var at=tipHere()&&tip.kind==="compile"?t.split("\n").findIndex(function(l){return l.trim();}):-1;
   return html+'<div class="chunk plain" data-edit="map">'+t.split("\n").map(function(l,i){var h=lineHtml({id:null,anchors:[]},l);return i===at?'<span class="tipat">'+h+tipArrow("This is human code")+'</span>':h;}).join("\n")+'</div>';
@@ -742,10 +742,10 @@ function mapSlotHtml(name){
 
 function expandSlotHtml(name){
   var t=shownText("expand",null);
-  var html='<div class="bhead"><span class="label act" data-act="expand">expand on abstraction '+expanding.entry+'</span>'
+  var html='<div class="bhead"><span class="label act" data-act="expand">'+expanding.kind+' on abstraction '+expanding.entry+'</span>'
     +'<span class="act quiet" data-act="unexpand">cancel</span></div>';
   if(isEditing("expand",null)) return html+editorHtml(t,"expand",null);
-  if(!t) return html+'<div class="chunk blank" data-edit="expand">your words, or none</div>';
+  if(!t) return html+'<div class="chunk blank" data-edit="expand">your words</div>';
   return html+'<div class="chunk plain" data-edit="expand">'+t.split("\n").map(function(l){return lineHtml({id:null,anchors:[]},l);}).join("\n")+'</div>';
 }
 
@@ -815,8 +815,9 @@ function render(){
   var name=nameOf(cur.file);
   var html=notice?'<div class="pill note'+(bad?" bad":"")+'">'+esc(notice)+'</div>':"";
   if(!cur.d.explanations.length){
-    var word=cur.code===null?"loading the file":"no abstraction for this file yet";
-    if(name&&cur.code!==null){
+    var ready=cur.code!==null||noCodeFile(cur.file);
+    var word=ready?"no abstraction for this file yet":"loading the file";
+    if(name&&ready){
       html+=mapSlotHtml(name);
       if(!noCodeFile(cur.file)) html+=codeSlotHtml();
     }else if(lines.length){
@@ -1015,13 +1016,9 @@ function ask(body,after){
   }).catch(function(){sending=false;notice="the server did not answer — is human serve running?";bad=true;render();});
 }
 
-function decompile(){
-  ask({name:nameOf(cur.file),kind:"decompile",id:null,text:""});
-}
-
-function expandOpen(entry,words){
+function expandOpen(entry,words,kind){
   keepBox();
-  expanding={file:cur.file,entry:entry,words:words};
+  expanding={file:cur.file,entry:entry,words:words,kind:kind||"expand"};
   editing={file:cur.file,kind:"expand",id:null};
   caretWanted=0;
   render();
@@ -1041,15 +1038,16 @@ function expandSend(){
   if(!expandHere()) return;
   keepBox();
   var x=expanding, text=shownText("expand",null);
+  if(!text.trim()) return;
   if(isEditing("expand",null)) editing=null;
-  ask({name:nameOf(cur.file),kind:"expand",id:x.entry,text:text,words:x.words},function(){
+  ask({name:nameOf(cur.file),kind:x.kind,id:x.entry,text:text,words:x.words},function(){
     delete typed[key(x.file,"expand",null)];
     if(expanding===x) expanding=null;
   });
 }
 
 function create(entry){
-  ask({name:nameOf(cur.file),kind:"create",id:entry,text:""});
+  expandOpen(entry,null,"create");
 }
 
 function deleteOpen(entry){
@@ -1434,8 +1432,7 @@ rows.addEventListener("click",function(ev){
   var act=ev.target.closest(".act");
   if(act){
     var a=act.getAttribute("data-act");
-    if(a==="decompile") decompile();
-    else if(a==="expand") expandSend();
+    if(a==="expand") expandSend();
     else if(a==="unexpand") expandClose();
     else if(a==="delete") deleteSend();
     else if(a==="undelete") deleteClose();

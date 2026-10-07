@@ -12,7 +12,7 @@ from .helpers import find_root, map_path_of, name_to_map, rel_name
 
 ANCHOR_RE = re.compile(r"\[([^\[\]]+)\]\(([^()]+)\)")
 
-SYNC_PROMPT = """A code file changed. Explanation texts were written for the old version of the file. Mend the words the change made wrong, and add a sentence for each behaviour the change added.
+SYNC_PROMPT = """A code file changed. Explanation texts were written for the old version of the file. Mend the words the change made wrong.
 
 The file is <code_file>. Read the whole file at <path> before you answer; the diff below shows only the changed lines, not the blocks around them. The unified diff of the change:
 
@@ -60,7 +60,7 @@ The dependent text to repair:
 
 Anchors look like [words](block), [words](path/of/file), or a pin at an anchor of a changed explanation in the form shown beside it. The rules:
 - Rewrite a line only when a change upstairs makes its words wrong. Keep every line the changes do not touch verbatim. Keep the vocabulary, the layout, and the indentation.
-- When a changed explanation gained a sentence about a new behaviour, add a sentence for it in the dependent text, at the dependent's own level of detail — a plainer layer says less, never nothing. Pin it at the new sentence's anchor when it has one.
+- When a changed explanation gained a sentence about a new behaviour, decide whether the dependent text needs it at its own level of detail. When it does, add a sentence for it there and pin it at the new sentence's anchor when it has one. When it does not, add nothing.
 - Keep every anchor.
 - These anchor words are pointed at by other entries and must survive unchanged: <needed>
 <verbatim>

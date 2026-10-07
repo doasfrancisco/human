@@ -113,7 +113,8 @@ def serve_away(root, port):
         away = {"creationflags": 0x00000008 | 0x00000200} if os.name == "nt" else {"start_new_session": True}
         with open(log, "ab") as out:
             subprocess.Popen([*me, "serve", str(root), "--port", str(port)], cwd=str(root),
-                             stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT, **away)
+                             stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT,
+                             env={**os.environ, "HUMAN_SERVE_LOG": "1"}, **away)
         for _ in range(50):
             if hand_over(root, port):
                 break
@@ -422,7 +423,6 @@ def keep_drafts(root, changes):
 
 PROJECTS_LOCK = threading.Lock()
 SERVED = {}
-MIGRATED = set()
 BUSY = [0]
 BUSY_LOCK = threading.Lock()
 
@@ -464,9 +464,6 @@ def project_root(pid):
         root = SERVED.get(pid)
     if root is None or not (root / "human" / "human.json").is_file():
         return None
-    if root not in MIGRATED:
-        helpers.migrate(root)
-        MIGRATED.add(root)
     return root
 
 
@@ -704,6 +701,21 @@ def print_links(pid, port):
         print(f"This is the tailnet http://{tip}:{port}/{pid}/human/web.html in case you need it : )", flush=True)
 
 
+class Both:
+    def __init__(self, *outs):
+        self.outs = [o for o in outs if o is not None]
+
+    def write(self, text):
+        for o in self.outs:
+            o.write(text)
+            o.flush()
+        return len(text)
+
+    def flush(self):
+        for o in self.outs:
+            o.flush()
+
+
 def cmd_serve(a):
     root = compiler.find_root(Path(a.folder).resolve())
     try:
@@ -713,6 +725,10 @@ def cmd_serve(a):
     if hand_over(root, a.port):
         print_links(pid, a.port)
         return
+    if not os.environ.get("HUMAN_SERVE_LOG"):
+        log = open(cmd_watch.folder(root) / "serve.log", "a", encoding="utf-8")
+        sys.stdout = Both(sys.stdout, log)
+        sys.stderr = Both(sys.stderr, log)
     add_project(root)
     deploy_reader()
     FreshHandler.verbose = a.log

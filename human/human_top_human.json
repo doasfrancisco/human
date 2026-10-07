@@ -5,56 +5,45 @@
       "id": 1,
       "block": "top_human",
       "block_lines": [],
-      "text": "# INFORMATION\n\nhuman.json holds:\n  human files,\n  abstraction paths\n\na file keeps the lines of the file and every abstraction.\nthe .json has which piece of the file each abstraction is about.\n\n\n\n# WEB LOADS\n\nevery five seconds, at the same time:\n    the page asks for human.json\n    if first time, ask the server once for maps, which holds the abstraction_<name>.json of every file in the map folder. \n    [ask the server for a tip](compiler/cli/human/reader/web.html:loadTip)\n\na file with no .json record gets an empty one\na file shows and gets requested only when opened\n\nif tip:\n    if tip names a file,\n        open that file first.\n        a green hand-drawn font arrow with \"This is human code\" floats at the right of the first line of the draft.\n    if tip points at a line of an abstraction:\n        abstraction opens and the page scrolls the line to a third of the screen.\n        light it with a slow yellow glow; \n        a green hand-drawn arrow with \"This is a new change\" floats up and down at the right of the line;    \n    the green compile button glows \nif click away or compiled, the tip goes away.\n\n[every three seconds](compiler/cli/human/reader/web.html:pollQueue):\n    web asks the server which watch events still wait\n    if AI harness runs human ack <event>:\n        stop showing message\n        read the map of that file again\n\n\nfor each one: \n  the page reads its .json record, human_<name>.json, from maps\n\nthen it joins the list at that place, under its own name, <name>.human, at the root when it has no place.\nthe record it reads and writes stays human/human_<name>.json\n\nthe web asks for maps again only when a new file is in the list, and the files it already holds stay as they are,\n  the tree shows the new list,\n  the file you read stays open, \n  or the first file opens when yours is gone.\n\n\n# READ\n\nif human serve ran, start the reader from anywhere in the project.\n\ncli climbs to the folder that holds human/human.json and gives it to the one human server of the machine:\n  a project with no id in human/human.json stops the run, with the reason.\n  if a human server already runs on the port, [the project is handed to it](compiler/cli/human/__init__.py:e1:give the server the project) and no second server starts; else it starts one.\n  a project is handed over from this machine only.\n  each project answers under its own id: http://localhost:<port>/<project id>/human/web.html, so one server serves many projects.\n  the server [keeps the list of projects](compiler/cli/human/__init__.py:e1:read the list of projects) in ~/.human/projects.json; an id it does not know gets no project.\n  when the server takes a project, and on the first ask for it, it brings the old maps up to date: a map named explanation_ becomes abstraction_, and an old human/project.json with words becomes a human file named after the project folder.\n  the reader comes inside the human program and [is kept in ~/.human](compiler/cli/human/__init__.py:e1:from ~/.human/web.html), not in human/ of the project.\n  printing the localhost line and [if not windows, bind tailnet](compiler/cli/human/__init__.py:cmd_serve) and [print the tailnet line](compiler/cli/human/__init__.py:print_links).\n  a port held by another program, or by an older human server, stops the run and says so.\n\nhuman init starts the reader too, on its --port: it hands the project to the server that runs, or starts one in the background that writes to human/server/serve.log, and prints the same lines.\n  a server that does not answer in about ten seconds stops the run and names that log.\n  if the project has no human file yet, human init makes the first one, named after the project folder, and prints its name.\n\nkeeps open the conection for the next ask and closes it after 30 seconds with no ask.\n  if the browser allows it, sends file info compressed \n     \ncli answers human.json with a live file list:\n  a deleted file leaves the tree and a new one appears, no init, no restart.\n  [human init](compiler/cli/human/__init__.py:e1:human init) deletes the map in human/ of a file that is not on disk.\n  it keeps the list of files on memorychecks only folders with stamp changed.\n  the list carries a version code; the web sends back the code it holds.\n\n  if list didn't change, cli answers no chage. else, answers the whole list.\n\n  a file that did not change since the copy the browser holds gets no chage too, and the browser shows its own copy.\n  if the new list comes empty, the page keeps the files it shows.\n\n\nai harness leaves a tip for the user's first use: human tip <name> --entry <id> --words <words of one line> --say <words>, kept in human/server/tip.json.\n  with --add <new line> --after <words of one line>, the new line goes in a draft of the entry under that line, not compiled, and the tip is on the new line.\n  with --draft <words> on a human file or an empty map, the words are kept as a draft that is not compiled, and the human file is made when it does not exist.\n  words not found inside one line of the entry, an empty --add, an entry the map does not hold, or a draft on a map that holds an abstraction stops the run.\n  human tip --clear takes the tip away.\n\nuser opens [the reader](compiler/cli/human/reader/web.html): \n  cli sends every map file info in one answer:\n    reads the maps .json in human/, reads the file path in each .json, ignores maps with no files and maps that are not good JSON.\n    tree doesnt' show human/ folder\n\n\n\n# EDITOR ON READER\n\nif create file:\n  the box opens empty and holds the folder of the row out of sight, so you type the name alone and it lands in that folder; \n    a name that starts with / lands at the root\n  [the server makes the file empty](compiler/cli/human/__init__.py:e1:the new file), so it opens on its new abstraction.\n  the code comes under your words. \nif create human:\n  refuse if bare name is already held by another human file or a file at the root\n  the folder you right-clicked is kept in the map, so the name stands in the tree under that folder as <name>.human, while its record stays human/human_<name>.json.\n  the map opens on its new abstraction with no file under it.\nno event is queued.\na path out of the project, into human/, or onto a file already there is refused, with the reason. \nthe tree follows the files on disk.\ngit holds no old copy of a file made here,so its first sync runs against an empty old version.\n  \ncli, it runs human undo <name> --entry <id>, and [the gate refuses it](compiler/cli/human/compiler.py:e1:the gate)\n           while another abstraction stands on that abstraction.\n           [The training store](compiler/cli/human/compiler.py:e1:the training store) and its open session take no part in the undo any more.\n  \n  \nserver takes request [as JSON](compiler/cli/human/__init__.py:e1:as JSON)\n[runs the command the user typed](compiler/cli/human/cmd_watch.py:e1:the command run), one per changed text,\nwith the built human program itself, or with human through python:\n[if windows, no terminal window](compiler/cli/human/cmd_watch.py:run_cli).\nan entry rewritten goes in as human retext <name> <id> --verbatim, a first telling as\nhuman map <name> --verbatim, and code on a file with no map is written to the file.\nA map that holds no entries counts as no map here.\nAn expansion you wrote words for goes in the same way, as human map <name> --verbatim, so the\nmap holds your words before claude works; an expansion with no words, a decompile and a\ncreate map nothing at the click \u2014 the event alone waits.\nA file under human/ is refused \u2014 the maps take no writing.\nThe gates are the ones of flow 1: a refusal comes back to the page in the command's own\nwords, named by the file and the place it came from, and nothing is queued.\n\none event appended to human/server/events.jsonl: the kind, the name, the paths of the map and\n           the file, the entry, the old text and the new, and for a code write\n           [the pins that reach the file](compiler/cli/human/cmd_watch.py:e1:the pins that reach a file).\n           An expansion and a create name the entry they stand on, and an expansion carries the\n           highlighted words with their pins.\n\nuser arms the listening once, from the project root: human watch, with no pipeline to filter.\n\ncli [prints every event claude has not finished](compiler/cli/human/cmd_watch.py:e1:cmd_watch), one JSON line each, then\n           follows the queue; --once prints what waits now and returns. An event printed in an earlier\n           session comes back marked replay, so claude reads the maps before it syncs anything.\n\nai harness takes them in order, by [the writing part of the human skill](compiler/cli/human/skills/human/SKILL.md:The reader writes):\n           reads the diff of your words, writes the code they ask for \u2014 in a new file when no file of the\n           project holds that thing \u2014, removes the code they no longer ask for, syncs every map that stood on\n           them with --for, so your words follow the code and no word of them changes, and pins the new sentences back in. A decompile, a create, or an expansion with no\n           words has no text of yours to read: claude writes that telling itself, in the shape the catalog gives the file, and maps it.\n           Then [human ack <number>](compiler/cli/human/cmd_watch.py:e1:cmd_ack) \u2014 the queue\n           advances and says how many are left.\n\n\n\n# SYNCRONIZATION\n\nif code changes,\n    human sync <name>\n    a folder in the place of the name is refused.\n  \ncli runs [a deterministic pass](compiler/cli/human/compiler.py:e1:cmd_sync):\n  [maps every old line to its new line](compiler/cli/human/compiler.py:e1:the line map),\n  [re-resolves every pin and every span](compiler/cli/human/compiler.py:e1:the re-resolving).\n  if only lines moved, return.\ncli finds the abstractions the change touches: lines changed, a pin broken, new lines inside the block.\nif the user wrote the words first and the code was written for them: human sync <name> --for <id>. that abstraction [leaves the list](compiler/cli/human/compiler.py:e1:the entry that leaves): its spans and pins follow the code and no word changes, unless its block is gone. an id no abstraction carries stops the run. a stale repair takes no --for.\ncli writes instruction to ai compiler: \n  the file and its absolute path \u2014 read the whole file \u2014, \n  the diff,\n  [the project files it imports](compiler/cli/human/compiler.py:e1:the line about the neighbours),\n  the blocks,\n  the abstractions to mend,\n  the rules:\n    keep the untouched lines, \n    keep every anchor, \n    add a sentence for each behaviour the change added.\n    an abstraction of your own words goes in [named as yours](compiler/cli/human/compiler.py:e1:the mark on your words),\n    find the smallest edit, in the user's voice.\n\nai compiler [answers with the mended texts](compiler/cli/human/compiler.py:e1:ask_claude), \nruns at the project root,\nruns claude opus 5.5 at medium effort,\nthe instruction given through the pipe and never on the command line, so a long one is not cut short.\nif claude fails, cli stops and says the reason claude gave.\n\ncli [gates the answer on a copy](compiler/cli/human/compiler.py:e1:the rebuild), \ntries up to --tries times. checks if: \n  every block exists,\n  every anchor kept, \n  every needed word alive. \n  four failures leave the map untouched.\n  \nthe map gets saved; \nthe abstractions that point into a mended one get marked stale:\n  in the file's map,\n  in every map with no code under it, when one of its abstractions pins the mended one if a word changed, and not if the pins alone moved.\n           \nshows warning:\n  if [new lines landed inside an abstraction](compiler/cli/human/compiler.py:e1:the pieces the new lines fall in) and no word changed.\n  if [the sync moved words of your own](compiler/cli/human/compiler.py:e1:the word when your words moved):\nthe first copy stays in the map, human show marks the entry with [the line that brings them back](compiler/cli/human/compiler.py:e1:the word about your words).\n\nif user wants to sync the whole project or a human file, [human sync <bare name>](compiler/cli/human/cmd_human.py:e1:cmd_sync). which uses the old state: git HEAD;\n\ncli asks git for [the files that changed](compiler/cli/human/cmd_human.py:e1:changed_files),\nre-resolves the file, block, and abstraction pins, and names each one that broke,\n[sends one instruction](compiler/cli/human/cmd_human.py:e1:cmd_sync) for the abstraction that pin a changed file.\nthe diff holds only the changed files those abstractions pin. a file git does not hold yet has no old copy: the diff shows only the lines the pins reach, as new lines.\n           \na human file abstraction with the user words goes in named as the users' there too.\nthe same warning follows when the answer moved them.\n--for is taken here too: the abstraction it names leaves the list unless one of its pins broke, its pins follow the code and its words stay. an id no abstraction carries stops the run, and --for with --stale is refused.\n\n\n\n## A PARENT ABSTRACTION CHANGED\n\nif sync changed abstraction 1 and other abstractions point to it:\n    each abstraction gets [marked as stale](compiler/cli/human/compiler.py:e1:mark_children)\n    each add to the stale note list of abstraction 1.\n    each's copy of the old text gets added to its .json file.\n    if other abstraction already stale, keeps its first old text.\n    if other abstraction retexts, keep the stale mark\n\n\nif human sync <name> --stale <id>\n    repair and mark gets off. \n\n\ncli writes the second letter: one page for each changed parent.\n  its old text, \n  its new text, \n  the diff between the two\n  then the dependent's text,\n  the rules: mend the words that went wrong, \n  keep every anchor and [every word another entry needs](compiler/cli/human/compiler.py:e1:needed_words),\n  carry a new fact down at the dependent's own level, pinned at the parent's new anchor.\nif the dependent holds the user's words, the letter asks for the smallest edit, in the user's voice.\na parent that is gone stops the run.\n\nai harness answers with the mended dependent. words only, never code.\n\ncli [gates and saves](compiler/cli/human/compiler.py:e1:repair_stale); \nmarks the dependents of entry 2 as stale in turn.\na repair that moved words of your own is named on the spot, as a sync's is.\na parent's child can be a parent: the next abstraction layer waits for the users next word, one layer at a time. the layers cross maps too. a human file can be the parent of a human file. the chain never turns back on itself.\na human file abstraction made stale by a file's abstraction is repaired the same way:\n    each note naming the map and the abstraction it waits on, with the parent read from that map: [human sync <human file> --stale](compiler/cli/human/cmd_human.py:e1:repair_stale).",
+      "text": "# START WEB AND SERVER\n\nhuman.json holds:\n    human files,\n    abstraction paths\n    project id\nabstraction_<path>.json has:\n    file path,\n    every abstraction text, pins, line numbers\n\n[web is in ~/.human](compiler/cli/human/__init__.py:e1:from ~/.human/web.html)\n\n\nif human init or human serve ran:\n    if human init: [deletes the map in human/ of a file that is not on disk](compiler/cli/human/__init__.py:e1:human init).\n    if server not started, start the serve\n    if server already runs on port:\n        if same machine, [send the project to the already running server](compiler/cli/human/__init__.py:e1:give the server the project).\n\n\n    if port already in use, stop and print reason\n    if server doesn't answer in ten seconds: stop and print log.\n    if human/human.json has a project with no id: stop and print the reason\n    \n    find the folder that holds human/human.json, send to human server\n\n    in the project the commands is run:\n        if [maps named explanation_](compiler/cli/human/helpers.py:migrate),: become abstraction_    \n        if old human/project.json: becomes a human file named after the project folder. \n\n    printing the localhost web link\n    [if not windows: bind tailnet](compiler/cli/human/__init__.py:cmd_serve), [print the tailnet line](compiler/cli/human/__init__.py:print_links).\n\n\nif link to web clicked and project id not in [the list of projects in ~/.human/projects.json](compiler/cli/human/__init__.py:e1:read the list of projects): show error\n\n\nwhile server running:\n    [server writes to human/server/serve.log](compiler/cli/human/__init__.py:cmd_serve)\n    keeps open the conection for the next request and closes it after 30 seconds if no request\n    if the browser allows it, sends file info compressed to browser\n \n    server keeps list of files on memory with version code\n\n    every 5 seconds the web requests for human.json and sends version code:\n        checks folders with stamp changed\n        if liste of file changed:\n            server reads human.json\n            updates it with the files and human files that are on disk\n            answers the whole file list\n\n            if new list empty: web keeps tree\n            if file is the same: web shows the same file\n            if new or deleted file:\n                web updates tree\n                if selected file deleted: web shows first file open\n            if edited file:\n                web keeps selected file open\n\n\n# WEB LOADS\n\nevery five seconds, at the same time:\n    the page asks for human.json\n    if first time, ask the server once for maps:\n        request abstraction_<name>.json of every file in the map folder. \n        read the file path,\n        server ignores maps with no files and that can't be opened as JSON.\n    [ask the server for a tip](compiler/cli/human/reader/web.html:loadTip)\n\nif tip:\n    if tip names a file,\n        open that file first.\n        a green hand-drawn font arrow with \"This is human code\" floats at the right of the first line of the draft.\n    if tip points at a line of an abstraction:\n        abstraction opens and the page scrolls the line to a third of the screen.\n        light it with a slow yellow glow; \n        a green hand-drawn arrow with \"This is a new change\" floats up and down at the right of the line;    \n    the green compile button glows \nif click away or compiled, the tip goes away.\n\n[every three seconds](compiler/cli/human/reader/web.html:pollQueue):\n    web asks the server which watch events still wait\n    if AI harness runs human ack <event>:\n        stop showing message\n        read the map of that file again\n\nfor each human file:\n    web reads .json, human_<name>.json from human/human_<name>.json\n    trees shows <folder>/<name>.human. if no folder, show in root folder\n\n\n\n# HUMAN\n\nif create file:\n    the field file name opens empty \n    if name starts with / lands at the root\n \n    if file name ends in .human:\n        [refuse if bare name is already held by another human file or a file at the root](compiler/cli/human/__init__.py:new_human)\n        right-clicked folder path is kept in the map \n        \n    file tree location is in the folder right clicked. if human: \n        real location is human/human_<name>.json\n    \n    [refuse if a path is out of the project, into human/, or onto a file already there](compiler/cli/human/__init__.py:new_file). show reason. \n    [server makes the file empty](compiler/cli/human/__init__.py:e1:the new file)\n\n    new file is opened\n  \n\n\n  \nif file compilation:\n    stop if:\n        file location is human/, \n        refusal happens and show in web the cli's message, file and location. \n\n    server receives request [as JSON](compiler/cli/human/__init__.py:e1:as JSON)\n\n    for each abstraction text or code:\n        if retext: run human retext --verbatim\n        if new abstraction text: human map --verbatim\n        if code: server writes code to file using python.\n        if abstraction is deleted: \n            human undo <name> --entry <id>\n            if another abstractions points to it, [refuse](compiler/cli/human/compiler.py:e1:the gate)  \n  \n    if map has no abstractions, run logic as if no map.json exists.\n    if expansion or create: [run human map --verbatim](compiler/cli/human/cmd_watch.py:compile_writing)\n    \n    [if windows, do not show terminal window](compiler/cli/human/cmd_watch.py:run_cli).\n    send event if not:\n        [code write is not pinned to an abstraction](compiler/cli/human/cmd_watch.py:e1:the pins that reach a file), \n        delete abstraction\n\n\n\nif event appended to human/server/events.jsonl, the event includes:\n    the kind, the name, the paths of the map and the file, the abstraction id\n    the old text and the new\n    if code edit: [the pins that reach the file](compiler/cli/human/cmd_watch.py:e1:the pins that reach a file).\n    if abstraction expansion: the abstraction id that points to expansion, the highlighted words with their pins.\n    if create: [the abstraction id it points to](compiler/cli/human/cmd_watch.py:compile_writing)\n\nif human watch ran from project root:\n    [prints once recommendation to no pipeline filter](compiler/cli/human/cmd_watch.py:cmd_watch),\n    [prints once events not finished](compiler/cli/human/cmd_watch.py:e1:cmd_watch) as one JSON line each,  \n    if event printed before, [print event as \"maybe_started\":true](compiler/cli/human/cmd_watch.py:cmd_watch),\n  \n    continously prints the queue\n    if --once: \n        prints once events waiting now and returns.\n\n\n[ai harness takes them in order](compiler/cli/human/skills/human/SKILL.md:The reader writes)\nreads the diff of the abstraction text,\nwrites the code they ask for\nif no file exists that does what abstraction asks:\n    create a new file \nif abstraction no longer asks logic:\n    removes the code\n\nfor each abstraction that points to the update abstraction or code:\n    if the code was written for the abstraction text: run human sync  --for \n    if abstraction text edited: add pins using human retext\n\nif [human ack <number>](compiler/cli/human/cmd_watch.py:e1:cmd_ack):\n    the queue advances and prints how many events are left.\n\n\n\n# SYNCRONIZATION\n\nif code changes,\n    run human sync <name>\n    if folder name, refuse.\n  \nif human sync: \n    [deterministically](compiler/cli/human/compiler.py:e1:cmd_sync) [maps every old line to its new line](compiler/cli/human/compiler.py:e1:the line map),\n    [find again every pin and every span](compiler/cli/human/compiler.py:e1:the re-resolving).  \n\n    stop if:\n        only lines moved,\n        no abstraction holds the lines changed\n        [--for abstraction id doesn't exist](compiler/cli/human/compiler.py:e1:the entry the code was written for)\n\n    if code written for the abstraction text\n        run [human sync <name> --for <id>](compiler/cli/human/compiler.py:e1:the entry that leaves)\n    \n    if lines changed, pin broken or new lines inside code block: find the abstractions that pins to the code\n    \n    send to ai compiler the request:\n        the file absolute path to read the file\n        the diff,\n        [the imported files](compiler/cli/human/compiler.py:e1:the line about the neighbours),\n        the blocks,\n        the abstractions to mend,\n        explanation rules:\n            to keep the untouched lines, \n            to keep every anchor, \n            ai compiler decides if modify abtraction text for each change\n            if the abstraction [holds the user's words](compiler/cli/human/compiler.py:e1:the mark on your words), do the smallest edit, in the user's text style.\n\n\n[if human sync <human file>](compiler/cli/human/cmd_human.py:e1:cmd_sync):\n    if [--for id and abstraction id doesn't exist](compiler/cli/human/compiler.py:written_for): stop\n    use git head \n    [ask git for changed files since last commit](compiler/cli/human/cmd_human.py:e1:changed_files)\n\n    [find again every file, block and abstraction pin](compiler/cli/human/cmd_human.py:re_resolve)\n    if a file, blok or pin doesn't exist: print\n\n    [send one request to ai compiler](compiler/cli/human/cmd_human.py:e1:cmd_sync):\n        if abstractions pins a changed file or a pin broke:\n            the abstraction texts that pin to a changed file. [except abstraction <id> of --for, unless a pin of it broke](compiler/cli/human/compiler.py:drop_written)\n            [the diff of the changed files](compiler/cli/human/cmd_human.py:e1:the diff of the files a candidate pins), if no git old copy: show only the diff of the lines the pins reach\n            [the pins that broke](compiler/cli/human/cmd_human.py:e1:the broken pins)\n            for each --verbatim abstraction:\n                append to request a mark\n    \nai compiler:\n    runs at the project root,\n    receives request through the pipe\n    if fails, stops and prints the reason ai compiler gave.\n    [answers with the mended abstraction texts](compiler/cli/human/compiler.py:e1:ask_claude)\n\n[copy the map and check the answer](compiler/cli/human/compiler.py:e1:the rebuild), \n\nif check fails:\n    try again up to --tries times. 4 by default\n    if last time: leave the map untouched.\n\nif every block, anchors other abstractions need, and pin targets exist: map gets saved\n       \nif code file and [new lines landed inside code block of an abstraction](compiler/cli/human/compiler.py:e1:the pieces the new lines fall in) and abstraction didn't change:\n    show warning\nif [the sync moved --verbatim abstractions](compiler/cli/human/compiler.py:e1:the word when your words moved)\n    show warning\n\n\n\n## AN ABSTRACTION CHANGED OTHER ABSTRACTIONS\n\nif [human sync <name> --stale <id>](compiler/cli/human/cmd_human.py:e1:repair_stale)\n    stop if:\n        abstraction id doesnt' exist\n        [--for](compiler/cli/human/compiler.py:written_for)\n    repair and mark gets off. \n\nif sync, retext, repair changed abstraction 1's text and other human or code file abstractions point to it:\n    each abstraction gets [marked as stale](compiler/cli/human/compiler.py:e1:mark_children)\n    if abstraction 1 is in different file: add file path to note\n    add abstraction 1 to the stale abstraction note list\n    add abstraction 1 copy of the old text to its .json file.\n    if other abstraction already stale, keeps its first old text.\n    if other abstraction retexts, keep the stale mark\n\nfor each stale abstraction, send to ai compiler the request:\n    abstraction 1 old text and new text\n    diff between texts\n    stale abstraction text,\n    explanation rule:\n        to mend the text that went wrong, \n        to keep every anchor and [every word other abstractions need](compiler/cli/human/compiler.py:e1:needed_words),\n        ai compiler decides if to carry a new fact down at the stale abstraction's detail level, pinned at the abstraction 1's new anchor.\n        if the stale abstraction holds the user's words, do the smallest edit, in the user's text style.\nif abstraction 1 is gone, stop the run.\n\nai harness answers with the mended stale abstraction. text only, never code.\n[check and save](compiler/cli/human/compiler.py:e1:repair_stale); \n\nif repair changed the user's abstraction text, print warning\n\nfor each abstraction that pointed to the staled abstraction:\n    if abstraction text change: \n        [mark as stale](compiler/cli/human/compiler.py:e1:mark_children)\n        each wait for its human sync --stale",
       "anchors": [
         {
-          "words": "ask the server for a tip",
-          "file": "compiler/cli/human/reader/web.html",
-          "block": "loadTip",
-          "lines": [
-            [
-              554,
-              557
-            ]
-          ]
-        },
-        {
-          "words": "every three seconds",
-          "file": "compiler/cli/human/reader/web.html",
-          "block": "pollQueue",
-          "lines": [
-            [
-              1166,
-              1177
-            ]
-          ]
-        },
-        {
-          "words": "the project is handed to it",
-          "file": "compiler/cli/human/__init__.py",
-          "entry": 1,
-          "anchor": "give the server the project"
-        },
-        {
-          "words": "keeps the list of projects",
-          "file": "compiler/cli/human/__init__.py",
-          "entry": 1,
-          "anchor": "read the list of projects"
-        },
-        {
-          "words": "is kept in ~/.human",
+          "words": "web is in ~/.human",
           "file": "compiler/cli/human/__init__.py",
           "entry": 1,
           "anchor": "from ~/.human/web.html"
         },
         {
-          "words": "if not windows, bind tailnet",
+          "words": "deletes the map in human/ of a file that is not on disk",
+          "file": "compiler/cli/human/__init__.py",
+          "entry": 1,
+          "anchor": "human init"
+        },
+        {
+          "words": "send the project to the already running server",
+          "file": "compiler/cli/human/__init__.py",
+          "entry": 1,
+          "anchor": "give the server the project"
+        },
+        {
+          "words": "maps named explanation_",
+          "file": "compiler/cli/human/helpers.py",
+          "block": "migrate",
+          "lines": [
+            [
+              125,
+              149
+            ]
+          ]
+        },
+        {
+          "words": "if not windows: bind tailnet",
           "file": "compiler/cli/human/__init__.py",
           "block": "cmd_serve",
           "lines": [
             [
-              707,
-              729
+              719,
+              745
             ]
           ]
         },
@@ -64,38 +53,77 @@
           "block": "print_links",
           "lines": [
             [
-              700,
-              704
+              697,
+              701
             ]
           ]
         },
         {
-          "words": "human init",
+          "words": "the list of projects in ~/.human/projects.json",
           "file": "compiler/cli/human/__init__.py",
           "entry": 1,
-          "anchor": "human init"
+          "anchor": "read the list of projects"
         },
         {
-          "words": "the reader",
-          "file": "compiler/cli/human/reader/web.html"
+          "words": "server writes to human/server/serve.log",
+          "file": "compiler/cli/human/__init__.py",
+          "block": "cmd_serve",
+          "lines": [
+            [
+              719,
+              745
+            ]
+          ]
         },
         {
-          "words": "the server makes the file empty",
+          "words": "ask the server for a tip",
+          "file": "compiler/cli/human/reader/web.html",
+          "block": "loadTip",
+          "lines": [
+            [
+              555,
+              558
+            ]
+          ]
+        },
+        {
+          "words": "every three seconds",
+          "file": "compiler/cli/human/reader/web.html",
+          "block": "pollQueue",
+          "lines": [
+            [
+              1164,
+              1175
+            ]
+          ]
+        },
+        {
+          "words": "refuse if bare name is already held by another human file or a file at the root",
+          "file": "compiler/cli/human/__init__.py",
+          "block": "new_human",
+          "lines": [
+            [
+              271,
+              290
+            ]
+          ]
+        },
+        {
+          "words": "refuse if a path is out of the project, into human/, or onto a file already there",
+          "file": "compiler/cli/human/__init__.py",
+          "block": "new_file",
+          "lines": [
+            [
+              226,
+              255
+            ]
+          ]
+        },
+        {
+          "words": "server makes the file empty",
           "file": "compiler/cli/human/__init__.py",
           "entry": 1,
           "anchor": "the new file"
-        },
-        {
-          "words": "the gate refuses it",
-          "file": "compiler/cli/human/compiler.py",
-          "entry": 1,
-          "anchor": "the gate"
-        },
-        {
-          "words": "The training store",
-          "file": "compiler/cli/human/compiler.py",
-          "entry": 1,
-          "anchor": "the training store"
         },
         {
           "words": "as JSON",
@@ -104,13 +132,24 @@
           "anchor": "as JSON"
         },
         {
-          "words": "runs the command the user typed",
-          "file": "compiler/cli/human/cmd_watch.py",
+          "words": "refuse",
+          "file": "compiler/cli/human/compiler.py",
           "entry": 1,
-          "anchor": "the command run"
+          "anchor": "the gate"
         },
         {
-          "words": "if windows, no terminal window",
+          "words": "run human map --verbatim",
+          "file": "compiler/cli/human/cmd_watch.py",
+          "block": "compile_writing",
+          "lines": [
+            [
+              102,
+              172
+            ]
+          ]
+        },
+        {
+          "words": "if windows, do not show terminal window",
           "file": "compiler/cli/human/cmd_watch.py",
           "block": "run_cli",
           "lines": [
@@ -121,25 +160,64 @@
           ]
         },
         {
+          "words": "code write is not pinned to an abstraction",
+          "file": "compiler/cli/human/cmd_watch.py",
+          "entry": 1,
+          "anchor": "the pins that reach a file"
+        },
+        {
           "words": "the pins that reach the file",
           "file": "compiler/cli/human/cmd_watch.py",
           "entry": 1,
           "anchor": "the pins that reach a file"
         },
         {
-          "words": "prints every event claude has not finished",
+          "words": "the abstraction id it points to",
+          "file": "compiler/cli/human/cmd_watch.py",
+          "block": "compile_writing",
+          "lines": [
+            [
+              102,
+              172
+            ]
+          ]
+        },
+        {
+          "words": "prints once recommendation to no pipeline filter",
+          "file": "compiler/cli/human/cmd_watch.py",
+          "block": "cmd_watch",
+          "lines": [
+            [
+              175,
+              192
+            ]
+          ]
+        },
+        {
+          "words": "prints once events not finished",
           "file": "compiler/cli/human/cmd_watch.py",
           "entry": 1,
           "anchor": "cmd_watch"
         },
         {
-          "words": "the writing part of the human skill",
+          "words": "print event as \"maybe_started\":true",
+          "file": "compiler/cli/human/cmd_watch.py",
+          "block": "cmd_watch",
+          "lines": [
+            [
+              175,
+              192
+            ]
+          ]
+        },
+        {
+          "words": "ai harness takes them in order",
           "file": "compiler/cli/human/skills/human/SKILL.md",
           "block": "The reader writes",
           "lines": [
             [
               138,
-              234
+              226
             ]
           ]
         },
@@ -150,7 +228,7 @@
           "anchor": "cmd_ack"
         },
         {
-          "words": "a deterministic pass",
+          "words": "deterministically",
           "file": "compiler/cli/human/compiler.py",
           "entry": 1,
           "anchor": "cmd_sync"
@@ -162,76 +240,138 @@
           "anchor": "the line map"
         },
         {
-          "words": "re-resolves every pin and every span",
+          "words": "find again every pin and every span",
           "file": "compiler/cli/human/compiler.py",
           "entry": 1,
           "anchor": "the re-resolving"
         },
         {
-          "words": "leaves the list",
+          "words": "--for abstraction id doesn't exist",
+          "file": "compiler/cli/human/compiler.py",
+          "entry": 1,
+          "anchor": "the entry the code was written for"
+        },
+        {
+          "words": "human sync <name> --for <id>",
           "file": "compiler/cli/human/compiler.py",
           "entry": 1,
           "anchor": "the entry that leaves"
         },
         {
-          "words": "the project files it imports",
+          "words": "the imported files",
           "file": "compiler/cli/human/compiler.py",
           "entry": 1,
           "anchor": "the line about the neighbours"
         },
         {
-          "words": "named as yours",
+          "words": "holds the user's words",
           "file": "compiler/cli/human/compiler.py",
           "entry": 1,
           "anchor": "the mark on your words"
         },
         {
-          "words": "answers with the mended texts",
-          "file": "compiler/cli/human/compiler.py",
-          "entry": 1,
-          "anchor": "ask_claude"
-        },
-        {
-          "words": "gates the answer on a copy",
-          "file": "compiler/cli/human/compiler.py",
-          "entry": 1,
-          "anchor": "the rebuild"
-        },
-        {
-          "words": "new lines landed inside an abstraction",
-          "file": "compiler/cli/human/compiler.py",
-          "entry": 1,
-          "anchor": "the pieces the new lines fall in"
-        },
-        {
-          "words": "the sync moved words of your own",
-          "file": "compiler/cli/human/compiler.py",
-          "entry": 1,
-          "anchor": "the word when your words moved"
-        },
-        {
-          "words": "the line that brings them back",
-          "file": "compiler/cli/human/compiler.py",
-          "entry": 1,
-          "anchor": "the word about your words"
-        },
-        {
-          "words": "human sync <bare name>",
+          "words": "if human sync <human file>",
           "file": "compiler/cli/human/cmd_human.py",
           "entry": 1,
           "anchor": "cmd_sync"
         },
         {
-          "words": "the files that changed",
+          "words": "--for id and abstraction id doesn't exist",
+          "file": "compiler/cli/human/compiler.py",
+          "block": "written_for",
+          "lines": [
+            [
+              770,
+              778
+            ]
+          ]
+        },
+        {
+          "words": "ask git for changed files since last commit",
           "file": "compiler/cli/human/cmd_human.py",
           "entry": 1,
           "anchor": "changed_files"
         },
         {
-          "words": "sends one instruction",
+          "words": "find again every file, block and abstraction pin",
+          "file": "compiler/cli/human/cmd_human.py",
+          "block": "re_resolve",
+          "lines": [
+            [
+              374,
+              382
+            ]
+          ]
+        },
+        {
+          "words": "send one request to ai compiler",
           "file": "compiler/cli/human/cmd_human.py",
           "entry": 1,
           "anchor": "cmd_sync"
+        },
+        {
+          "words": "except abstraction <id> of --for, unless a pin of it broke",
+          "file": "compiler/cli/human/compiler.py",
+          "block": "drop_written",
+          "lines": [
+            [
+              781,
+              784
+            ]
+          ]
+        },
+        {
+          "words": "the diff of the changed files",
+          "file": "compiler/cli/human/cmd_human.py",
+          "entry": 1,
+          "anchor": "the diff of the files a candidate pins"
+        },
+        {
+          "words": "the pins that broke",
+          "file": "compiler/cli/human/cmd_human.py",
+          "entry": 1,
+          "anchor": "the broken pins"
+        },
+        {
+          "words": "answers with the mended abstraction texts",
+          "file": "compiler/cli/human/compiler.py",
+          "entry": 1,
+          "anchor": "ask_claude"
+        },
+        {
+          "words": "copy the map and check the answer",
+          "file": "compiler/cli/human/compiler.py",
+          "entry": 1,
+          "anchor": "the rebuild"
+        },
+        {
+          "words": "new lines landed inside code block of an abstraction",
+          "file": "compiler/cli/human/compiler.py",
+          "entry": 1,
+          "anchor": "the pieces the new lines fall in"
+        },
+        {
+          "words": "the sync moved --verbatim abstractions",
+          "file": "compiler/cli/human/compiler.py",
+          "entry": 1,
+          "anchor": "the word when your words moved"
+        },
+        {
+          "words": "human sync <name> --stale <id>",
+          "file": "compiler/cli/human/cmd_human.py",
+          "entry": 1,
+          "anchor": "repair_stale"
+        },
+        {
+          "words": "--for",
+          "file": "compiler/cli/human/compiler.py",
+          "block": "written_for",
+          "lines": [
+            [
+              770,
+              778
+            ]
+          ]
         },
         {
           "words": "marked as stale",
@@ -240,44 +380,27 @@
           "anchor": "mark_children"
         },
         {
-          "words": "every word another entry needs",
+          "words": "every word other abstractions need",
           "file": "compiler/cli/human/compiler.py",
           "entry": 1,
           "anchor": "needed_words"
         },
         {
-          "words": "gates and saves",
+          "words": "check and save",
           "file": "compiler/cli/human/compiler.py",
           "entry": 1,
           "anchor": "repair_stale"
         },
         {
-          "words": "human sync <human file> --stale",
-          "file": "compiler/cli/human/cmd_human.py",
+          "words": "mark as stale",
+          "file": "compiler/cli/human/compiler.py",
           "entry": 1,
-          "anchor": "repair_stale"
+          "anchor": "mark_children"
         }
       ],
       "verbatim": {
-        "origin": "# INFORMATION\n\nhuman.json holds:\n  human files,\n  abstraction paths\n\na file keeps the lines of the file and every abstraction.\nthe .json has which piece of the file each abstraction is about.\n\n\n\n# WEB LOADS\n\nevery five seconds, at the same time:\n    the page asks for human.json\n    if first time, ask the server once for maps, which holds the abstraction_<name>.json of every file in the map folder. \n    ask the server for a tip\n\na file with no .json record gets an empty one\na file shows and gets requested only when opened\n\nif tip:\n    if tip names a file,\n        open that file first.\n        a green hand-drawn font arrow with \"This is human code\" floats at the right of the first line of the draft.\n    if tip points at a line of an abstraction:\n        abstraction opens and the page scrolls the line to a third of the screen.\n        light it with a slow yellow glow; \n        a green hand-drawn arrow with \"This is a new change\" floats up and down at the right of the line;    \n    the green compile button glows \nif click away or compiled, the tip goes away.\n\nevery three seconds:\n    web asks the server which watch events still wait\n    if AI harness runs human ack <event>:\n        stop showing message\n        read the map of that file again\n\n\nfor each one: \n  the page reads its .json record, human_<name>.json, from maps\n\nthen it joins the list at that place, under its own name, <name>.human, at the root when it has no place.\nthe record it reads and writes stays human/human_<name>.json\n\nthe web asks for maps again only when a new file is in the list, and the files it already holds stay as they are,\n  the tree shows the new list,\n  the file you read stays open, \n  or the first file opens when yours is gone.\n\n\n# READ\n\nif human serve ran, start the reader from anywhere in the project.\n\ncli climbs to the folder that holds human/human.json and gives it to the one human server of the machine:\n  a project with no id in human/human.json stops the run, with the reason.\n  if a human server already runs on the port, the project is handed to it and no second server starts; else it starts one.\n  a project is handed over from this machine only.\n  each project answers under its own id: http://localhost:<port>/<project id>/human/web.html, so one server serves many projects.\n  the server keeps the list of projects in ~/.human/projects.json; an id it does not know gets no project.\n  when the server takes a project, and on the first ask for it, it brings the old maps up to date: a map named explanation_ becomes abstraction_, and an old human/project.json with words becomes a human file named after the project folder.\n  the reader comes inside the human program and is kept in ~/.human, not in human/ of the project.\n  printing the localhost line and if not windows, bind tailnet and print the tailnet line.\n  a port held by another program, or by an older human server, stops the run and says so.\n\nhuman init starts the reader too, on its --port: it hands the project to the server that runs, or starts one in the background that writes to human/server/serve.log, and prints the same lines.\n  a server that does not answer in about ten seconds stops the run and names that log.\n  if the project has no human file yet, human init makes the first one, named after the project folder, and prints its name.\n\nkeeps open the conection for the next ask and closes it after 30 seconds with no ask.\n  if the browser allows it, sends file info compressed \n     \ncli answers human.json with a live file list:\n  a deleted file leaves the tree and a new one appears, no init, no restart.\n  human init deletes the map in human/ of a file that is not on disk.\n  it keeps the list of files on memorychecks only folders with stamp changed.\n  the list carries a version code; the web sends back the code it holds.\n\n  if list didn't change, cli answers no chage. else, answers the whole list.\n\n  a file that did not change since the copy the browser holds gets no chage too, and the browser shows its own copy.\n  if the new list comes empty, the page keeps the files it shows.\n\n\nai harness leaves a tip for the user's first use: human tip <name> --entry <id> --words <words of one line> --say <words>, kept in human/server/tip.json.\n  with --add <new line> --after <words of one line>, the new line goes in a draft of the entry under that line, not compiled, and the tip is on the new line.\n  with --draft <words> on a human file or an empty map, the words are kept as a draft that is not compiled, and the human file is made when it does not exist.\n  words not found inside one line of the entry, an empty --add, an entry the map does not hold, or a draft on a map that holds an abstraction stops the run.\n  human tip --clear takes the tip away.\n\nuser opens the reader: \n  cli sends every map file info in one answer:\n    reads the maps .json in human/, reads the file path in each .json, ignores maps with no files and maps that are not good JSON.\n    tree doesnt' show human/ folder\n\n\n\n# EDITOR ON READER\n\nif create file:\n  the box opens empty and holds the folder of the row out of sight, so you type the name alone and it lands in that folder; \n    a name that starts with / lands at the root\n  the server makes the file empty, so it opens on its new abstraction.\n  the code comes under your words. \nif create human:\n  refuse if bare name is already held by another human file or a file at the root\n  the folder you right-clicked is kept in the map, so the name stands in the tree under that folder as <name>.human, while its record stays human/human_<name>.json.\n  the map opens on its new abstraction with no file under it.\nno event is queued.\na path out of the project, into human/, or onto a file already there is refused, with the reason. \nthe tree follows the files on disk.\ngit holds no old copy of a file made here,so its first sync runs against an empty old version.\n  \ncli, it runs human undo <name> --entry <id>, and the gate refuses it\n           while another abstraction stands on that abstraction.\n           The training store and its open session take no part in the undo any more.\n  \n  \nserver takes request as JSON\nruns the command the user typed, one per changed text,\nwith the built human program itself, or with human through python:\nif windows, no terminal window.\nan entry rewritten goes in as human retext <name> <id> --verbatim, a first telling as\nhuman map <name> --verbatim, and code on a file with no map is written to the file.\nA map that holds no entries counts as no map here.\nAn expansion you wrote words for goes in the same way, as human map <name> --verbatim, so the\nmap holds your words before claude works; an expansion with no words, a decompile and a\ncreate map nothing at the click \u2014 the event alone waits.\nA file under human/ is refused \u2014 the maps take no writing.\nThe gates are the ones of flow 1: a refusal comes back to the page in the command's own\nwords, named by the file and the place it came from, and nothing is queued.\n\none event appended to human/server/events.jsonl: the kind, the name, the paths of the map and\n           the file, the entry, the old text and the new, and for a code write\n           the pins that reach the file.\n           An expansion and a create name the entry they stand on, and an expansion carries the\n           highlighted words with their pins.\n\nuser arms the listening once, from the project root: human watch, with no pipeline to filter.\n\ncli prints every event claude has not finished, one JSON line each, then\n           follows the queue; --once prints what waits now and returns. An event printed in an earlier\n           session comes back marked replay, so claude reads the maps before it syncs anything.\n\nai harness takes them in order, by the writing part of the human skill:\n           reads the diff of your words, writes the code they ask for \u2014 in a new file when no file of the\n           project holds that thing \u2014, removes the code they no longer ask for, syncs every map that stood on\n           them with --for, so your words follow the code and no word of them changes, and pins the new sentences back in. A decompile, a create, or an expansion with no\n           words has no text of yours to read: claude writes that telling itself, in the shape the catalog gives the file, and maps it.\n           Then human ack <number> \u2014 the queue\n           advances and says how many are left.\n\n\n\n# SYNCRONIZATION\n\nif code changes,\n    human sync <name>\n    a folder in the place of the name is refused.\n  \ncli runs a deterministic pass:\n  maps every old line to its new line,\n  re-resolves every pin and every span.\n  if only lines moved, return.\ncli finds the abstractions the change touches: lines changed, a pin broken, new lines inside the block.\nif the user wrote the words first and the code was written for them: human sync <name> --for <id>. that abstraction leaves the list: its spans and pins follow the code and no word changes, unless its block is gone. an id no abstraction carries stops the run. a stale repair takes no --for.\ncli writes instruction to ai compiler: \n  the file and its absolute path \u2014 read the whole file \u2014, \n  the diff,\n  the project files it imports,\n  the blocks,\n  the abstractions to mend,\n  the rules:\n    keep the untouched lines, \n    keep every anchor, \n    add a sentence for each behaviour the change added.\n    an abstraction of your own words goes in named as yours,\n    find the smallest edit, in the user's voice.\n\nai compiler answers with the mended texts, \nruns at the project root,\nruns claude opus 5.5 at medium effort,\nthe instruction given through the pipe and never on the command line, so a long one is not cut short.\nif claude fails, cli stops and says the reason claude gave.\n\ncli gates the answer on a copy, \ntries up to --tries times. checks if: \n  every block exists,\n  every anchor kept, \n  every needed word alive. \n  four failures leave the map untouched.\n  \nthe map gets saved; \nthe abstractions that point into a mended one get marked stale:\n  in the file's map,\n  in every map with no code under it, when one of its abstractions pins the mended one if a word changed, and not if the pins alone moved.\n           \nshows warning:\n  if new lines landed inside an abstraction and no word changed.\n  if the sync moved words of your own:\nthe first copy stays in the map, human show marks the entry with the line that brings them back.\n\nif user wants to sync the whole project or a human file, human sync <bare name>. which uses the old state: git HEAD;\n\ncli asks git for the files that changed,\nre-resolves the file, block, and abstraction pins, and names each one that broke,\nsends one instruction for the abstraction that pin a changed file.\nthe diff holds only the changed files those abstractions pin. a file git does not hold yet has no old copy: the diff shows only the lines the pins reach, as new lines.\n           \na human file abstraction with the user words goes in named as the users' there too.\nthe same warning follows when the answer moved them.\n--for is taken here too: the abstraction it names leaves the list unless one of its pins broke, its pins follow the code and its words stay. an id no abstraction carries stops the run, and --for with --stale is refused.\n\n\n\n## A PARENT ABSTRACTION CHANGED\n\nif sync changed abstraction 1 and other abstractions point to it:\n    each abstraction gets marked as stale\n    each add to the stale note list of abstraction 1.\n    each's copy of the old text gets added to its .json file.\n    if other abstraction already stale, keeps its first old text.\n    if other abstraction retexts, keep the stale mark\n\n\nif human sync <name> --stale <id>\n    repair and mark gets off. \n\n\ncli writes the second letter: one page for each changed parent.\n  its old text, \n  its new text, \n  the diff between the two\n  then the dependent's text,\n  the rules: mend the words that went wrong, \n  keep every anchor and every word another entry needs,\n  carry a new fact down at the dependent's own level, pinned at the parent's new anchor.\nif the dependent holds the user's words, the letter asks for the smallest edit, in the user's voice.\na parent that is gone stops the run.\n\nai harness answers with the mended dependent. words only, never code.\n\ncli gates and saves; \nmarks the dependents of entry 2 as stale in turn.\na repair that moved words of your own is named on the spot, as a sync's is.\na parent's child can be a parent: the next abstraction layer waits for the users next word, one layer at a time. the layers cross maps too. a human file can be the parent of a human file. the chain never turns back on itself.\na human file abstraction made stale by a file's abstraction is repaired the same way:\n    each note naming the map and the abstraction it waits on, with the parent read from that map: human sync <human file> --stale."
-      },
-      "stale": [
-        {
-          "parent": 1,
-          "file": "web",
-          "old_text": "[# WEB LOADS PROJECT](compiler/cli/human/reader/web.html:script)\n\nthe page asks for human.json which holds the file names of the project. \n\nat the same time it asks the server once for maps, which holds the abstraction_<name>.json of every file in the map folder. \n\na file with no .json record gets an empty one, so the page still shows it. \nthe file itself shows and gets requested only when you open the file.\n\nat the same time it [asks the server for a tip](compiler/cli/human/reader/web.html:loadTip), a short help for a new user.\nif the tip names a file, that file opens first.\nif the tip points at a line of an abstraction, that abstraction opens and the page scrolls the line to a third of the screen.\n\nhuman.json also names:\n  the human files,\n  abstractions with no code under them,\n  the place each one was made in.\nfor each one: \n  the page reads its .json record, human_<name>.json, from maps\nthen it joins the list at that place, under its own name, <name>.human, at the root when it has no place.\nthe record it reads and writes stays human/human_<name>.json\n\nevery five seconds it [asks for human.json again](compiler/cli/human/reader/web.html:refreshFiles);\nwhen human.json did not change since the last ask, the server says so and the page reads nothing more.\nwhen the files or the human files in it changed: \n  the page asks for maps again only when a new file is in the list, and the files it already holds stay as they are,\n  the tree shows the new list,\n  the file you read stays open, \n  or the first file opens when yours is gone.\n  if the new list is empty, the page keeps the files it shows.\n\n\n[# THE FILE TREE](compiler/cli/human/reader/web.html:main)\non the left: the project name and its files.\n  a file that holds a writing which is not compiled shows small yellow dot at the left of its row. the dot goes out when the compile passes.\na left click on a file opens that file.\nif a right click on the files, a folder or empty space:\n  opens a list with two options: \"create file\" and \"create human\".\n  if any option is clicked:\n    a box opens for a name under the folder the right click it's from.\n    the grey words say where the name will land, like <path>/<name>\n    a name that starts with / drops the folder and lands at the root.\n\n    if empty space, the box stands on the last row of the tree, and that row gives the folder: the root, or the folder it stands in.\n    enter [asks the server to make that file inside that folder](compiler/cli/human/reader/web.html:makeNamed)\n    if human:\n      the box takes the bare name \n      the folder is the place it shows in \n      it makes a human file, an abstraction with no code under it. \n  pressing escape or clicking anywhere closes the box or the list.\n\nif the server refuses, show warning on top of the reader: \nif pass, only opens the new file and marks it in the tree\n\n\n[# USER OPENS FILE](compiler/cli/human/reader/web.html:open)\na file keeps the lines of the file and every abstraction.\nthe .json has which piece of the file each abstraction is about.\n\nif open: \n  if for the first time, file opens at the header of the abstraction that starts open.\n  the page puts the abstractions [in order](compiler/cli/human/reader/web.html:sorted)\n  a pin points from one abstraction at another. \n  the abstraction nobody points at is the most abstract, and it goes last. \n  an abstraction that a pin points at goes above the one that holds the pin, and so on upward. among equals, the one about earlier lines goes first.\n\nif user comes back to a file, the abstractions left open stay open as you left it, and the page stands where you had scrolled it. \na writing box left open closes when user goes to another file.\n\n\n[# THE WEB DRAWS THE LIST](compiler/cli/human/reader/web.html:render)\ndraws an abstraction as one header line:\n  a small arrow, \n  the name of its piece\n  its lines. \nif file opened for the first time, [the first of the top layer of abstractions](compiler/cli/human/reader/web.html:topOf) start open. all others start folded the first time.\nunder the header the words are drawn exactly as written.\n\na pin whose target has an abstraction is lit; \na pin with none is muted; \na pin the map does not hold yet, one you just typed, is [read from the target it names](compiler/cli/human/reader/web.html:guessAnchor). \n\nthe bar on top says how many are open.\nonly as soon as anything differs from the map:\n  the word \"unsaved\", [a compile button](compiler/cli/human/reader/web.html:header) shows in the page.\n  and a dot on that file's row, which even if file is closed, shows.\n\nif the tip points at words in an open abstraction of this file:\n  the line with those words glows yellow,\n  under the abstraction a note shows the tip and \"got it\".\nif the tip is about compile, [on this file](compiler/cli/human/reader/web.html:showTip):\n  the compile button glows green,\n  a note under it shows the tip and \"got it\".\nif any tip of this file also asks for compile, the compile button glows green too, with no note under it.\n  and at the right of the glowing line, a green hand drawn arrow points at it and says \"This is a new change\", floating up and down.\na click on \"got it\" [ends the tip](compiler/cli/human/reader/web.html:endTip), and the server forgets it.\n \n\n# NEW ABSTRACTION POSITIONS\n\nthe position of the abstraction words you expand on stands on top of the list while the ask is open; \nif file with no map:\n  shows one place for a new abstraction and the code of the file under it, \n  the bar says there is no abstraction yet, in the place of the count, with the compiling mark beside it. \nif human file:\n  show the abstractions alone, because they have no code. \n\nan abstraction whose writing waits for the ai harness is marked compiling, with a count when more than one waits. \na redraw of the same file keeps the page where you had scrolled it, so the words stay under your eyes. \nthe head line of an abstraction you asked to take away holds that ask in the place of its name until you send it or drop it.\n\n\n[# USER WRITES](compiler/cli/human/reader/web.html:startEdit)\nif click on the words:\n  a box is put in their place,\n  the caret is where user clicked. \n\na muted pin shows a name beside its words, and that name counts too\na pin holds the text as it is in the map:\n  the pins in their brackets, the targets visible or the code of the file, or nothing for a new abstraction. \n\nif more text is typed than the size of the box:\n  the box grows until its last line shows whole, also when a line wider than the screen gives it a sideways scroll bar.\n  if box grow is less than the size of the screen, grow to the bottom of screen.\n  the page stays where you scrolled it. \n\nif escape presed, or user clicks away:\n  [the box closes](compiler/cli/human/reader/web.html:leaveEdit) \n  the text written is kept\n\n[if tab pressed on the box](compiler/cli/human/reader/web.html:indent):\n  four spaces are typed where the caret is\n  if lines are selected:\n    each line moves four spaces right\n  if shift + tab, move the line, or each selected line, four spaces left.\n  box stays open\n\nthe green circle stays until [ctrl-S or tap on it keeps it on the server](compiler/cli/human/reader/web.html:save), in human/server/\nhuman code stay in the place written. if the page draws again between one box and the next, same.\nonly the box now open answers a click away; an older box the page left behind closes nothing.\n\n\n\n\u25cf  you ask ai harness for an abstraction                  ([the menu](compiler/cli/human/reader/web.html:menuAt))\n\u2502     A right click opens a small menu where you point. On the header\n\u2502     of an abstraction it offers [a wider one above it](compiler/cli/human/reader/web.html:create) and\n\u2502     [to take that one away](compiler/cli/human/reader/web.html:deleteOpen); the ask to take away stands\n\u2502     on the head line itself, a click on its name [sends it](compiler/cli/human/reader/web.html:deleteSend),\n\u2502     and cancel, or escape, [lets it go](compiler/cli/human/reader/web.html:deleteClose). On\n\u2502     [words you picked](compiler/cli/human/reader/web.html:selectedRaw), in the text or in the open box,\n\u2502     it offers to expand on them: [a place opens on top of the\n\u2502     list](compiler/cli/human/reader/web.html:expandOpen) where you may add your own words, or none, a\n\u2502     click on its name [sends the ask](compiler/cli/human/reader/web.html:expandSend), and cancel\n\u2502     [drops it](compiler/cli/human/reader/web.html:expandClose). A file with no abstraction yet and some\n\u2502     code in it carries decompile over its writing place, which asks\n\u2502     for [the whole file to be read and told](compiler/cli/human/reader/web.html:decompile); an empty\n\u2502     file calls that place new abstraction, and a human file, which\n\u2502     has no code, calls it that too. Each of these [goes to the\n\u2502     server](compiler/cli/human/reader/web.html:ask) like a compile and comes back as a writing that\n\u2502     waits for claude.\n\u2502\n\n[#  USER PRESSES COMPILE AND SERVER ANSWERS](compiler/cli/human/reader/web.html:compile)\n\nsave sends the updated abstraction. \nwhile page waits for server:\n  no words show on top\n  the compile button turns faint and takes no press\n\nif refusal, show;\n  server's refusal, \n  the file it came from in the warning colour, \n  and abstraction stays on web. \n\nif pass:\n  delete the draft, end the tip of that file, redraw the page with [the map again](compiler/cli/human/reader/web.html:reloadMap)\n\n\n\u25cf  the page watches the queue                         ([pollQueue](compiler/cli/human/reader/web.html:pollQueue))\n\u2502     Every three seconds it asks the server what still waits and\n\u2502     marks the entries. When claude finishes, the mark goes, and the\n\u2502     page reads the map of that file again, so the new words show.\n\u2502\n\u25cf  you click                                                ([jump](compiler/cli/human/reader/web.html:jump))\n\u2502     A click on a header folds or unfolds that abstraction.\n\u2502     A click on a lit pin scrolls to the abstraction it points at,\n\u2502     unfolds it, and lights it for a moment; it opens no box.\n\u2502\n\n[#  USER JUMPS TO ANOTHER FILE](compiler/cli/human/reader/web.html:crossJump)\n\nif pin clicked, \n  open that file and goes to the piece the pin names. \n  if pin points to file the project does not hold, show muted and the piece name.\n  if the file has no map:\n    open the file, go to the lines of that file and lights them for a moment.\n\n  if pin points to one abstraction of that file and words inside it: \n    a click opens the file, \n    goes to that abstraction,\n    lights those words for a moment. \n\n    such a pin to words the abstraction does not hold is muted and shows the file and the number of the abstraction (explain this line?)\n  \n  [save](compiler/cli/human/reader/web.html:keepPlace):\n    place of the abstraction or file left.\n    the file, the abstractions open it it, scroll position.\n\nif back button of the browser, alt and left, the back button of the mouse, or a swipe back on a phone, pressed: [returns to the previous place kept](compiler/cli/human/reader/web.html:goPlace).\nif forward button, or alt and right pressed, return to the next place kept.\nin both cases, if writing box left open, it closes when you go back\n\n\n[#WEB DESIGN](compiler/cli/human/reader/web.html:style)\n\na dark and a light version, chosen by your system. \nfont is SF Pro, the San Francisco font of Apple. If not apple device, use typewriter font.\n[sintax highlight](compiler/cli/human/reader/web.html:colours) for code files using shiki 4.5.0\nside and vertical scroll ui, small pill, no bar, and fades.\n\n\ntwo panes on a quiet ground: \n    the tree on the left, \n    the reader on the right, as wide as the window lets it.\n\nthe tree looks like the list of apple notes:\n    dark: #0b0b0b\n    light: the soft grey ground of apple notes, #f2f2f7.\n    the project name shows in upper case.\n    the tree is below, same indent as the project name\n    file names in off-white, folder names and icons in grey #8e8e93.\n    the open file wears a lighter grey row, no lively colour.\n    bottom right of the section, [a lucide icon rotate-ccw](compiler/cli/human/reader/web.html:pollUpdate) with tool tip \"New update, click to reload\"\n\n    if on a narrow screen:\n        the tree sits in a card: dark grey #1c1c1e, or white in light, with large round corners and no edge.\n        the tree hides and slides in over the reader. if tree opens, the reader section appears dark fading\n    \n\nthe reader:\n  dark: pure black ground, off-white words, like apple notes.\n  light: pure white ground, near-black words.\n  caret is dark yellow and slightly thick\n  caret stays right after the last letter on a line of any length\n  the buttons are dark grey glass with a thin lighter edge, white icons.\n  \n  the reader fills the screen, no frame.\n  the reader separates from the file tree with a faint soft grey line\n\n  the file name and count show in the same filled screen. horizontally centered. top division has no line divider.\n  \n  top right, one pill holding the lucide icon button floats over words, like the pills of apple notes: \n    a filled green play for compile, the icon shows a bit smaller than default for better design\n  \n  a non-pill, #e0ae01 filled circle with a #fff65c save icon inside to save:\n    almost as big as the pill buttons, a bit smaller so it looks good\n    apppears in an animation, on the right of compile\n    enough space to not press compiler by mistake. \n    if clicked, file saves. \n  the buttons use the black ground, the grey glass and the white icons, with no lively colour. same height as the file name and count\n\n  the text fades on the top and bottom.\n  if highlighting the text, the highlight color is yellow\n  a tip note is dark grey glass with round corners, white words and a dark yellow \"got it\" at its right\n  the arrow of a new change is green, bold, in a handwritten font, and floats slowly up and down; it takes no click\n  font size 14px\n  a line wider than the screen scrolls sideways. \n        \n  if on a narrow screen:\n    the colour of the reader fills the whole screen\n    the words font:\n      size is 14px\n      they keep that size when you read and when you write. specially in safari mobile.\n  \n    sideway scroll at furthest at the bottom\n    the file name and the count do not show.\n    \n    the top bar has no line of its own. \n    top left, a round button with the burger in a center floats over the words. it opens the tree.\n\n\nthe box for the name of a new file stands under the row you right clicked, or under the last row when you clicked empty space, and takes that row's width, over everything, in the typewriter face. \nthe writing box sits in the place of the words, and grows with what you type. \nan empty place stands in its own room and lights up under the pointer, so you see where you can write. \non a wide screen, a word on a head line that does something wears the lively colour and underlines itself under the pointer. \nthe little menu floats where you point, over everything, and each of its rows lights under the pointer.\n\n\n# HELPER FUNCTIONS\n\n[esc](compiler/cli/human/reader/web.html:esc)\nmakes text safe to show on a page                        \n\n[msg](compiler/cli/human/reader/web.html:msg)\nshows one line when there is nothing to read              \n        \n[drawer](compiler/cli/human/reader/web.html:drawer)\nopens and hides the tree on a narrow screen\n\n[loadMaps](compiler/cli/human/reader/web.html:loadMaps)\nreads the records of every file and human file in one ask, or gives empty ones\n\n[held](compiler/cli/human/reader/web.html:held)\ngives a record, or an empty one when it holds no abstractions\n\n[fromMaps](compiler/cli/human/reader/web.html:fromMaps)\ntakes the record of one file or human file out of maps\n\n[humanPath](compiler/cli/human/reader/web.html:humanPath)\nnames the record of a human file\n                \n[bareOf](compiler/cli/human/reader/web.html:bareOf)\ngives the bare name of a human path\n\n[shownPath](compiler/cli/human/reader/web.html:shownPath)\ngives the name a human file wears in the tree\n\n[recordPath](compiler/cli/human/reader/web.html:recordPath)\ngives the record behind a shown name\n\n     says a file has no code under it           ([noCodeFile](compiler/cli/human/reader/web.html:noCodeFile))\n     asks for human.json, or gives nothing when it did not change  ([loadList](compiler/cli/human/reader/web.html:loadList))\n     builds the file tree for one project         ([buildTree](compiler/cli/human/reader/web.html:buildTree))\n     shuts the box for the name of a new file       ([newClose](compiler/cli/human/reader/web.html:newClose))\n             \n[treeLast](compiler/cli/human/reader/web.html:treeLast)\nfinds the row above the empty space you clicked \n\n[treeRoots](compiler/cli/human/reader/web.html:treeRoots)\nfinds the roots the tree draws in            \n\n[treeRows](compiler/cli/human/reader/web.html:treeRows)\ngives every row of the tree                   \n\n[newOpen](compiler/cli/human/reader/web.html:newOpen)\nopens that box under a row, empty, and keeps that row's folder for the enter\n\n     finds the tree row you right clicked            ([treeRow](compiler/cli/human/reader/web.html:treeRow))\n     gives the folder that row stands in             ([treeDir](compiler/cli/human/reader/web.html:treeDir))\n     asks for the file when you open it             ([loadCode](compiler/cli/human/reader/web.html:loadCode))\n     finds a file of the project by name                ([fileOf](compiler/cli/human/reader/web.html:fileOf))\n     says if a piece has an abstraction         ([crossEntry](compiler/cli/human/reader/web.html:crossEntry))\n     says if an abstraction has those words   ([crossAnchor](compiler/cli/human/reader/web.html:crossAnchor))\n     finds which abstraction a pin points at        ([targetOf](compiler/cli/human/reader/web.html:targetOf))\n     reads a pin the map does not hold    ([guessAnchor](compiler/cli/human/reader/web.html:guessAnchor))\n     finds the pin behind one bracket                     ([pinOf](compiler/cli/human/reader/web.html:pinOf))\n     says what a muted pin shows beside it          ([suffixOf](compiler/cli/human/reader/web.html:suffixOf))\n     turns the pins of one line into links          ([lineHtml](compiler/cli/human/reader/web.html:lineHtml))\n     says if the tip is for the open file            ([tipHere](compiler/cli/human/reader/web.html:tipHere))\n     says if a line holds the words the tip points at  ([tipLine](compiler/cli/human/reader/web.html:tipLine))\n     says the name the server knows a file by       ([nameOf](compiler/cli/human/reader/web.html:nameOf))\n     names where a draft is kept on the server           ([key](compiler/cli/human/reader/web.html:key))\n     gives the text a box opens with            ([baseText](compiler/cli/human/reader/web.html:baseText))\n     says if a place for words is open here      ([expandHere](compiler/cli/human/reader/web.html:expandHere))\n     says if a delete is asked here              ([deleteHere](compiler/cli/human/reader/web.html:deleteHere))\n     gives the text now shown, draft or map   ([shownText](compiler/cli/human/reader/web.html:shownText))\n\n[changed](compiler/cli/human/reader/web.html:changed)\nsays if a text differs from the map          \n\n[baseFor](compiler/cli/human/reader/web.html:baseFor)\ngives the text the map of any file holds for one place\n\n[waiting](compiler/cli/human/reader/web.html:waiting)\nsays which files hold a writing not compiled    \n\n[markSoon](compiler/cli/human/reader/web.html:markSoon)\nputs the dots as soon as the tree stands\n\n[markWaiting](compiler/cli/human/reader/web.html:markWaiting)\nputs a dot on those rows of the tree\n\n     says if a change is not kept yet             ([unsaved](compiler/cli/human/reader/web.html:unsaved))\n     lists every place the file takes writing         ([slots](compiler/cli/human/reader/web.html:slots))\n     marks what still waits for claude          ([queuedMark](compiler/cli/human/reader/web.html:queuedMark))\n     says which place holds the box           ([isEditing](compiler/cli/human/reader/web.html:isEditing))\n     draws the writing box                      ([editorHtml](compiler/cli/human/reader/web.html:editorHtml))\n     draws the telling of a whole file    ([mapSlotHtml](compiler/cli/human/reader/web.html:mapSlotHtml))\n     draws the place for your own words  ([expandSlotHtml](compiler/cli/human/reader/web.html:expandSlotHtml))\n     numbers the lines of the code      ([codeSlotHtml](compiler/cli/human/reader/web.html:codeSlotHtml))\n     \n[fit](compiler/cli/human/reader/web.html:fit)\nmakes the box as tall as its text and its sideways bar without moving the page\n\n     puts the caret in the new box without moving the page        ([focusEditor](compiler/cli/human/reader/web.html:focusEditor))\n     holds what you typed while the page redraws     ([keep](compiler/cli/human/reader/web.html:keep))\n     takes the words out of the open box          ([keepBox](compiler/cli/human/reader/web.html:keepBox))\n     finds the letter you clicked                 ([caretAt](compiler/cli/human/reader/web.html:caretAt))\n     finds that letter in the raw text        ([rawOffset](compiler/cli/human/reader/web.html:rawOffset))\n     finds it past the line numbers         ([codeOffset](compiler/cli/human/reader/web.html:codeOffset))\n     sends one ask to the server                        ([post](compiler/cli/human/reader/web.html:post))\n     shuts the little menu                      ([menuClose](compiler/cli/human/reader/web.html:menuClose))\n     finds a file by the name the server knows it by  ([fileNamed](compiler/cli/human/reader/web.html:fileNamed))\n     lights the words a pin points at         ([flashAnchor](compiler/cli/human/reader/web.html:flashAnchor))"
-        },
-        {
-          "parent": 1,
-          "file": "compiler/cli/human/__init__.py",
-          "old_text": "# FLAGS\nmap and retext: --verbatim; \nundo: --entry; \nsync: --for;\nwatch: --once, \nack: the number of the writing\ntip: --add <new line> --after <words of a line in the entry>, puts the new line in a draft of the entry under that line and the tip asks to compile it;\n\n\n# COMMANDS\n\n[human init](cmd_init):\n    creates the human folder in the project.\n    create human/human.json with the list of the project's files.\n    \n    if none yet, human/human.json gets a short random name as an id\n    prints the id and the count of files.\n    \n    [sweep](scan_files) the project folder and its code files\n    drop hidden files, \n    build folders, \n    if folders with a map of their own then pass through [the sieve](is_ignored)\n    fill the ignore list of human.json\n    add human files to human.json, each with the folder it shows in\n    \n    a map with the old name explanation_ gets the new name abstraction_, and an old human/project.json with words becomes a human file named after the project folder.\n    if the project has no human file yet, make the first human file, named after the project folder, and print its name.\n    for each file that is not on disk: delete the its map in human/\n    \n    if a file at the top of the folder answers to the bare name of a human file:\n        show warning that the file needs a new path to be told apart.\n\n    [runs human serve](serve_away)\n\n    \n\n[human serve](cmd_serve):\n    finds the top of the project\n    if server already runs, [give the server the project](hand_over), [print the reader's link](print_links), stop\n    else: \n        start a server in port 8010 unless you say --port <number>\n        if new project, create .human in /human/ with project id, [create project id in ~/.human/projects.json](add_project)\n    \n    [read the list of projects](read_projects) in ~/.human/projects.json. \n    [find project](project_root) by: /<project id>/ \n    \n    print:\n        \"Click <localhost address> to read your human code!\"\n        if machine has tailnet, print \"This is the tailnet <[tailnet address](tailnet_ip)> in case you need it : )\", \n    \n    [the server running on port <number>](FreshHandler), serves:\n        /<project>/..., a file of that project as it is on disk\n        /<project>/human/web.html [from ~/.human/web.html](deploy_reader)\n        /human/human.json, [rebuilt](fresh_map) on every request\n        /human/server/queue, the updates that are not worked yet by the ai harness.\n        /human/server/drafts, drafts kept for the project, from human/server/drafts.json.\n    \n    the server takes [as JSON](read_body):\n        1. a writing from the reader             \u2014 your own words on an entry, a first\n                                              telling for a file with no map, or the\n                                              code of that file; the desk hands it to\n                                              [the queue](compiler/cli/human/cmd_watch.py:compile_writing),\n                                              which runs the command you would have\n                                              typed and keeps the writing for claude.\n                                              When the writing grows a few words of an\n                                              entry, the desk passes those marked words\n                                              along with it, so the queue knows which\n                                              part to grow\n        2. a new file from the reader            ([the new file](new_file)) \u2014 you name a\n                                              path from the top of the project; the\n                                              desk makes the file there, empty, and\n                                              puts it in the list of the book, so it\n                                              waits for its telling. A path that leaves\n                                              the project, goes into the human folder,\n                                              a hidden or build folder, or a project of\n                                              its own, a name with a dot in front, a\n                                              suffix the list does not know, a path the\n                                              ignore list drops, or a file that is\n                                              already there is refused, with the reason\n\n        3. if a new human file from the reader:\n            one bare word, no folder and no suffix,\n            [the folder](human_place) you made it in, which the map keeps as its place; \n            the desk opens an empty map under that name, for words that stand on no code. \n            a name with a folder, a suffix or a dot in front, \n            a name another human file holds, or a name a file at the root holds is refused, with the reason. \n            a folder is dropped if it leaves the project to go to:\n            the human folder, \n            a hidden or build folder, \n            or not on disk\n            the map stands at the top\n\n        4. if web draft:\n            file path and abstraction\n            server writes human/server/drafts.json\n            if draft is empy or same draft as the map, remove\n\n        5. Any other writing gets \"not found\". Every answer\n            carries \"do not keep me\" ([the note](end_headers)), so a\n            reload never shows an old copy, and the desk stays quiet\n            unless you add --log ([the mute](log_message)).\n\n[human map file --verbatim](compiler/cli/human/cmd_map.py)\n  an abstraction the user sends.\n  if --verbatim yes, mark as verbatim.\n  the name is a file or a human file by its bare name.\n  a folder is refused: a folder has no map.\n  the desk hands the whole line to the map run\n  [the guard](compiler/cli/human/cmd_map.py) there keeps the words as you wrote them \u2014 they go in plain. \n  a pin in the abstraction is refused.\n\nhuman retext, undo, show, lines, sync <file>       ([the engine](compiler/cli/human/compiler.py))\n    All the work on a map that exists. The desk only points\n    the way. retext takes --verbatim too, to put words of your\n    own in the place of the ones already mapped. undo takes\n    --entry, the number of the entry to drop; without it the\n    last entry written goes. sync takes --for, the number of\n    the entry the code change was written for: that entry keeps\n    its words and only its spans and pins follow. A stale\n    repair takes no --for.\n    A folder in the place of the file is refused.\n\nhuman retext, undo, show, lines, sync <human file> ([the project hand](compiler/cli/human/cmd_human.py))\n    The same commands with the bare name of a human file where\n    the file goes: the desk sends them to the hand that works on\n    the maps of human files, before the engine sees them.\n\n[human watch / human ack <number>](compiler/cli/human/cmd_watch.py)\n    print every abstraction event ai harness has not compiled, one line each\n    each event stays at a queue for the next print; \n    if --once, print and returns.\n    if ack <number>, \n        mark the abstraction as compiled and says\n        show many abstraction still wait for compilation\n\n[human skills](cmd_skills)\n    copy the skill folders, \n    save to ai harnesses skill folders"
-        },
-        {
-          "parent": 1,
-          "file": "compiler/cli/human/cmd_watch.py",
-          "old_text": "import json, the pattern matcher, the shell, a lock, the clock, and two neighbours:\n[the tool](compiler/cli/human/compiler.py) \u2014 the project folder, the map of a file \u2014\nand [the project hand](compiler/cli/human/cmd_human.py), which knows the word project and its map\n\nFOLDER = server \u2014 the folder under human/ where a writing from the reader waits\nKINDS  = the seven kinds of writing: retext, map, code, decompile, expand, create, delete\nWRITTEN = the three kinds that carry words of your own: retext, map, code\nENTRY_RE = the look of the line \"entry 3: \u2026\" the map command prints, so the new number can be read back\n\n\n[compile_writing](compile_writing)(root, name, kind, eid, text, words)\n    root is the project folder; \n    name of the abstraction. which goes as input to [name_to_map()](compiler/cli/human/helpers.py:name_to_map); \n    kind is one of the seven the\n    reader may send; eid is\n    the entry the words replace, or the entry an ask stands on, or\n    nothing; text is what you typed in the reader and sent with the\n    compile button, and it may be empty on an ask; words are the words\n    you highlighted in an entry for an expand.\n\n    \u25cf  the tool checks the ask\n    \u2502     An unknown kind stops here. An empty text stops the three kinds\n    \u2502     that carry your words; an ask for claude may come with no text\n    \u2502     at all. \n    |     A name of the sort type file must be a real file under the project root, and not under human/\n    \u2502     A name of the sort type project or human file has no file, so those two checks do not run.\n    \u2502     The map .json of the name is read; it may not exist yet. A map\n    \u2502     that holds no entries counts as no map in the checks below.\n    \u2502\n    \u25cf  the tool runs the same command you would have typed          ([the command run](run_cli))\n    \u2502     A rewrite of an entry runs human retext <name> <id> --verbatim:\n    \u2502     your words go in as your own, the origin is reset, and the\n    \u2502     entries that stood on the old words are marked stale. A first\n    \u2502     telling runs human map <name> --verbatim: plain words, a pin in\n    \u2502     them refused; on a file that has a map already the run stops \u2014\n    \u2502     write on its entries instead. Code on a file with no map is\n    \u2502     written to the file as it is; on a file with a map the run stops,\n    \u2502     because the words come first there.\n    \u2502\n    \u25cf  an ask only claude can answer is queued as it stands\n    \u2502     A decompile asks for a first telling of a file: the project has\n    \u2502     no code of its own and stops, and a file that has a map stops\n    \u2502     too \u2014 expand or create on its entries. An empty file stops as\n    \u2502     well \u2014 there is no code to tell yet, so write its telling first\n    \u2502     and claude writes the code under it. A create asks for a top\n    \u2502     abstraction over an entry. An expand asks for more words under\n    \u2502     the words you highlighted, and stops when no words came with it.\n    \u2502     A create and an expand stop when the map holds no such entry.\n    \u2502     An expand sent with a text of your own runs human map <name>\n    \u2502     --verbatim first, so your words go in at once and the ask\n    \u2502     carries the new entry with it.\n    \u2502\n    \u25cf  a delete takes the entry out at once and queues nothing\n    \u2502     It stops when the map holds no such entry. Otherwise it runs\n    \u2502     human undo <name> --entry <id>: the entry leaves the map, and the\n    \u2502     run stops when another entry, or the project map, points at it\n    \u2502     through an anchor. The reader gets what the command said, joined\n    \u2502     in one line, without the line that names the written map.\n    \u2502\n    \u25cf  a refusal goes back to the reader in the command's own words\n    \u2502     The gates are the same as on the command line. Nothing is queued\n    \u2502     when a gate speaks.\n    \u2502\n    \n  the tool looks for the abstractions that stand on a code write        ([the pins that reach a file](pins_reaching))\n  every map is read for a pin that names the file: the map of each file, the project map and every human file.\n  if no pin the file is just saved because no abstraction depends on it. \n  if pins, they go into the event, so the ai harness knows which abstractions the change may have made wrong.\n    \n    \u2502\n    \u25cf  one event joins the queue                                        ([the queue](append_event))\n          The kind, the name, the absolute paths of the map and the file,\n          the entry number \u2014 read from the output for a first telling \u2014,\n          the old text and the new, the pins, and what the command printed.\n          An ask adds the entry it stands on as its target, an expand adds\n          the highlighted words, and the output of an ask says what waits\n          for claude.\n          The reader gets the number of the event and the printed lines.\n\n[cmd_watch](cmd_watch)(a)\n    a is what you typed: human watch, or human watch --once.\n\n    \u25cf  claude arms it once per session, from the project root\n    \u2502     Every event not yet done is printed, one JSON line each, in the\n    \u2502     order it came. An event printed in an earlier session comes with\n    \u2502     replay true, so claude checks the maps before it syncs anything.\n    \u2502\n    \u25cf  the tool follows\n          Every second it reads the queue again ([the events](read_events)) and prints\n          what is new. The cursor's seen mark moves to the last printed\n          event ([the cursor](read_cursor)). With --once it prints and stops.\n\n[cmd_ack](cmd_ack)(a)\n    a holds the number of the event claude finished: human ack 3.\n\n    \u25cf  the tool moves the done mark\n          The number must be above the last done and not beyond the last\n          event; otherwise the tool says what is done and what is last.\n          Then it says how many events still wait. The reader drops the\n          compiling mark of the entry when the queue tells it the event is done.\n\n[pending](pending)(root)\n    \u25cf  the reader asks what still waits\n          The done and seen marks, and one line per event above done: its\n          number, kind, name, and entry. The reader polls this to mark an\n          entry as compiling.\n\n\n\n# HELPER FUNCTIONS\n\n[folder](folder)(root)                        \n human/server/ under the root, made on first use\n\n[events_path](events_path)(root)              \n the queue file, events.jsonl\n\n[cursor_path](cursor_path)(root)              \n the cursor file, cursor.json\n\n[read_events](read_events)(root)              \n every event of the queue, oldest first\n\n[read_cursor](read_cursor)(root)              \n the done and seen marks; zero and zero when none\n\n[write_cursor](write_cursor)(root, c)         \n writes the marks back\n\n[append_event](append_event)(root, event)     \n numbers the event one above the last, stamps the moment, adds it\n\n[run_cli](run_cli)(root, args, text)          \n runs the human command in the project folder with the text on its stdin; gives back whether it passed and what it printed. When human is one built program, it runs that program itself; otherwise it runs human through python\n\n[pins_reaching](pins_reaching)(root, name)\n every pin of every map that names the file: the map, the entry, the words, and the block or anchor it points at"
-        }
-      ]
+        "origin": "# START WEB AND SERVER\n\nhuman.json holds:\n    human files,\n    abstraction paths\n    project id\nabstraction_<path>.json has:\n    file path,\n    every abstraction text, pins, line numbers\n\nweb is in ~/.human\n\n\nif human init or human serve ran:\n    if human init: deletes the map in human/ of a file that is not on disk.\n    if server not started, start the serve\n    if server already runs on port:\n        if same machine, send the project to the already running server.\n\n\n    if port already in use, stop and print reason\n    if server doesn't answer in ten seconds: stop and print log.\n    if human/human.json has a project with no id: stop and print the reason\n    \n    find the folder that holds human/human.json, send to human server\n\n    in the project the commands is run:\n        if maps named explanation_,: become abstraction_    \n        if old human/project.json: becomes a human file named after the project folder. \n\n    printing the localhost web link\n    if not windows: bind tailnet, print the tailnet line.\n\n\nif link to web clicked and project id not in the list of projects in ~/.human/projects.json: show error\n\n\nwhile server running:\n    server writes to human/server/serve.log\n    keeps open the conection for the next request and closes it after 30 seconds if no request\n    if the browser allows it, sends file info compressed to browser\n \n    server keeps list of files on memory with version code\n\n    every 5 seconds the web requests for human.json and sends version code:\n        checks folders with stamp changed\n        if liste of file changed:\n            server reads human.json\n            updates it with the files and human files that are on disk\n            answers the whole file list\n\n            if new list empty: web keeps tree\n            if file is the same: web shows the same file\n            if new or deleted file:\n                web updates tree\n                if selected file deleted: web shows first file open\n            if edited file:\n                web keeps selected file open\n\n\n# WEB LOADS\n\nevery five seconds, at the same time:\n    the page asks for human.json\n    if first time, ask the server once for maps:\n        request abstraction_<name>.json of every file in the map folder. \n        read the file path,\n        server ignores maps with no files and that can't be opened as JSON.\n    ask the server for a tip\n\nif tip:\n    if tip names a file,\n        open that file first.\n        a green hand-drawn font arrow with \"This is human code\" floats at the right of the first line of the draft.\n    if tip points at a line of an abstraction:\n        abstraction opens and the page scrolls the line to a third of the screen.\n        light it with a slow yellow glow; \n        a green hand-drawn arrow with \"This is a new change\" floats up and down at the right of the line;    \n    the green compile button glows \nif click away or compiled, the tip goes away.\n\nevery three seconds:\n    web asks the server which watch events still wait\n    if AI harness runs human ack <event>:\n        stop showing message\n        read the map of that file again\n\nfor each human file:\n    web reads .json, human_<name>.json from human/human_<name>.json\n    trees shows <folder>/<name>.human. if no folder, show in root folder\n\n\n\n# HUMAN\n\nif create file:\n    the field file name opens empty \n    if name starts with / lands at the root\n \n    if file name ends in .human:\n        refuse if bare name is already held by another human file or a file at the root\n        right-clicked folder path is kept in the map \n        \n    file tree location is in the folder right clicked. if human: \n        real location is human/human_<name>.json\n    \n    refuse if a path is out of the project, into human/, or onto a file already there. show reason. \n    server makes the file empty\n\n    new file is opened\n  \n\n\n  \nif file compilation:\n    stop if:\n        file location is human/, \n        refusal happens and show in web the cli's message, file and location. \n\n    server receives request as JSON\n\n    for each abstraction text or code:\n        if retext: run human retext --verbatim\n        if new abstraction text: human map --verbatim\n        if code: server writes code to file using python.\n        if abstraction is deleted: \n            human undo <name> --entry <id>\n            if another abstractions points to it, refuse  \n  \n    if map has no abstractions, run logic as if no map.json exists.\n    if expansion or create: run human map --verbatim\n    \n    if windows, do not show terminal window.\n    send event if not:\n        code write is not pinned to an abstraction, \n        delete abstraction\n\n\n\nif event appended to human/server/events.jsonl, the event includes:\n    the kind, the name, the paths of the map and the file, the abstraction id\n    the old text and the new\n    if code edit: the pins that reach the file.\n    if abstraction expansion: the abstraction id that points to expansion, the highlighted words with their pins.\n    if create: the abstraction id it points to\n\nif human watch ran from project root:\n    prints once recommendation to no pipeline filter,\n    prints once events not finished as one JSON line each,  \n    if event printed before, print event as \"maybe_started\":true,\n  \n    continously prints the queue\n    if --once: \n        prints once events waiting now and returns.\n\n\nai harness takes them in order\nreads the diff of the abstraction text,\nwrites the code they ask for\nif no file exists that does what abstraction asks:\n    create a new file \nif abstraction no longer asks logic:\n    removes the code\n\nfor each abstraction that points to the update abstraction or code:\n    if the code was written for the abstraction text: run human sync  --for \n    if abstraction text edited: add pins using human retext\n\nif human ack <number>:\n    the queue advances and prints how many events are left.\n\n\n\n# SYNCRONIZATION\n\nif code changes,\n    run human sync <name>\n    if folder name, refuse.\n  \nif human sync: \n    deterministically maps every old line to its new line,\n    find again every pin and every span.  \n\n    stop if:\n        only lines moved,\n        no abstraction holds the lines changed\n        --for abstraction id doesn't exist\n\n    if code written for the abstraction text\n        run human sync <name> --for <id>\n    \n    if lines changed, pin broken or new lines inside code block: find the abstractions that pins to the code\n    \n    send to ai compiler the request:\n        the file absolute path to read the file\n        the diff,\n        the imported files,\n        the blocks,\n        the abstractions to mend,\n        explanation rules:\n            to keep the untouched lines, \n            to keep every anchor, \n            ai compiler decides if modify abtraction text for each change\n            if the abstraction holds the user's words, do the smallest edit, in the user's text style.\n\n\nif human sync <human file>:\n    if --for id and abstraction id doesn't exist: stop\n    use git head \n    ask git for changed files since last commit\n\n    find again every file, block and abstraction pin\n    if a file, blok or pin doesn't exist: print\n\n    send one request to ai compiler:\n        if abstractions pins a changed file or a pin broke:\n            the abstraction texts that pin to a changed file. except abstraction <id> of --for, unless a pin of it broke\n            the diff of the changed files, if no git old copy: show only the diff of the lines the pins reach\n            the pins that broke\n            for each --verbatim abstraction:\n                append to request a mark\n    \nai compiler:\n    runs at the project root,\n    receives request through the pipe\n    if fails, stops and prints the reason ai compiler gave.\n    answers with the mended abstraction texts\n\ncopy the map and check the answer, \n\nif check fails:\n    try again up to --tries times. 4 by default\n    if last time: leave the map untouched.\n\nif every block, anchors other abstractions need, and pin targets exist: map gets saved\n       \nif code file and new lines landed inside code block of an abstraction and abstraction didn't change:\n    show warning\nif the sync moved --verbatim abstractions\n    show warning\n\n\n\n## AN ABSTRACTION CHANGED OTHER ABSTRACTIONS\n\nif human sync <name> --stale <id>\n    stop if:\n        abstraction id doesnt' exist\n        --for\n    repair and mark gets off. \n\nif sync, retext, repair changed abstraction 1's text and other human or code file abstractions point to it:\n    each abstraction gets marked as stale\n    if abstraction 1 is in different file: add file path to note\n    add abstraction 1 to the stale abstraction note list\n    add abstraction 1 copy of the old text to its .json file.\n    if other abstraction already stale, keeps its first old text.\n    if other abstraction retexts, keep the stale mark\n\nfor each stale abstraction, send to ai compiler the request:\n    abstraction 1 old text and new text\n    diff between texts\n    stale abstraction text,\n    explanation rule:\n        to mend the text that went wrong, \n        to keep every anchor and every word other abstractions need,\n        ai compiler decides if to carry a new fact down at the stale abstraction's detail level, pinned at the abstraction 1's new anchor.\n        if the stale abstraction holds the user's words, do the smallest edit, in the user's text style.\nif abstraction 1 is gone, stop the run.\n\nai harness answers with the mended stale abstraction. text only, never code.\ncheck and save; \n\nif repair changed the user's abstraction text, print warning\n\nfor each abstraction that pointed to the staled abstraction:\n    if abstraction text change: \n        mark as stale\n        each wait for its human sync --stale"
+      }
     }
   ],
   "not_covered": {
