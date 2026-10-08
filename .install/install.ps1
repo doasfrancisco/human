@@ -32,6 +32,7 @@ try {
             New-Item -ItemType Directory -Force -Path (Split-Path $To) | Out-Null
             Move-Item $_.FullName $To
         }
+        Remove-Item $Current -Recurse -Force -ErrorAction SilentlyContinue
     }
     New-Item -ItemType Directory -Force -Path $Current | Out-Null
     Copy-Item (Join-Path $Unzip "human\*") $Current -Recurse -Force

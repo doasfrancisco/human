@@ -613,7 +613,9 @@ function shownText(kind,id){
   return k in typed?typed[k]:baseText(kind,id);
 }
 
-function changed(kind,id){return shownText(kind,id)!==baseText(kind,id);}
+function differs(kind,a,b){return kind==="code"?a!==b:a.trim()!==b.trim();}
+
+function changed(kind,id){return differs(kind,shownText(kind,id),baseText(kind,id));}
 
 function baseFor(f,kind,id){
   if(kind==="retext"){
@@ -636,7 +638,8 @@ function waiting(){
     var file=rest.slice(0,cut), tail=rest.slice(cut+1), f=fileOf(file);
     if(!f) return;
     var id=/^[0-9]+$/.test(tail)?+tail:null;
-    if(typed[x]!==baseFor(f,id===null?tail:"retext",id)) out[shownPath(file)]=1;
+    var kind=id===null?tail:"retext", base=baseFor(f,kind,id);
+    if(base===null?typed[x]!==base:differs(kind,typed[x],base)) out[shownPath(file)]=1;
   });
   return out;
 }
@@ -1132,7 +1135,7 @@ function keepSaved(f){
     var id=+k.slice(pre.length), e=null;
     f.d.explanations.forEach(function(x){if(x.id===id)e=x;});
     if(!e){delete savedText[k];hit=true;return;}
-    if(words(e.text)===words(savedText[k])){
+    if(words(e.text).trim()===words(savedText[k]).trim()){
       var marked=(pendingBy[name]||[]).concat(savedBy[name]||[]).some(function(x){return x.entry===id;});
       if(!marked){delete savedText[k];hit=true;}
       return;

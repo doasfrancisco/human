@@ -5,7 +5,7 @@
       "id": 1,
       "block": "install",
       "block_lines": [],
-      "text": "if hadn't yet, analyze \"curl -fsSL https://claude.ai/install.sh | bash\", \"curl -fsSL https://t3.codes/install.sh | sh\"\n\n\ncurl -fsSL https://doashuman.com/install.sh | bash\nif [install script](.install/install.sh) ran:\n    if checksum ok, install human and human skill\n    human is a one ready-built program, [built as a folder](.github/workflows/release.yml), for:\n        linux x64 and arm64, temporary file exists on $HOME\n        windows x64 sent as .zip,\n        macos x64 and arm64\n    if windows: \n    [irm https://doashuman.com/install.ps1 | iex](.install/install.ps1) unzips human into ~/.human/current and puts that folder on PATH\n    \n\nif [human update](compiler/cli/human/__init__.py:cmd_update), or every hour check for a new version on https://downloads.doashuman.com/latest:\n    [ask with user-agent human/<version>](compiler/cli/human/updater.py:fetch)\nif new update: \n    if checksum ok, [install update on background](compiler/cli/human/updater.py:download) \n    [skills deploy again](compiler/cli/human/updater.py:check), if windows, no terminal window\n    \n    bottom right of the tree section, [a lucide icon rotate-ccw](compiler/cli/human/reader/web.html:pollUpdate) with tool tip \"New update, click to reload\"\n    if clicked:\n        wait until no compile or event is open,\n        [on windows, first move the files of the old version out of ~/.human/current and copy the new version in](compiler/cli/human/updater.py:switch)\n        [restart the server on the new version](compiler/cli/human/updater.py:restart_when), if windows, no terminal window\n        the arrow turns while it waits, and the page reloads by itself.\n\n\nif [human uninstall](compiler/cli/human/__init__.py:cmd_uninstall):\n    [uninstall human](compiler/cli/human/updater.py:remove)\n    [delete skills](compiler/cli/human/__init__.py:cmd_uninstall)\n\n\nif first time creating, \n    ai harness shows step by step how:\n        to add domain to cloudflare\n        to replace `ns37/ns38.domaincontrol.com` to the two Cloudflare name servers\n        to create cloudflare r2 to store releases\n\n    create a folder .install/, with `install.sh`, `install.ps1`, connect to Cloudflare Pages, configure to deploy at each push.\n    [create github workflow at each tag](.github/workflows/release.yml):\n        uses PyInstaller to build human as a folder for Linux, macOS and Windows, a zip for Windows.\n        write checksum\n        puts the programs and checksum in r2\n        writes the new version into r2\n\n    if pypi, [last pypi version prints](compiler/cli/human/updater.py:from_pypi): \"human moved: curl -fsSL https://doashuman.com/install.sh | bash\" [for all commands](compiler/cli/human/__init__.py:main)\n    if claude.md has rules about updates, [change claude.md](CLAUDE.md)",
+      "text": "if hadn't yet, analyze \"curl -fsSL https://claude.ai/install.sh | bash\", \"curl -fsSL https://t3.codes/install.sh | sh\"\n\n\ncurl -fsSL https://doashuman.com/install.sh | bash\nif [install script](.install/install.sh) ran:\n    if checksum ok, install human and human skill\n    human is a one ready-built program, [built as a folder](.github/workflows/release.yml), for:\n        linux x64 and arm64, temporary file exists on $HOME\n        windows x64 sent as .zip,\n        macos x64 and arm64\n    if windows: \n    [irm https://doashuman.com/install.ps1 | iex](.install/install.ps1):\n        unzips human into ~/.human/current\n        moves the old files out\n        deletes the empty folders they leave,\n        puts that folder on PATH\n\nif [human update](compiler/cli/human/__init__.py:cmd_update), or every hour check for a new version on https://downloads.doashuman.com/latest:\n    [ask with user-agent human/<version>](compiler/cli/human/updater.py:fetch)\nif new update: \n    if checksum ok, [install update on background](compiler/cli/human/updater.py:download) \n    [skills deploy again](compiler/cli/human/updater.py:check), if windows, no terminal window\n    \n    bottom right of the tree section, [a lucide icon rotate-ccw](compiler/cli/human/reader/web.html:pollUpdate) with tool tip \"New update, click to reload\"\n    if clicked:\n        wait until no compile or event is open,\n        [on windows, first move the files of the old version out of ~/.human/current and copy the new version in](compiler/cli/human/updater.py:switch)\n        [restart the server on the new version](compiler/cli/human/updater.py:restart_when), if windows, no terminal window\n        the arrow turns while it waits, and the page reloads by itself.\n\n\nif [human uninstall](compiler/cli/human/__init__.py:cmd_uninstall):\n    [uninstall human](compiler/cli/human/updater.py:remove)\n    [delete skills](compiler/cli/human/__init__.py:cmd_uninstall)\n\n\nif first time creating, \n    ai harness shows step by step how:\n        to add domain to cloudflare\n        to replace `ns37/ns38.domaincontrol.com` to the two Cloudflare name servers\n        to create cloudflare r2 to store releases\n\n    create a folder .install/, with `install.sh`, `install.ps1`, connect to Cloudflare Pages, configure to deploy at each push.\n    [create github workflow at each tag](.github/workflows/release.yml):\n        uses PyInstaller to build human as a folder for Linux, macOS and Windows, a zip for Windows.\n        write checksum\n        puts the programs and checksum in r2\n        writes the new version into r2\n\n    if pypi, [last pypi version prints](compiler/cli/human/updater.py:from_pypi): \"human moved: curl -fsSL https://doashuman.com/install.sh | bash\" [for all commands](compiler/cli/human/__init__.py:main)\n    if claude.md has rules about updates, [change claude.md](CLAUDE.md)",
       "anchors": [
         {
           "words": "install script",
@@ -25,8 +25,8 @@
           "block": "cmd_update",
           "lines": [
             [
-              712,
-              725
+              717,
+              730
             ]
           ]
         },
@@ -69,8 +69,8 @@
           "block": "pollUpdate",
           "lines": [
             [
-              1143,
-              1153
+              1187,
+              1197
             ]
           ]
         },
@@ -102,8 +102,8 @@
           "block": "cmd_uninstall",
           "lines": [
             [
-              728,
-              737
+              733,
+              742
             ]
           ]
         },
@@ -124,8 +124,8 @@
           "block": "cmd_uninstall",
           "lines": [
             [
-              728,
-              737
+              733,
+              742
             ]
           ]
         },
@@ -150,8 +150,8 @@
           "block": "main",
           "lines": [
             [
-              740,
-              802
+              745,
+              807
             ]
           ]
         },
@@ -161,7 +161,7 @@
         }
       ],
       "verbatim": {
-        "origin": "if hadn't yet, analyze \"curl -fsSL https://claude.ai/install.sh | bash\", \"curl -fsSL https://t3.codes/install.sh | sh\"\n\n\ncurl -fsSL https://doashuman.com/install.sh | bash\nif install script ran:\n    if checksum ok, install human and human skill\n    human is a one ready-built program, built as a folder, for:\n        linux x64 and arm64, temporary file exists on $HOME\n        windows x64 sent as .zip,\n        macos x64 and arm64\n    if windows: \n    irm https://doashuman.com/install.ps1 | iex unzips human into ~/.human/current and puts that folder on PATH\n    \n\nif human update, or every hour check for a new version on https://downloads.doashuman.com/latest:\n    ask with user-agent human/<version>\nif new update: \n    if checksum ok, install update on background \n    skills deploy again, if windows, no terminal window\n    \n    bottom right of the tree section, a lucide icon rotate-ccw with tool tip \"New update, click to reload\"\n    if clicked:\n        wait until no compile or event is open,\n        on windows, first move the files of the old version out of ~/.human/current and copy the new version in\n        restart the server on the new version, if windows, no terminal window\n        the arrow turns while it waits, and the page reloads by itself.\n\n\nif human uninstall:\n    uninstall human\n    delete skills\n\n\nif first time creating, \n    ai harness shows step by step how:\n        to add domain to cloudflare\n        to replace `ns37/ns38.domaincontrol.com` to the two Cloudflare name servers\n        to create cloudflare r2 to store releases\n\n    create a folder .install/, with `install.sh`, `install.ps1`, connect to Cloudflare Pages, configure to deploy at each push.\n    create github workflow at each tag:\n        uses PyInstaller to build human as a folder for Linux, macOS and Windows, a zip for Windows.\n        write checksum\n        puts the programs and checksum in r2\n        writes the new version into r2\n\n    if pypi, last pypi version prints: \"human moved: curl -fsSL https://doashuman.com/install.sh | bash\" for all commands\n    if claude.md has rules about updates, change claude.md"
+        "origin": "if hadn't yet, analyze \"curl -fsSL https://claude.ai/install.sh | bash\", \"curl -fsSL https://t3.codes/install.sh | sh\"\n\n\ncurl -fsSL https://doashuman.com/install.sh | bash\nif install script ran:\n    if checksum ok, install human and human skill\n    human is a one ready-built program, built as a folder, for:\n        linux x64 and arm64, temporary file exists on $HOME\n        windows x64 sent as .zip,\n        macos x64 and arm64\n    if windows: \n    irm https://doashuman.com/install.ps1 | iex:\n        unzips human into ~/.human/current\n        moves the old files out\n        deletes the empty folders they leave,\n        puts that folder on PATH\n\nif human update, or every hour check for a new version on https://downloads.doashuman.com/latest:\n    ask with user-agent human/<version>\nif new update: \n    if checksum ok, install update on background \n    skills deploy again, if windows, no terminal window\n    \n    bottom right of the tree section, a lucide icon rotate-ccw with tool tip \"New update, click to reload\"\n    if clicked:\n        wait until no compile or event is open,\n        on windows, first move the files of the old version out of ~/.human/current and copy the new version in\n        restart the server on the new version, if windows, no terminal window\n        the arrow turns while it waits, and the page reloads by itself.\n\n\nif human uninstall:\n    uninstall human\n    delete skills\n\n\nif first time creating, \n    ai harness shows step by step how:\n        to add domain to cloudflare\n        to replace `ns37/ns38.domaincontrol.com` to the two Cloudflare name servers\n        to create cloudflare r2 to store releases\n\n    create a folder .install/, with `install.sh`, `install.ps1`, connect to Cloudflare Pages, configure to deploy at each push.\n    create github workflow at each tag:\n        uses PyInstaller to build human as a folder for Linux, macOS and Windows, a zip for Windows.\n        write checksum\n        puts the programs and checksum in r2\n        writes the new version into r2\n\n    if pypi, last pypi version prints: \"human moved: curl -fsSL https://doashuman.com/install.sh | bash\" for all commands\n    if claude.md has rules about updates, change claude.md"
       }
     }
   ],

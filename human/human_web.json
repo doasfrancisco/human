@@ -5,7 +5,7 @@
       "id": 1,
       "block": "web",
       "block_lines": [],
-      "text": "[# THE FILE TREE](compiler/cli/human/reader/web.html:main)\n\non the left: the project name and its files.\n    if file has an abstraction not saved: \n        show small yellow dot at the left of its row. \n        if file or abstraction saved: the dot goes out \n    if file hasn't been compiled:\n        [show small purple dot](compiler/cli/human/reader/web.html:markWaiting) at the left of its row. \n        if file or abstraction compiled: the dot goes out \n    if dot shows:\n        keep the indent of the file in the tree\n        [if file inside folder, for each level: also show dot at the folder level](compiler/cli/human/reader/web.html:markWaiting)\n\ntree doesnt' show human/ folder\n\na left click on a file opens that file.\nif a right click on the files, a folder or empty space:\n  opens a list with option: \"create file\" \n  if clicked:\n    the new file box stands under the row you right clicked, or under the last row when you clicked empty space, and takes that row's width, over everything, in the typewriter face. \n    the grey words say: \"doasfrancisco.human\"\n\n    if empty space, the box stands on the last row of the tree, and that row gives the folder: the root, or the folder it stands in.\n    enter [asks the server to make that file inside that folder](compiler/cli/human/reader/web.html:makeNamed)\n    if human:\n      the box takes the bare name \n      the folder is the place it shows in \n      it makes a human file, an abstraction with no code under it. \n  pressing escape or clicking anywhere closes the box or the list.\n\nif the server refuses, show warning on top of the reader.\nif pass, only opens the new file and marks it in the tree\n\n\n\n[# USER OPENS FILE](compiler/cli/human/reader/web.html:open)\n\n\n[if non human file has no abstraction and is opened: request first and show file](compiler/cli/human/reader/web.html:loadCode)\n\nif file open: \n    if no abstraction:\n        if not human file: request file first\n        if human file: [show \"new abstraction\"](compiler/cli/human/reader/web.html:render)\n    \n    if first time: \n        file opens at the header of the abstraction that starts open.\n    \n    a pin points from one abstraction at another. \n    show the abstractions [in order](compiler/cli/human/reader/web.html:sorted), last goes the abstraction nobody points because is the most abstract\n    an abstraction that a pin points at goes above the one that holds the pin, and so on upward. if equal, the one about earlier lines goes first.\n\nif user comes back to a file, the abstractions left open stay open as you left it, and the page stands where you had scrolled it. \na writing box left open closes when user goes to another file.\n\n\n\n[# THE WEB SHOWS ABSTRACTIONS](compiler/cli/human/reader/web.html:render)\ndraws an abstraction as one header line:\n  a small arrow, \n  the name of its piece\n  its lines. \nif file opened for the first time, [the first of the top layer of abstractions](compiler/cli/human/reader/web.html:topOf) start open. all others start folded the first time.\nunder the header the words are drawn exactly as written.\n\na pin whose target has an abstraction is lit;\na pin with none is muted; \na pin the map does not hold yet, one you just typed, is [read from the target it names](compiler/cli/human/reader/web.html:guessAnchor). \n\nthe bar on top says how many are open.\n\nif the open text differs from map:\n    show save button\n[if the map's words differ from the words user last saved, pins don't count:](compiler/cli/human/reader/web.html:keepSaved)\n    show save button\nif the open text differs from map or saved abstraction isn't compiled yet:\n    [show compile button](compiler/cli/human/reader/web.html:header)\n\n\n[# USER WRITES](compiler/cli/human/reader/web.html:startEdit)\n\na pin holds the text as it is in the map:\n  the pins in their brackets, the targets visible or the code of the file, or nothing for a new abstraction. \n\nif click on the words:\n  a box is put in their place,\n  the caret is where user clicked. \n\nif muted pin, show name beside its words, and that name counts too\n\nif more text is typed than the size of the box:\n  the box grows until its last line shows whole, also when a line wider than the screen gives it a sideways scroll bar.\n  if box grow is less than the size of the screen, grow to the bottom of screen.\n  the page stays where you scrolled it. \n\nif escape presed, or user clicks away:\n  [the box closes](compiler/cli/human/reader/web.html:leaveEdit) \n  the text written is [kept in browser storage](compiler/cli/human/reader/web.html:storeTyped) until save\n\n[if tab pressed on the box](compiler/cli/human/reader/web.html:indent):\n  four spaces are typed where the caret is\n  if lines are selected:\n    each line moves four spaces right\n  if shift + tab, move the line, or each selected line, four spaces left.\n  box stays open\n\nif written or the page draws again between one box and the next, human code stays in their place\n\n\n\n[#  USER CLICKS COMPILE](compiler/cli/human/reader/web.html:compile)\n\n[if save clicked or ctrl + s](compiler/cli/human/reader/web.html:save): \n    send the abstraction text to server \n    [server writes the abstraction and marks as not_compiled](compiler/cli/human/cmd_watch.py:save_writing)\n    if pins wrong: refuse and  keep text in the box\n\nif compile clicked:\n    run logic from save\n    [server sends event to write the code for the saved abstraction](compiler/cli/human/cmd_watch.py:compile_saved)\n    [ai harness finishes and removes not_compiled](compiler/cli/human/cmd_watch.py:cmd_ack)\n\nif refusal, show;\n  server's refusal, \n  the file it came from in the warning colour, \n  and abstraction stays on web. \n\nif pass: redraw the page with [the map again](compiler/cli/human/reader/web.html:reloadMap)\n\n\n\n# NEW ABSTRACTION\n\nif file with no map:\n    shows on top \"new abstraction\", if code file, show the code of the file under it. \n    the bar says there is no abstraction yet\n\nif right click on abstraction header, [show](compiler/cli/human/reader/web.html:menuAt) two options:\n    [\"create abstraction\"](compiler/cli/human/reader/web.html:create)\n    [\"delete abstraction\"](compiler/cli/human/reader/web.html:deleteOpen)\n\n    if create, [show on top a box to write the abstraction text](compiler/cli/human/reader/web.html:expandOpen)\n    if delete, show option in replace of head abstraction\n    if any clicked: sends it to server\n    if cancel, or escape, [close](compiler/cli/human/reader/web.html:deleteClose). \n\nif right click on [text hightlighted](compiler/cli/human/reader/web.html:selectedRaw)\n    show option to expand abstraction\n    if clicked:\n        [show on top of the list](compiler/cli/human/reader/web.html:expandOpen) a place a user can write abstraction\n        if click on expand or create and has text: [send to server](compiler/cli/human/reader/web.html:expandSend)\n    if cancel, close\n\noptions float a little menu from pointer, each row lights under the pointer.\neach option wear a lively color and underlines itself under the points\n \nif abstraction compiling, \n    show \"compiling\" message next to header abstraction\n    if more than one, show count\n\n\n\n[#  USER JUMPS TO ANOTHER FILE](compiler/cli/human/reader/web.html:crossJump)\n\nif pin clicked, \n  open that file,,pin scrolls to the abstraction it points at, unfolds it, and lights it for a moment; it opens no box.\n  if pin points to file the project does not hold, show muted and the piece name.\n  if the file has no map:\n    open the file, go to the lines of that file and lights them for a moment.\n\n  if pin points to one abstraction of that file and words inside it: \n    a click opens the file, \n    goes to that abstraction,\n    lights those words for a moment. \n\n    such a pin to words the abstraction does not hold is muted and shows the file and the number of the abstraction (explain this line?)\n  \n  [save](compiler/cli/human/reader/web.html:keepPlace):\n    place of the abstraction or file left.\n    the file, the abstractions open it it, scroll position.\n\nif back button of the browser, alt and left, the back button of the mouse, or a swipe back on a phone, pressed: \n    [return to the previous place kept](compiler/cli/human/reader/web.html:goPlace).\nif forward button, or alt and right pressed, return to the next place kept.\nin both cases, if writing box left open, it closes when you go back\n\n\n\n[# WEB DESIGN](compiler/cli/human/reader/web.html:style)\n\na dark and a light version, chosen by your system. \nfont is SF Pro, the San Francisco font of Apple. If not apple device, use typewriter font.\n[sintax highlight](compiler/cli/human/reader/web.html:colours) for code files using shiki 4.5.0\nside and vertical scroll ui, small pill, no bar, and fades.\n\n\ntwo panes on a quiet ground: \n    the tree on the left, \n    the reader on the right, as wide as the window lets it.\n\n\nthe tree looks like the list of apple notes:\n    dark: #0b0b0b\n    light: the soft grey ground of apple notes, #f2f2f7.\n    the project name shows in upper case.\n    the tree is below, same indent as the project name\n    file names in off-white, folder names in grey #8e8e93.\n    [icons have show their proper color](compiler/cli/human/reader/web.html:buildTree)\n    the open file wears a lighter grey row, no lively colour.\n\n    if on a narrow screen:\n        the tree sits in a card: dark grey #1c1c1e, or white in light, with large round corners and no edge.\n        the tree hides and slides in over the reader. if tree opens, the reader section appears dark fading\n\nthe reader:\n  dark: pure black ground, off-white words, like apple notes.\n  light: pure white ground, near-black words.\n  caret is dark yellow and slightly thick\n  caret stays right after the last letter on a line of any length\n  the buttons are dark grey glass with a thin lighter edge, white icons.\n  \n  the reader fills the screen, no frame.\n  the reader separates from the file tree with a faint soft grey line\n\n  the file name and count show in the same filled screen. horizontally centered. top division has no line divider.\n  \n  top right, one pill holding the lucide icon button floats over words, like the pills of apple notes: \n    a filled green play for compile, the icon shows a bit smaller than default for better design\n  \n  a non-pill, #e0ae01 filled circle with a #fff65c save icon inside to save:\n    almost as big as the pill buttons, a bit smaller so it looks good\n    apppears in an animation, on the right of compile\n    enough space to not press compiler by mistake. \n    if clicked, file saves. \n  the buttons use the black ground, the grey glass and the white icons, with no lively colour. same height as the file name and count\n\n  the text fades on the top and bottom.\n  if highlighting the text, the highlight color is yellow\n  a tip note is dark grey glass with round corners, white words and a dark yellow \"got it\" at its right\n  the arrow of a new change is green, bold, in a handwritten font, and floats slowly up and down; it takes no click\n  font size 14px\n  a line wider than the screen scrolls sideways. \n        \n  if on a narrow screen:\n    the colour of the reader fills the whole screen\n    the words font:\n      size is 14px\n      they keep that size when you read and when you write. specially in safari mobile.\n  \n    sideway scroll at furthest at the bottom\n    the file name and the count do not show\n    \n    the top bar has no line of its own. \n    top left, a round button with the burger in a center floats over the words. it opens the tree.\n\n\n    if click on a header, folds or unfolds that abstraction.\n\n    a redraw of the same file keeps the page where you had scrolled it, so the words stay under your eyes. \n    \n    if click away, current open box closes\n    \n    the writing box and grows with text typed and sits in the text place\n    an empty text boxt has place and lights up under the pointer",
+      "text": "[# THE FILE TREE](compiler/cli/human/reader/web.html:main)\n\non the left: the project name and its files.\n    if file has an abstraction not saved: \n        show small yellow dot at the left of its row. \n        if file or abstraction saved: the dot goes out \n    if file hasn't been compiled:\n        [show small purple dot](compiler/cli/human/reader/web.html:markWaiting) at the left of its row. \n        if file or abstraction compiled: the dot goes out \n    if dot shows:\n        keep the indent of the file in the tree\n        [if file inside folder, for each level: also show dot at the folder level](compiler/cli/human/reader/web.html:markWaiting)\n\ntree doesnt' show human/ folder\n\na left click on a file opens that file.\nif a right click on the files, a folder or empty space:\n  opens a list with option: \"create file\" \n  if clicked:\n    the new file box stands under the row you right clicked, or under the last row when you clicked empty space, and takes that row's width, over everything, in the typewriter face. \n    the grey words say: \"doasfrancisco.human\"\n\n    if empty space, the box stands on the last row of the tree, and that row gives the folder: the root, or the folder it stands in.\n    enter [asks the server to make that file inside that folder](compiler/cli/human/reader/web.html:makeNamed)\n    if human:\n      the box takes the bare name \n      the folder is the place it shows in \n      it makes a human file, an abstraction with no code under it. \n  pressing escape or clicking anywhere closes the box or the list.\n\nif the server refuses, show warning on top of the reader.\nif pass, only opens the new file and marks it in the tree\n\n\n\n[# USER OPENS FILE](compiler/cli/human/reader/web.html:open)\n\n\n[if non human file has no abstraction and is opened: request first and show file](compiler/cli/human/reader/web.html:loadCode)\n\nif file open: \n    if no abstraction:\n        if not human file: request file first\n        if human file: [show \"new abstraction\"](compiler/cli/human/reader/web.html:render)\n    \n    if first time: \n        file opens at the header of the abstraction that starts open.\n    \n    a pin points from one abstraction at another. \n    show the abstractions [in order](compiler/cli/human/reader/web.html:sorted), last goes the abstraction nobody points because is the most abstract\n    an abstraction that a pin points at goes above the one that holds the pin, and so on upward. if equal, the one about earlier lines goes first.\n\nif user comes back to a file, the abstractions left open stay open as you left it, and the page stands where you had scrolled it. \na writing box left open closes when user goes to another file.\n\n\n\n[# THE WEB SHOWS ABSTRACTIONS](compiler/cli/human/reader/web.html:render)\ndraws an abstraction as one header line:\n  a small arrow, \n  the name of its piece\n  its lines. \nif file opened for the first time, [the first of the top layer of abstractions](compiler/cli/human/reader/web.html:topOf) start open. all others start folded the first time.\nunder the header the words are drawn exactly as written.\n\na pin whose target has an abstraction is lit;\na pin with none is muted; \na pin the map does not hold yet, one you just typed, is [read from the target it names](compiler/cli/human/reader/web.html:guessAnchor). \n\nthe bar on top says how many are open.\n\nif the open text differs from map:\n    [if the difference is more than spaces and empty lines at the start and the end:](compiler/cli/human/reader/web.html:differs)\n        show save button\n[if the map's words differ from the words user last saved, pins don't count:](compiler/cli/human/reader/web.html:keepSaved)\n    show save button\nif the open text differs from map or saved abstraction isn't compiled yet:\n    [show compile button](compiler/cli/human/reader/web.html:header)\n\n\n[# USER WRITES](compiler/cli/human/reader/web.html:startEdit)\n\na pin holds the text as it is in the map:\n  the pins in their brackets, the targets visible or the code of the file, or nothing for a new abstraction. \n\nif click on the words:\n  a box is put in their place,\n  the caret is where user clicked. \n\nif muted pin, show name beside its words, and that name counts too\n\nif more text is typed than the size of the box:\n  the box grows until its last line shows whole, also when a line wider than the screen gives it a sideways scroll bar.\n  if box grow is less than the size of the screen, grow to the bottom of screen.\n  the page stays where you scrolled it. \n\nif escape presed, or user clicks away:\n  [the box closes](compiler/cli/human/reader/web.html:leaveEdit) \n  the text written is [kept in browser storage](compiler/cli/human/reader/web.html:storeTyped) until save\n\n[if tab pressed on the box](compiler/cli/human/reader/web.html:indent):\n  four spaces are typed where the caret is\n  if lines are selected:\n    each line moves four spaces right\n  if shift + tab, move the line, or each selected line, four spaces left.\n  box stays open\n\nif written or the page draws again between one box and the next, human code stays in their place\n\n\n\n[#  USER CLICKS COMPILE](compiler/cli/human/reader/web.html:compile)\n\n[if save clicked or ctrl + s](compiler/cli/human/reader/web.html:save): \n    send the abstraction text to server \n    [server writes the abstraction and marks as not_compiled](compiler/cli/human/cmd_watch.py:save_writing)\n    if pins wrong: refuse and  keep text in the box\n\nif compile clicked:\n    run logic from save\n    [server sends event to write the code for the saved abstraction](compiler/cli/human/cmd_watch.py:compile_saved)\n    [ai harness finishes and removes not_compiled](compiler/cli/human/cmd_watch.py:cmd_ack)\n\nif refusal, show;\n  server's refusal, \n  the file it came from in the warning colour, \n  and abstraction stays on web. \n\nif pass: redraw the page with [the map again](compiler/cli/human/reader/web.html:reloadMap)\n\n\n\n# NEW ABSTRACTION\n\nif file with no map:\n    shows on top \"new abstraction\", if code file, show the code of the file under it. \n    the bar says there is no abstraction yet\n\nif right click on abstraction header, [show](compiler/cli/human/reader/web.html:menuAt) two options:\n    [\"create abstraction\"](compiler/cli/human/reader/web.html:create)\n    [\"delete abstraction\"](compiler/cli/human/reader/web.html:deleteOpen)\n\n    if create, [show on top a box to write the abstraction text](compiler/cli/human/reader/web.html:expandOpen)\n    if delete, show option in replace of head abstraction\n    if any clicked: sends it to server\n    if cancel, or escape, [close](compiler/cli/human/reader/web.html:deleteClose). \n\nif right click on [text hightlighted](compiler/cli/human/reader/web.html:selectedRaw)\n    show option to expand abstraction\n    if clicked:\n        [show on top of the list](compiler/cli/human/reader/web.html:expandOpen) a place a user can write abstraction\n        if click on expand or create and has text: [send to server](compiler/cli/human/reader/web.html:expandSend)\n    if cancel, close\n\noptions float a little menu from pointer, each row lights under the pointer.\neach option wear a lively color and underlines itself under the points\n \nif abstraction compiling, \n    show \"compiling\" message next to header abstraction\n    if more than one, show count\n\n\n\n[#  USER JUMPS TO ANOTHER FILE](compiler/cli/human/reader/web.html:crossJump)\n\nif pin clicked, \n  open that file,,pin scrolls to the abstraction it points at, unfolds it, and lights it for a moment; it opens no box.\n  if pin points to file the project does not hold, show muted and the piece name.\n  if the file has no map:\n    open the file, go to the lines of that file and lights them for a moment.\n\n  if pin points to one abstraction of that file and words inside it: \n    a click opens the file, \n    goes to that abstraction,\n    lights those words for a moment. \n\n    such a pin to words the abstraction does not hold is muted and shows the file and the number of the abstraction (explain this line?)\n  \n  [save](compiler/cli/human/reader/web.html:keepPlace):\n    place of the abstraction or file left.\n    the file, the abstractions open it it, scroll position.\n\nif back button of the browser, alt and left, the back button of the mouse, or a swipe back on a phone, pressed: \n    [return to the previous place kept](compiler/cli/human/reader/web.html:goPlace).\nif forward button, or alt and right pressed, return to the next place kept.\nin both cases, if writing box left open, it closes when you go back\n\n\n\n[# WEB DESIGN](compiler/cli/human/reader/web.html:style)\n\na dark and a light version, chosen by your system. \nfont is SF Pro, the San Francisco font of Apple. If not apple device, use typewriter font.\n[sintax highlight](compiler/cli/human/reader/web.html:colours) for code files using shiki 4.5.0\nside and vertical scroll ui, small pill, no bar, and fades.\n\n\ntwo panes on a quiet ground: \n    the tree on the left, \n    the reader on the right, as wide as the window lets it.\n\n\nthe tree looks like the list of apple notes:\n    dark: #0b0b0b\n    light: the soft grey ground of apple notes, #f2f2f7.\n    the project name shows in upper case.\n    the tree is below, same indent as the project name\n    file names in off-white, folder names in grey #8e8e93.\n    [icons have show their proper color](compiler/cli/human/reader/web.html:buildTree)\n    the open file wears a lighter grey row, no lively colour.\n\n    if on a narrow screen:\n        the tree sits in a card: dark grey #1c1c1e, or white in light, with large round corners and no edge.\n        the tree hides and slides in over the reader. if tree opens, the reader section appears dark fading\n\nthe reader:\n  dark: pure black ground, off-white words, like apple notes.\n  light: pure white ground, near-black words.\n  caret is dark yellow and slightly thick\n  caret stays right after the last letter on a line of any length\n  the buttons are dark grey glass with a thin lighter edge, white icons.\n  \n  the reader fills the screen, no frame.\n  the reader separates from the file tree with a faint soft grey line\n\n  the file name and count show in the same filled screen. horizontally centered. top division has no line divider.\n  \n  top right, one pill holding the lucide icon button floats over words, like the pills of apple notes: \n    a filled green play for compile, the icon shows a bit smaller than default for better design\n  \n  a non-pill, #e0ae01 filled circle with a #fff65c save icon inside to save:\n    almost as big as the pill buttons, a bit smaller so it looks good\n    apppears in an animation, on the right of compile\n    enough space to not press compiler by mistake. \n    if clicked, file saves. \n  the buttons use the black ground, the grey glass and the white icons, with no lively colour. same height as the file name and count\n\n  the text fades on the top and bottom.\n  if highlighting the text, the highlight color is yellow\n  a tip note is dark grey glass with round corners, white words and a dark yellow \"got it\" at its right\n  the arrow of a new change is green, bold, in a handwritten font, and floats slowly up and down; it takes no click\n  font size 14px\n  a line wider than the screen scrolls sideways. \n        \n  if on a narrow screen:\n    the colour of the reader fills the whole screen\n    the words font:\n      size is 14px\n      they keep that size when you read and when you write. specially in safari mobile.\n  \n    sideway scroll at furthest at the bottom\n    the file name and the count do not show\n    \n    the top bar has no line of its own. \n    top left, a round button with the burger in a center floats over the words. it opens the tree.\n\n\n    if click on a header, folds or unfolds that abstraction.\n\n    a redraw of the same file keeps the page where you had scrolled it, so the words stay under your eyes. \n    \n    if click away, current open box closes\n    \n    the writing box and grows with text typed and sits in the text place\n    an empty text boxt has place and lights up under the pointer",
       "anchors": [
         {
           "words": "# THE FILE TREE",
@@ -24,8 +24,8 @@
           "block": "markWaiting",
           "lines": [
             [
-              668,
-              695
+              671,
+              698
             ]
           ]
         },
@@ -35,8 +35,8 @@
           "block": "markWaiting",
           "lines": [
             [
-              668,
-              695
+              671,
+              698
             ]
           ]
         },
@@ -79,8 +79,8 @@
           "block": "render",
           "lines": [
             [
-              796,
-              842
+              799,
+              845
             ]
           ]
         },
@@ -101,8 +101,8 @@
           "block": "render",
           "lines": [
             [
-              796,
-              842
+              799,
+              845
             ]
           ]
         },
@@ -129,13 +129,24 @@
           ]
         },
         {
+          "words": "if the difference is more than spaces and empty lines at the start and the end:",
+          "file": "compiler/cli/human/reader/web.html",
+          "block": "differs",
+          "lines": [
+            [
+              616,
+              616
+            ]
+          ]
+        },
+        {
           "words": "if the map's words differ from the words user last saved, pins don't count:",
           "file": "compiler/cli/human/reader/web.html",
           "block": "keepSaved",
           "lines": [
             [
-              1128,
-              1145
+              1131,
+              1148
             ]
           ]
         },
@@ -145,8 +156,8 @@
           "block": "header",
           "lines": [
             [
-              781,
-              788
+              784,
+              791
             ]
           ]
         },
@@ -156,8 +167,8 @@
           "block": "startEdit",
           "lines": [
             [
-              953,
-              958
+              956,
+              961
             ]
           ]
         },
@@ -167,8 +178,8 @@
           "block": "leaveEdit",
           "lines": [
             [
-              960,
-              966
+              963,
+              969
             ]
           ]
         },
@@ -189,8 +200,8 @@
           "block": "indent",
           "lines": [
             [
-              1365,
-              1383
+              1368,
+              1386
             ]
           ]
         },
@@ -200,8 +211,8 @@
           "block": "compile",
           "lines": [
             [
-              1147,
-              1164
+              1150,
+              1167
             ]
           ]
         },
@@ -211,8 +222,8 @@
           "block": "save",
           "lines": [
             [
-              968,
-              1000
+              971,
+              1003
             ]
           ]
         },
@@ -255,8 +266,8 @@
           "block": "reloadMap",
           "lines": [
             [
-              1117,
-              1124
+              1120,
+              1127
             ]
           ]
         },
@@ -266,8 +277,8 @@
           "block": "menuAt",
           "lines": [
             [
-              1080,
-              1094
+              1083,
+              1097
             ]
           ]
         },
@@ -277,8 +288,8 @@
           "block": "create",
           "lines": [
             [
-              1052,
-              1054
+              1055,
+              1057
             ]
           ]
         },
@@ -288,8 +299,8 @@
           "block": "deleteOpen",
           "lines": [
             [
-              1056,
-              1060
+              1059,
+              1063
             ]
           ]
         },
@@ -299,8 +310,8 @@
           "block": "expandOpen",
           "lines": [
             [
-              1022,
-              1029
+              1025,
+              1032
             ]
           ]
         },
@@ -310,8 +321,8 @@
           "block": "deleteClose",
           "lines": [
             [
-              1062,
-              1066
+              1065,
+              1069
             ]
           ]
         },
@@ -321,8 +332,8 @@
           "block": "selectedRaw",
           "lines": [
             [
-              1097,
-              1115
+              1100,
+              1118
             ]
           ]
         },
@@ -332,8 +343,8 @@
           "block": "expandOpen",
           "lines": [
             [
-              1022,
-              1029
+              1025,
+              1032
             ]
           ]
         },
@@ -343,8 +354,8 @@
           "block": "expandSend",
           "lines": [
             [
-              1040,
-              1050
+              1043,
+              1053
             ]
           ]
         },
@@ -354,8 +365,8 @@
           "block": "crossJump",
           "lines": [
             [
-              1274,
-              1308
+              1277,
+              1311
             ]
           ]
         },
@@ -365,8 +376,8 @@
           "block": "keepPlace",
           "lines": [
             [
-              1222,
-              1228
+              1225,
+              1231
             ]
           ]
         },
@@ -376,8 +387,8 @@
           "block": "goPlace",
           "lines": [
             [
-              1230,
-              1243
+              1233,
+              1246
             ]
           ]
         },
@@ -398,8 +409,8 @@
           "block": "colours",
           "lines": [
             [
-              736,
-              755
+              739,
+              758
             ]
           ]
         },
@@ -416,7 +427,7 @@
         }
       ],
       "verbatim": {
-        "origin": "# THE FILE TREE\n\non the left: the project name and its files.\n    if file has an abstraction not saved: \n        show small yellow dot at the left of its row. \n        if file or abstraction saved: the dot goes out \n    if file hasn't been compiled:\n        show small purple dot at the left of its row. \n        if file or abstraction compiled: the dot goes out \n    if dot shows:\n        keep the indent of the file in the tree\n        if file inside folder, for each level: also show dot at the folder level\n\ntree doesnt' show human/ folder\n\na left click on a file opens that file.\nif a right click on the files, a folder or empty space:\n  opens a list with option: \"create file\" \n  if clicked:\n    the new file box stands under the row you right clicked, or under the last row when you clicked empty space, and takes that row's width, over everything, in the typewriter face. \n    the grey words say: \"doasfrancisco.human\"\n\n    if empty space, the box stands on the last row of the tree, and that row gives the folder: the root, or the folder it stands in.\n    enter asks the server to make that file inside that folder\n    if human:\n      the box takes the bare name \n      the folder is the place it shows in \n      it makes a human file, an abstraction with no code under it. \n  pressing escape or clicking anywhere closes the box or the list.\n\nif the server refuses, show warning on top of the reader.\nif pass, only opens the new file and marks it in the tree\n\n\n\n# USER OPENS FILE\n\n\nif non human file has no abstraction and is opened: request first and show file\n\nif file open: \n    if no abstraction:\n        if not human file: request file first\n        if human file: show \"new abstraction\"\n    \n    if first time: \n        file opens at the header of the abstraction that starts open.\n    \n    a pin points from one abstraction at another. \n    show the abstractions in order, last goes the abstraction nobody points because is the most abstract\n    an abstraction that a pin points at goes above the one that holds the pin, and so on upward. if equal, the one about earlier lines goes first.\n\nif user comes back to a file, the abstractions left open stay open as you left it, and the page stands where you had scrolled it. \na writing box left open closes when user goes to another file.\n\n\n\n# THE WEB SHOWS ABSTRACTIONS\ndraws an abstraction as one header line:\n  a small arrow, \n  the name of its piece\n  its lines. \nif file opened for the first time, the first of the top layer of abstractions start open. all others start folded the first time.\nunder the header the words are drawn exactly as written.\n\na pin whose target has an abstraction is lit;\na pin with none is muted; \na pin the map does not hold yet, one you just typed, is read from the target it names. \n\nthe bar on top says how many are open.\n\nif the open text differs from map:\n    show save button\nif the map's words differ from the words user last saved, pins don't count:\n    show save button\nif the open text differs from map or saved abstraction isn't compiled yet:\n    show compile button\n\n\n# USER WRITES\n\na pin holds the text as it is in the map:\n  the pins in their brackets, the targets visible or the code of the file, or nothing for a new abstraction. \n\nif click on the words:\n  a box is put in their place,\n  the caret is where user clicked. \n\nif muted pin, show name beside its words, and that name counts too\n\nif more text is typed than the size of the box:\n  the box grows until its last line shows whole, also when a line wider than the screen gives it a sideways scroll bar.\n  if box grow is less than the size of the screen, grow to the bottom of screen.\n  the page stays where you scrolled it. \n\nif escape presed, or user clicks away:\n  the box closes \n  the text written is kept in browser storage until save\n\nif tab pressed on the box:\n  four spaces are typed where the caret is\n  if lines are selected:\n    each line moves four spaces right\n  if shift + tab, move the line, or each selected line, four spaces left.\n  box stays open\n\nif written or the page draws again between one box and the next, human code stays in their place\n\n\n\n#  USER CLICKS COMPILE\n\nif save clicked or ctrl + s: \n    send the abstraction text to server \n    server writes the abstraction and marks as not_compiled\n    if pins wrong: refuse and  keep text in the box\n\nif compile clicked:\n    run logic from save\n    server sends event to write the code for the saved abstraction\n    ai harness finishes and removes not_compiled\n\nif refusal, show;\n  server's refusal, \n  the file it came from in the warning colour, \n  and abstraction stays on web. \n\nif pass: redraw the page with the map again\n\n\n\n# NEW ABSTRACTION\n\nif file with no map:\n    shows on top \"new abstraction\", if code file, show the code of the file under it. \n    the bar says there is no abstraction yet\n\nif right click on abstraction header, show two options:\n    \"create abstraction\"\n    \"delete abstraction\"\n\n    if create, show on top a box to write the abstraction text\n    if delete, show option in replace of head abstraction\n    if any clicked: sends it to server\n    if cancel, or escape, close. \n\nif right click on text hightlighted\n    show option to expand abstraction\n    if clicked:\n        show on top of the list a place a user can write abstraction\n        if click on expand or create and has text: send to server\n    if cancel, close\n\noptions float a little menu from pointer, each row lights under the pointer.\neach option wear a lively color and underlines itself under the points\n \nif abstraction compiling, \n    show \"compiling\" message next to header abstraction\n    if more than one, show count\n\n\n\n#  USER JUMPS TO ANOTHER FILE\n\nif pin clicked, \n  open that file,,pin scrolls to the abstraction it points at, unfolds it, and lights it for a moment; it opens no box.\n  if pin points to file the project does not hold, show muted and the piece name.\n  if the file has no map:\n    open the file, go to the lines of that file and lights them for a moment.\n\n  if pin points to one abstraction of that file and words inside it: \n    a click opens the file, \n    goes to that abstraction,\n    lights those words for a moment. \n\n    such a pin to words the abstraction does not hold is muted and shows the file and the number of the abstraction (explain this line?)\n  \n  save:\n    place of the abstraction or file left.\n    the file, the abstractions open it it, scroll position.\n\nif back button of the browser, alt and left, the back button of the mouse, or a swipe back on a phone, pressed: \n    return to the previous place kept.\nif forward button, or alt and right pressed, return to the next place kept.\nin both cases, if writing box left open, it closes when you go back\n\n\n\n# WEB DESIGN\n\na dark and a light version, chosen by your system. \nfont is SF Pro, the San Francisco font of Apple. If not apple device, use typewriter font.\nsintax highlight for code files using shiki 4.5.0\nside and vertical scroll ui, small pill, no bar, and fades.\n\n\ntwo panes on a quiet ground: \n    the tree on the left, \n    the reader on the right, as wide as the window lets it.\n\n\nthe tree looks like the list of apple notes:\n    dark: #0b0b0b\n    light: the soft grey ground of apple notes, #f2f2f7.\n    the project name shows in upper case.\n    the tree is below, same indent as the project name\n    file names in off-white, folder names in grey #8e8e93.\n    icons have show their proper color\n    the open file wears a lighter grey row, no lively colour.\n\n    if on a narrow screen:\n        the tree sits in a card: dark grey #1c1c1e, or white in light, with large round corners and no edge.\n        the tree hides and slides in over the reader. if tree opens, the reader section appears dark fading\n\nthe reader:\n  dark: pure black ground, off-white words, like apple notes.\n  light: pure white ground, near-black words.\n  caret is dark yellow and slightly thick\n  caret stays right after the last letter on a line of any length\n  the buttons are dark grey glass with a thin lighter edge, white icons.\n  \n  the reader fills the screen, no frame.\n  the reader separates from the file tree with a faint soft grey line\n\n  the file name and count show in the same filled screen. horizontally centered. top division has no line divider.\n  \n  top right, one pill holding the lucide icon button floats over words, like the pills of apple notes: \n    a filled green play for compile, the icon shows a bit smaller than default for better design\n  \n  a non-pill, #e0ae01 filled circle with a #fff65c save icon inside to save:\n    almost as big as the pill buttons, a bit smaller so it looks good\n    apppears in an animation, on the right of compile\n    enough space to not press compiler by mistake. \n    if clicked, file saves. \n  the buttons use the black ground, the grey glass and the white icons, with no lively colour. same height as the file name and count\n\n  the text fades on the top and bottom.\n  if highlighting the text, the highlight color is yellow\n  a tip note is dark grey glass with round corners, white words and a dark yellow \"got it\" at its right\n  the arrow of a new change is green, bold, in a handwritten font, and floats slowly up and down; it takes no click\n  font size 14px\n  a line wider than the screen scrolls sideways. \n        \n  if on a narrow screen:\n    the colour of the reader fills the whole screen\n    the words font:\n      size is 14px\n      they keep that size when you read and when you write. specially in safari mobile.\n  \n    sideway scroll at furthest at the bottom\n    the file name and the count do not show\n    \n    the top bar has no line of its own. \n    top left, a round button with the burger in a center floats over the words. it opens the tree.\n\n\n    if click on a header, folds or unfolds that abstraction.\n\n    a redraw of the same file keeps the page where you had scrolled it, so the words stay under your eyes. \n    \n    if click away, current open box closes\n    \n    the writing box and grows with text typed and sits in the text place\n    an empty text boxt has place and lights up under the pointer"
+        "origin": "# THE FILE TREE\n\non the left: the project name and its files.\n    if file has an abstraction not saved: \n        show small yellow dot at the left of its row. \n        if file or abstraction saved: the dot goes out \n    if file hasn't been compiled:\n        show small purple dot at the left of its row. \n        if file or abstraction compiled: the dot goes out \n    if dot shows:\n        keep the indent of the file in the tree\n        if file inside folder, for each level: also show dot at the folder level\n\ntree doesnt' show human/ folder\n\na left click on a file opens that file.\nif a right click on the files, a folder or empty space:\n  opens a list with option: \"create file\" \n  if clicked:\n    the new file box stands under the row you right clicked, or under the last row when you clicked empty space, and takes that row's width, over everything, in the typewriter face. \n    the grey words say: \"doasfrancisco.human\"\n\n    if empty space, the box stands on the last row of the tree, and that row gives the folder: the root, or the folder it stands in.\n    enter asks the server to make that file inside that folder\n    if human:\n      the box takes the bare name \n      the folder is the place it shows in \n      it makes a human file, an abstraction with no code under it. \n  pressing escape or clicking anywhere closes the box or the list.\n\nif the server refuses, show warning on top of the reader.\nif pass, only opens the new file and marks it in the tree\n\n\n\n# USER OPENS FILE\n\n\nif non human file has no abstraction and is opened: request first and show file\n\nif file open: \n    if no abstraction:\n        if not human file: request file first\n        if human file: show \"new abstraction\"\n    \n    if first time: \n        file opens at the header of the abstraction that starts open.\n    \n    a pin points from one abstraction at another. \n    show the abstractions in order, last goes the abstraction nobody points because is the most abstract\n    an abstraction that a pin points at goes above the one that holds the pin, and so on upward. if equal, the one about earlier lines goes first.\n\nif user comes back to a file, the abstractions left open stay open as you left it, and the page stands where you had scrolled it. \na writing box left open closes when user goes to another file.\n\n\n\n# THE WEB SHOWS ABSTRACTIONS\ndraws an abstraction as one header line:\n  a small arrow, \n  the name of its piece\n  its lines. \nif file opened for the first time, the first of the top layer of abstractions start open. all others start folded the first time.\nunder the header the words are drawn exactly as written.\n\na pin whose target has an abstraction is lit;\na pin with none is muted; \na pin the map does not hold yet, one you just typed, is read from the target it names. \n\nthe bar on top says how many are open.\n\nif the open text differs from map:\n    if the difference is more than spaces and empty lines at the start and the end:\n        show save button\nif the map's words differ from the words user last saved, pins don't count:\n    show save button\nif the open text differs from map or saved abstraction isn't compiled yet:\n    show compile button\n\n\n# USER WRITES\n\na pin holds the text as it is in the map:\n  the pins in their brackets, the targets visible or the code of the file, or nothing for a new abstraction. \n\nif click on the words:\n  a box is put in their place,\n  the caret is where user clicked. \n\nif muted pin, show name beside its words, and that name counts too\n\nif more text is typed than the size of the box:\n  the box grows until its last line shows whole, also when a line wider than the screen gives it a sideways scroll bar.\n  if box grow is less than the size of the screen, grow to the bottom of screen.\n  the page stays where you scrolled it. \n\nif escape presed, or user clicks away:\n  the box closes \n  the text written is kept in browser storage until save\n\nif tab pressed on the box:\n  four spaces are typed where the caret is\n  if lines are selected:\n    each line moves four spaces right\n  if shift + tab, move the line, or each selected line, four spaces left.\n  box stays open\n\nif written or the page draws again between one box and the next, human code stays in their place\n\n\n\n#  USER CLICKS COMPILE\n\nif save clicked or ctrl + s: \n    send the abstraction text to server \n    server writes the abstraction and marks as not_compiled\n    if pins wrong: refuse and  keep text in the box\n\nif compile clicked:\n    run logic from save\n    server sends event to write the code for the saved abstraction\n    ai harness finishes and removes not_compiled\n\nif refusal, show;\n  server's refusal, \n  the file it came from in the warning colour, \n  and abstraction stays on web. \n\nif pass: redraw the page with the map again\n\n\n\n# NEW ABSTRACTION\n\nif file with no map:\n    shows on top \"new abstraction\", if code file, show the code of the file under it. \n    the bar says there is no abstraction yet\n\nif right click on abstraction header, show two options:\n    \"create abstraction\"\n    \"delete abstraction\"\n\n    if create, show on top a box to write the abstraction text\n    if delete, show option in replace of head abstraction\n    if any clicked: sends it to server\n    if cancel, or escape, close. \n\nif right click on text hightlighted\n    show option to expand abstraction\n    if clicked:\n        show on top of the list a place a user can write abstraction\n        if click on expand or create and has text: send to server\n    if cancel, close\n\noptions float a little menu from pointer, each row lights under the pointer.\neach option wear a lively color and underlines itself under the points\n \nif abstraction compiling, \n    show \"compiling\" message next to header abstraction\n    if more than one, show count\n\n\n\n#  USER JUMPS TO ANOTHER FILE\n\nif pin clicked, \n  open that file,,pin scrolls to the abstraction it points at, unfolds it, and lights it for a moment; it opens no box.\n  if pin points to file the project does not hold, show muted and the piece name.\n  if the file has no map:\n    open the file, go to the lines of that file and lights them for a moment.\n\n  if pin points to one abstraction of that file and words inside it: \n    a click opens the file, \n    goes to that abstraction,\n    lights those words for a moment. \n\n    such a pin to words the abstraction does not hold is muted and shows the file and the number of the abstraction (explain this line?)\n  \n  save:\n    place of the abstraction or file left.\n    the file, the abstractions open it it, scroll position.\n\nif back button of the browser, alt and left, the back button of the mouse, or a swipe back on a phone, pressed: \n    return to the previous place kept.\nif forward button, or alt and right pressed, return to the next place kept.\nin both cases, if writing box left open, it closes when you go back\n\n\n\n# WEB DESIGN\n\na dark and a light version, chosen by your system. \nfont is SF Pro, the San Francisco font of Apple. If not apple device, use typewriter font.\nsintax highlight for code files using shiki 4.5.0\nside and vertical scroll ui, small pill, no bar, and fades.\n\n\ntwo panes on a quiet ground: \n    the tree on the left, \n    the reader on the right, as wide as the window lets it.\n\n\nthe tree looks like the list of apple notes:\n    dark: #0b0b0b\n    light: the soft grey ground of apple notes, #f2f2f7.\n    the project name shows in upper case.\n    the tree is below, same indent as the project name\n    file names in off-white, folder names in grey #8e8e93.\n    icons have show their proper color\n    the open file wears a lighter grey row, no lively colour.\n\n    if on a narrow screen:\n        the tree sits in a card: dark grey #1c1c1e, or white in light, with large round corners and no edge.\n        the tree hides and slides in over the reader. if tree opens, the reader section appears dark fading\n\nthe reader:\n  dark: pure black ground, off-white words, like apple notes.\n  light: pure white ground, near-black words.\n  caret is dark yellow and slightly thick\n  caret stays right after the last letter on a line of any length\n  the buttons are dark grey glass with a thin lighter edge, white icons.\n  \n  the reader fills the screen, no frame.\n  the reader separates from the file tree with a faint soft grey line\n\n  the file name and count show in the same filled screen. horizontally centered. top division has no line divider.\n  \n  top right, one pill holding the lucide icon button floats over words, like the pills of apple notes: \n    a filled green play for compile, the icon shows a bit smaller than default for better design\n  \n  a non-pill, #e0ae01 filled circle with a #fff65c save icon inside to save:\n    almost as big as the pill buttons, a bit smaller so it looks good\n    apppears in an animation, on the right of compile\n    enough space to not press compiler by mistake. \n    if clicked, file saves. \n  the buttons use the black ground, the grey glass and the white icons, with no lively colour. same height as the file name and count\n\n  the text fades on the top and bottom.\n  if highlighting the text, the highlight color is yellow\n  a tip note is dark grey glass with round corners, white words and a dark yellow \"got it\" at its right\n  the arrow of a new change is green, bold, in a handwritten font, and floats slowly up and down; it takes no click\n  font size 14px\n  a line wider than the screen scrolls sideways. \n        \n  if on a narrow screen:\n    the colour of the reader fills the whole screen\n    the words font:\n      size is 14px\n      they keep that size when you read and when you write. specially in safari mobile.\n  \n    sideway scroll at furthest at the bottom\n    the file name and the count do not show\n    \n    the top bar has no line of its own. \n    top left, a round button with the burger in a center floats over the words. it opens the tree.\n\n\n    if click on a header, folds or unfolds that abstraction.\n\n    a redraw of the same file keeps the page where you had scrolled it, so the words stay under your eyes. \n    \n    if click away, current open box closes\n    \n    the writing box and grows with text typed and sits in the text place\n    an empty text boxt has place and lights up under the pointer"
       }
     }
   ],
