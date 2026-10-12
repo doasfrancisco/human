@@ -11,7 +11,7 @@ trap 'rm -rf "$work"' EXIT
 uv venv --quiet --python 3.12 "$work/venv"
 uv pip install --quiet --python "$work/venv" pyinstaller .
 echo "from human import main; main()" > "$work/entry.py"
-"$work/venv/bin/pyinstaller" --noconfirm --log-level WARN --name human --collect-data human --copy-metadata humanlang \
+"$work/venv/bin/pyinstaller" --noconfirm --log-level WARN --name human --collect-data human --copy-metadata humanlang --python-option "X utf8" \
   --distpath "$work/dist" --workpath "$work/build" --specpath "$work" "$work/entry.py"
 "$work/dist/human/human" --help > /dev/null
 

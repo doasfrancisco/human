@@ -28,9 +28,6 @@ READER = ("web.html", "trees.js", "shiki.js")
 
 IGNORE_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv",
                "build", "dist", ".idea", ".vscode"}
-SUFFIXES = {".py", ".js", ".ts", ".tsx", ".jsx", ".html", ".htm", ".css", ".md",
-            ".toml", ".json", ".yaml", ".yml", ".sh", ".rs", ".go", ".c", ".h",
-            ".cpp", ".java", ".rb", ".sql"}
 
 DESTINATIONS = {
     "claude": Path.home() / ".claude" / "skills",
@@ -40,22 +37,21 @@ DESTINATIONS = {
 
 
 def scan_files(root):
-    out = []
+    out, folders = [], []
     for dirpath, dirnames, filenames in os.walk(root):
         d = Path(dirpath)
         if d != root and (d / "human" / "human.json").is_file():
             dirnames[:] = []
             continue
+        if d != root:
+            folders.append(d.relative_to(root).as_posix())
         dirnames[:] = sorted(x for x in dirnames
                              if not x.startswith(".") and x not in IGNORE_DIRS
                              and not (d == root and x == "human"))
         for f in sorted(filenames):
-            if f.startswith("."):
-                continue
-            p = d / f
-            if p.suffix.lower() in SUFFIXES:
-                out.append(p.relative_to(root).as_posix())
-    return out
+            if not f.startswith("."):
+                out.append((d / f).relative_to(root).as_posix())
+    return out, folders
 
 
 def is_ignored(rel, patterns):
@@ -129,9 +125,10 @@ def write_files(root, data=None):
     if data is None:
         data = json.loads(map_path.read_text())
     patterns = data.get("ignore", [])
-    found = scan_files(root)
+    found, folders = scan_files(root)
     data["ignore"] = patterns
     data["files"] = [f for f in found if not is_ignored(f, patterns)]
+    data["folders"] = [f for f in folders if not is_ignored(f, patterns)]
     data["humans"] = helpers.human_entries(root)
     data.pop("ignored", None)
     map_path.write_text(json.dumps(data, indent=2) + "\n")
@@ -146,13 +143,13 @@ class Sweep:
 
     def files(self):
         with self.lock:
-            out, seen = [], set()
-            self.visit(self.root, out, seen)
+            out, folders, seen = [], [], set()
+            self.visit(self.root, out, folders, seen)
             for d in set(self.dirs) - seen:
                 del self.dirs[d]
-            return out
+            return out, folders
 
-    def visit(self, d, out, seen):
+    def visit(self, d, out, folders, seen):
         seen.add(d)
         if d != self.root and (d / "human" / "human.json").is_file():
             return
@@ -164,9 +161,11 @@ class Sweep:
         if held is None or held[0] is None or held[0] != stamp:
             held = (stamp if time.time_ns() - stamp > 2_000_000_000 else None, *self.listing(d))
             self.dirs[d] = held
+        if d != self.root:
+            folders.append(d.relative_to(self.root).as_posix())
         out.extend(held[2])
         for sub in held[1]:
-            self.visit(sub, out, seen)
+            self.visit(sub, out, folders, seen)
 
     def listing(self, d):
         subs, names = [], []
@@ -184,7 +183,7 @@ class Sweep:
                 if not x.startswith(".") and x not in IGNORE_DIRS
                 and not (d == self.root and x == "human")]
         files = [(d / f).relative_to(self.root).as_posix() for f in sorted(names)
-                 if not f.startswith(".") and Path(f).suffix.lower() in SUFFIXES]
+                 if not f.startswith(".")]
         return subs, files
 
 
@@ -195,7 +194,9 @@ def fresh_map(root):
     data = json.loads((root / "human" / "human.json").read_text())
     patterns = data.get("ignore", [])
     sweep = SWEEPS.setdefault(root, Sweep(root))
-    data["files"] = [f for f in sweep.files() if not is_ignored(f, patterns)]
+    files, folders = sweep.files()
+    data["files"] = [f for f in files if not is_ignored(f, patterns)]
+    data["folders"] = [f for f in folders if not is_ignored(f, patterns)]
     data["humans"] = helpers.human_entries(root)
     data["stamps"] = map_stamps(root)
     return data
@@ -253,8 +254,6 @@ def new_file(root, name):
         d = root.joinpath(*rel.parts[:i])
         if (d / "human" / "human.json").is_file():
             return 400, f"{shown} is in {d.relative_to(root).as_posix()}, a project of its own"
-    if rel.suffix.lower() not in SUFFIXES:
-        return 400, f"{shown} has no suffix the file tree knows; one of {', '.join(sorted(SUFFIXES))}"
     data = json.loads((root / "human" / "human.json").read_text())
     if is_ignored(shown, data.get("ignore", [])):
         return 400, f"{shown} is ignored by human/human.json"

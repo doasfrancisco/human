@@ -35,13 +35,13 @@ jobs:
       - if: matrix.place != 'win32-x64'
         shell: bash
         run: |
-          pyinstaller --noconfirm --name human --collect-data human --copy-metadata humanlang entry.py
+          pyinstaller --noconfirm --name human --collect-data human --copy-metadata humanlang --python-option "X utf8" entry.py
           tar -czf "human-${{ matrix.place }}.tar.gz" -C dist human
           ./dist/human/human --help > /dev/null
       - if: matrix.place == 'win32-x64'
         shell: bash
         run: |
-          pyinstaller --noconfirm --name human --collect-data human --copy-metadata humanlang entry.py
+          pyinstaller --noconfirm --name human --collect-data human --copy-metadata humanlang --python-option "X utf8" entry.py
           python -m zipfile -c "human-${{ matrix.place }}.zip" dist/human
           ./dist/human/human.exe --help > /dev/null
       - uses: actions/upload-artifact@v4
