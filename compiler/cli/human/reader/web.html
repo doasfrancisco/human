@@ -190,10 +190,10 @@ import { FileTree } from "./trees.js";
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 var ANCH=/\[([^\[\]]+)\]\(([^()]+)\)/g;
 var projs=[], cur=null, byId={}, blockId={}, order=[], lines=[], ft=null, openSet={}, openMem={}, scrollMem={}, notice="", codeFlash=null;
-var TKEY="human:typed:"+location.pathname, SKEY="human:saved:"+location.pathname;
+var TKEY="human:typed:"+location.pathname;
 function loadStore(k){try{var v=JSON.parse(localStorage.getItem(k)||"{}");return v&&typeof v==="object"?v:{};}catch(e){return {};}}
 function putStore(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-var editing=null, typed=loadStore(TKEY), savedText=loadStore(SKEY), pendingBy={}, savedBy={}, stamps=null, sending=false, bad=false, caretWanted=0, expanding=null, deleting=null;
+var editing=null, typed=loadStore(TKEY), pendingBy={}, savedBy={}, stamps=null, sending=false, bad=false, caretWanted=0, expanding=null, deleting=null;
 function storeTyped(){putStore(TKEY,typed);}
 var rows=document.getElementById("rows"), narrow=matchMedia("(max-width:720px)");
 
@@ -261,7 +261,6 @@ Promise.all([loadList(),loadMaps(),loadTip(),pollQueue()]).then(function(x){
   if(tip) p.files.forEach(function(f){if(f.file===tip.file)start=f;});
   buildTree(p,start.file);
   open(p,start);
-  p.files.forEach(keepSaved);
   render();
   if(tipHere()&&tip.entry){
     openSet[tip.entry]=1;
@@ -999,8 +998,6 @@ function save(){
       if(!x.ok){says.push(label+": "+(x.j.error||"refused"));failed=true;return;}
       var k=key(file,s.kind,s.id);
       if(typed[k]===body.text){delete typed[k];storeTyped();}
-      var sk=s.kind==="retext"?k:s.kind==="map"&&x.j.entry!=null?key(file,"retext",x.j.entry):null;
-      if(sk){savedText[sk]=body.text;putStore(SKEY,savedText);}
       if(s.kind==="code") f.code=body.text;
     }).catch(function(){says.push(label+": the server did not answer — is human serve running?");failed=true;})
       .then(function(){return step(i+1);});
@@ -1133,31 +1130,24 @@ function selectedRaw(ev){
 function reloadMap(f){
   return fetch(mapName(f.file),{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;})
     .then(function(d){
-      if(d&&Array.isArray(d.explanations)) f.d=d;
-      keepSaved(f);
+      if(d&&Array.isArray(d.explanations)){dropStale(f,d);f.d=d;}
       if(cur&&cur.file===f.file) open(cur.proj,f);
     });
 }
 
 function words(t){return t.replace(ANCH,"$1");}
 
-function keepSaved(f){
-  var pre=key(f.file,"retext",""), name=nameOf(f.file), hit=false;
-  Object.keys(savedText).forEach(function(k){
-    if(k.indexOf(pre)!==0) return;
-    var id=+k.slice(pre.length), e=null;
-    f.d.explanations.forEach(function(x){if(x.id===id)e=x;});
-    if(!e){delete savedText[k];hit=true;return;}
-    if(words(e.text).trim()===words(savedText[k]).trim()){
-      var marked=(pendingBy[name]||[]).concat(savedBy[name]||[]).some(function(x){return x.entry===id;});
-      if(!marked){delete savedText[k];hit=true;}
-      return;
-    }
-    if(editing&&editing.file===f.file&&editing.kind==="retext"&&editing.id===id) return;
-    if(!(k in typed)) typed[k]=savedText[k];
-    delete savedText[k]; hit=true;
+function dropStale(f,d){
+  var hit=false, old=f.d.explanations||[];
+  var mk=key(f.file,"map",null);
+  if(!old.length&&d.explanations.length&&mk in typed&&!(editing&&editing.file===f.file&&editing.kind==="map")){delete typed[mk];hit=true;}
+  old.forEach(function(o){
+    var k=key(f.file,"retext",o.id), n=null;
+    if(!(k in typed)||(editing&&editing.file===f.file&&editing.kind==="retext"&&editing.id===o.id)) return;
+    d.explanations.forEach(function(x){if(x.id===o.id)n=x;});
+    if(!n||words(n.text).trim()!==words(o.text).trim()){delete typed[k];hit=true;}
   });
-  if(hit){putStore(SKEY,savedText);storeTyped();}
+  if(hit) storeTyped();
 }
 
 function compile(){
