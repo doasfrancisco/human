@@ -717,15 +717,15 @@ def cmd_update(a):
     if not updater.frozen() or not updater.place():
         sys.exit("human update works only on the built human program")
     try:
+        updater.settle()
         updater.check()
     except (OSError, ValueError) as e:
         sys.exit(f"human update failed: {e}")
+    updater.prune()
     v = updater.STATE["ready"]
     if not v:
         print(f"human {updater.version()} is the newest")
         return
-    if os.name == "nt":
-        updater.switch(v)
     print(f"human {v} installed")
 
 
@@ -743,6 +743,7 @@ def cmd_uninstall(a):
 
 def main():
     ap = argparse.ArgumentParser(prog="human")
+    ap.add_argument("--version", action="version", version=f"human {updater.version()}")
     sub = ap.add_subparsers(dest="cmd", required=True)
     i = sub.add_parser("init")
     i.add_argument("folder", nargs="?", default=".")

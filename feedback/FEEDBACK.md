@@ -227,3 +227,50 @@ Possible solutions:
 **Do not touch files in use, and tell the user.** The install finds the files that are in use, moves nothing, and prints "stop these human processes, then run the install again", with their process ids. There are no new parts. The disadvantage: the update from the reader cannot work this way on Windows, and you must do a manual step each time.
 
 The `human.cmd` option: each version goes into `~\.human\versions\0.0.X`, and a folder like `~\.human\bin` in the PATH holds one file, `human.cmd`, with one line such as `@"C:\Users\<you>\.human\versions\0.0.132\human\human.exe" %*`. An update installs the new version into a new folder and changes only that line, so old servers keep running on their folder and new commands start the new version.
+
+
+
+## 18. Images are better abstractions than text for ERPs and SaaS
+
+Tried human with image abstractions: for an ERP or a SaaS, an image tells more than text. But with too much information the images grow without end, so the abstraction must be compressed again. In opendesign, animations helped.
+
+What could make it work:
+
+1. Compute.
+2. Compress images (HTML) into animations or processes, in an outside tool like Paper (open design).
+3. A better way to compress the database view than the current visualizer.
+4. A new type of database, designed to scale understanding.
+5. A slightly better model of the logic of mina and palini.
+6. A compiler that runs many agents and does not run out of context.
+
+With these, Jose could likely build pulso in one month. Today the loop is slow: on mina, the last two days were spent waiting for the AI to finish designs, then reviewing them.
+
+
+
+## 19. The syntax highlighter could be an AI
+
+In place of colours by syntax, an AI could highlight the words that are important.
+
+
+
+## 20. A compile step could format human code for the AI harness
+
+Before the AI harness reads the human code, a `claude -p` step could format it and make it easier for the harness to read.
+
+
+
+## 21. With much human code, the AI harness forgets it
+
+When the human code holds many things, the AI harness forgets it. It should first read the human code, to check if what it needs is already there and if that code is correctly compiled.
+
+Example, Emprende UP (2026-10-15): the human code said the startup data was in an xlsx. The harness did not read it, and it started two research agents to find the same data on the web. It stopped only after the user told it to read the human code.
+
+Each time human runs, it should also link the integration, so the AI harness can compile correctly.
+
+
+
+## 22. The best form of human web is a harness
+
+In theory, human web is best as the human harness and a metaharness. It could take ideas from T3 Code, the Agent Client Protocol and Pi.
+
+It could also be an operating system based on Linux, and a browser based on Chromium or Ladybird.
