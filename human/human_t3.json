@@ -1,0 +1,79 @@
+{
+  "code_file": "t3",
+  "explanations": [
+    {
+      "id": 1,
+      "block": "t3",
+      "block_lines": [],
+      "text": "[update t3code on signal](UPDATE_T3.md):\n    use [same t3.service node version from nvm](UPDATE_T3.md:Use the node of t3.service)\n    [install the newest t3](UPDATE_T3.md:Install the newest t3) with npm install -g t3@latest\n    [check with npm ls -g t3](UPDATE_T3.md:Check the installed version) that the new version is installed\n    [restart t3.service with a one-time systemd timer](UPDATE_T3.md:Restart t3.service):\n        sudo systemd-run --on-active=20 /bin/systemctl restart t3.service\n\n[after the restart, check](UPDATE_T3.md:Check after the restart):\n    systemctl status t3.service shows active (running)\n    logs with no error",
+      "anchors": [
+        {
+          "words": "update t3code on signal",
+          "file": "UPDATE_T3.md"
+        },
+        {
+          "words": "same t3.service node version from nvm",
+          "file": "UPDATE_T3.md",
+          "block": "Use the node of t3.service",
+          "lines": [
+            [
+              3,
+              8
+            ]
+          ]
+        },
+        {
+          "words": "install the newest t3",
+          "file": "UPDATE_T3.md",
+          "block": "Install the newest t3",
+          "lines": [
+            [
+              9,
+              14
+            ]
+          ]
+        },
+        {
+          "words": "check with npm ls -g t3",
+          "file": "UPDATE_T3.md",
+          "block": "Check the installed version",
+          "lines": [
+            [
+              15,
+              20
+            ]
+          ]
+        },
+        {
+          "words": "restart t3.service with a one-time systemd timer",
+          "file": "UPDATE_T3.md",
+          "block": "Restart t3.service",
+          "lines": [
+            [
+              21,
+              26
+            ]
+          ]
+        },
+        {
+          "words": "after the restart, check",
+          "file": "UPDATE_T3.md",
+          "block": "Check after the restart",
+          "lines": [
+            [
+              27,
+              32
+            ]
+          ]
+        }
+      ],
+      "verbatim": {
+        "origin": "update t3code on signal:\n    use same t3.service node version from nvm\n    install the newest t3 with npm install -g t3@latest\n    check with npm ls -g t3 that the new version is installed\n    restart t3.service with a one-time systemd timer:\n        sudo systemd-run --on-active=20 /bin/systemctl restart t3.service\n\nafter the restart, check:\n    systemctl status t3.service shows active (running)\n    logs with no error"
+      }
+    }
+  ],
+  "not_covered": {
+    "code_lines": [],
+    "blank_lines": []
+  }
+}

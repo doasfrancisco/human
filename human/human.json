@@ -4,14 +4,20 @@
     "CLAUDE.md",
     "CONTRIBUTING.md",
     "IDEAS.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
     "NOTES.md",
     "PG_ESSAY.md",
     "README.md",
     "THINGS_TRIED.md",
+    "UPDATE_T3.md",
     "report_licenses.md",
+    "compiler/cli/LICENSE-APACHE",
+    "compiler/cli/LICENSE-MIT",
     "compiler/cli/README.md",
     "compiler/cli/install_local.sh",
     "compiler/cli/pyproject.toml",
+    "compiler/cli/uv.lock",
     "compiler/cli/human/__init__.py",
     "compiler/cli/human/cmd_human.py",
     "compiler/cli/human/cmd_map.py",
@@ -23,6 +29,11 @@
     "compiler/cli/human/reader/trees.js",
     "compiler/cli/human/reader/web.html",
     "compiler/cli/human/skills/human/SKILL.md",
+    "compiler/cli/humanlang.egg-info/PKG-INFO",
+    "compiler/cli/humanlang.egg-info/SOURCES.txt",
+    "compiler/cli/humanlang.egg-info/dependency_links.txt",
+    "compiler/cli/humanlang.egg-info/entry_points.txt",
+    "compiler/cli/humanlang.egg-info/top_level.txt",
     "feedback/FEEDBACK.md",
     "feedback/FEEDBACK_MATIAS.md",
     "feedback/feedback.py",
@@ -50,6 +61,10 @@
       "place": ""
     },
     {
+      "name": "t3",
+      "place": ""
+    },
+    {
       "name": "top_human",
       "place": ""
     },
@@ -57,5 +72,16 @@
       "name": "web",
       "place": ""
     }
+  ],
+  "folders": [
+    "compiler",
+    "compiler/cli",
+    "compiler/cli/human",
+    "compiler/cli/human/reader",
+    "compiler/cli/human/skills",
+    "compiler/cli/human/skills/human",
+    "compiler/cli/humanlang.egg-info",
+    "feedback",
+    "feedback/lambda"
   ]
 }

@@ -40,7 +40,8 @@
   #tree{flex:1;min-height:0;--trees-bg-override:var(--side);--trees-font-family-override:var(--sans);--trees-fg-override:var(--ink);--trees-fg-muted-override:var(--grey);--trees-selected-bg-override:var(--pick);--trees-selected-fg-override:var(--ink);--trees-accent-override:var(--grey);--trees-selected-focused-border-color-override:transparent;--trees-focus-ring-color-override:transparent;}
   #newbox{position:fixed;z-index:31;width:min(60vw,240px);box-sizing:border-box;background:var(--surface);border:1px solid var(--hair);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);padding:2px;}
   #newbox[hidden]{display:none;}
-  #newname{width:100%;box-sizing:border-box;font-family:var(--sans);font-size:12px;padding:2px 6px;border:1px solid var(--hair);border-radius:6px;background:var(--surface);color:var(--ink);}
+  #newname{display:block;width:100%;height:26px;box-sizing:border-box;font-family:ui-monospace,"SF Mono",Menlo,"Cascadia Code",Consolas,"Courier New",monospace;font-size:12px;line-height:18px;padding:2px 6px;border:1px solid var(--hair);border-radius:6px;background:var(--surface);color:var(--ink);caret-color:var(--caret);outline:0;box-shadow:none;}
+  #newname::placeholder{color:var(--faint);opacity:1;}
   #reader{flex:1;min-height:0;display:flex;flex-direction:column;}
   .phead{display:grid;grid-template-columns:1fr minmax(0,auto) 1fr;grid-template-areas:"menu head btns";align-items:center;gap:8px;font-family:var(--sans);font-size:11px;color:var(--muted);background:none;border:0;padding:10px 14px;min-height:64px;flex-shrink:0;}
   #head{grid-area:head;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -374,7 +375,7 @@ var newDir="";
 function newClose(){newBox.hidden=true;newName.value="";}
 function newOpen(dir,at){
   newDir=dir;
-  newName.placeholder=(newDir?newDir+"/":"")+"app.py";
+  newName.placeholder="doasfrancisco.human";
   newName.value=""; newBox.hidden=false;
   newBox.style.width=at.width?at.width+"px":"";
   newBox.style.left=Math.min(at.left,window.innerWidth-newBox.offsetWidth-6)+"px";
